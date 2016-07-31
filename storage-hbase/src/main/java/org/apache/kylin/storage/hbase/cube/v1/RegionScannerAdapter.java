@@ -27,7 +27,6 @@ import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.regionserver.ScannerContext;
 
 /**
  * @author yangli9
@@ -52,8 +51,8 @@ public class RegionScannerAdapter implements RegionScanner {
     }
 
     @Override
-    public boolean next(List<Cell> result, ScannerContext scannerContext) throws IOException {
-        return next(result);
+    public boolean next(List<Cell> results, int limit) throws IOException {
+        return next(results);
     }
 
     @Override
@@ -62,7 +61,7 @@ public class RegionScannerAdapter implements RegionScanner {
     }
 
     @Override
-    public boolean nextRaw(List<Cell> result, ScannerContext scannerContext) throws IOException {
+    public boolean nextRaw(List<Cell> result, int limit) throws IOException {
         return next(result);
     }
 
@@ -94,11 +93,6 @@ public class RegionScannerAdapter implements RegionScanner {
     @Override
     public long getMvccReadPoint() {
         return Long.MAX_VALUE;
-    }
-
-    @Override
-    public int getBatch() {
-        return -1;
     }
 
 }
