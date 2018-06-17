@@ -23,7 +23,7 @@
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
         <version>19</version>
-        <relativePath />
+        <relativePath/>
         <!-- no parent resolution -->
     </parent>
 
@@ -66,7 +66,7 @@
 
         <!-- Calcite Version -->
         <calcite.version>1.13.0-kylin-r4</calcite.version>
-        <avatica.version>1.10.0</avatica.version>
+        <avatica.version>1.11.0</avatica.version>
 
         <!-- Hadoop Common deps, keep compatible with hadoop2.version -->
         <zookeeper.version>3.4.8</zookeeper.version>
@@ -1111,7 +1111,7 @@
                                         </goals>
                                     </pluginExecutionFilter>
                                     <action>
-                                        <ignore />
+                                        <ignore/>
                                     </action>
                                 </pluginExecution>
                             </pluginExecutions>
