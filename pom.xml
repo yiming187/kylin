@@ -23,7 +23,7 @@
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
         <version>19</version>
-        <relativePath />
+        <relativePath/>
         <!-- no parent resolution -->
     </parent>
 
@@ -98,7 +98,7 @@
         <!-- Commons -->
         <commons-lang3.version>3.4</commons-lang3.version>
         <commons-email.version>1.5</commons-email.version>
-        <commons-validator.version>1.4.0</commons-validator.version>
+        <commons-validator.version>1.5.0</commons-validator.version>
 
         <!-- Utility -->
         <log4j.version>1.2.17</log4j.version>
@@ -1111,7 +1111,7 @@
                                         </goals>
                                     </pluginExecutionFilter>
                                     <action>
-                                        <ignore />
+                                        <ignore/>
                                     </action>
                                 </pluginExecution>
                             </pluginExecutions>
