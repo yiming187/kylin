@@ -33,10 +33,10 @@
     </parent>
 
     <properties>
-        <hdp.version />
-        <fastBuildMode />
-        <buildCubeUsingProvidedData />
-        <engineType />
+        <hdp.version/>
+        <fastBuildMode/>
+        <buildCubeUsingProvidedData/>
+        <engineType/>
     </properties>
 
     <!-- Dependencies. -->
@@ -312,7 +312,7 @@
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-compiler</artifactId>
-            <version>2.11.0</version>
+            <version>2.11.12</version>
         </dependency>
         <dependency>
             <groupId>org.scala-lang</groupId>
@@ -418,7 +418,7 @@
                                             -javaagent:${project.basedir}/..//dev-support/jacocoagent.jar=includes=org.apache.kylin.*,output=file,destfile=jacoco-it-engine.exec
                                         </argument>
                                         <argument>-classpath</argument>
-                                        <classpath />
+                                        <classpath/>
                                         <argument>org.apache.kylin.provision.BuildCubeWithEngine
                                         </argument>
                                     </arguments>
@@ -448,7 +448,7 @@
                                             -javaagent:${project.basedir}/..//dev-support/jacocoagent.jar=includes=org.apache.kylin.*,output=file,destfile=jacoco-it-stream.exec
                                         </argument>
                                         <argument>-classpath</argument>
-                                        <classpath />
+                                        <classpath/>
                                         <argument>org.apache.kylin.provision.BuildCubeWithStream
                                         </argument>
                                     </arguments>
