@@ -23,7 +23,7 @@
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
         <version>19</version>
-        <relativePath />
+        <relativePath/>
         <!-- no parent resolution -->
     </parent>
 
@@ -62,9 +62,6 @@
         <spark.version>2.1.2</spark.version>
         <kryo.version>4.0.0</kryo.version>
 
-        <!-- Scala versions -->
-        <scala.version>2.11.0</scala.version>
-
         <!-- <reflections.version>0.9.10</reflections.version> -->
 
         <!-- Calcite Version -->
@@ -83,7 +80,6 @@
         <commons-upload.version>1.3.3</commons-upload.version>
         <commons-math3.version>3.1.1</commons-math3.version>
         <commons-collections.version>3.2.2</commons-collections.version>
-        <commons-pool.version>2.5.0</commons-pool.version>
 
         <!-- Calcite deps, keep compatible with calcite.version -->
         <jackson.version>2.9.5</jackson.version>
@@ -125,7 +121,7 @@
         <!-- REST Service, ref https://github.com/spring-projects/spring-boot/blob/v1.3.8.RELEASE/spring-boot-dependencies/pom.xml -->
         <spring.boot.version>1.3.8.RELEASE</spring.boot.version>
         <spring.framework.version>4.3.10.RELEASE</spring.framework.version>
-        <spring.framework.security.version>4.2.3.RELEASE</spring.framework.security.version>
+        <spring.framework.security.version>4.2.4.RELEASE</spring.framework.security.version>
         <spring.framework.security.extensions.version>1.0.2.RELEASE</spring.framework.security.extensions.version>
         <opensaml.version>2.6.6</opensaml.version>
         <aspectj.version>1.8.9</aspectj.version>
@@ -511,11 +507,6 @@
                 <version>${commons-collections.version}</version>
                 <scope>provided</scope>
             </dependency>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-pool2</artifactId>
-                <version>${commons-pool.version}</version>
-            </dependency>
 
             <!-- HBase2 dependencies -->
             <dependency>
@@ -898,24 +889,6 @@
                 <version>${tomcat.version}</version>
                 <scope>provided</scope>
             </dependency>
-
-            <dependency>
-                <groupId>org.scala-lang</groupId>
-                <artifactId>scala-library</artifactId>
-                <version>${scala.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.scala-lang</groupId>
-                <artifactId>scala-compiler</artifactId>
-                <version>${scala.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.scala-lang</groupId>
-                <artifactId>scala-reflect</artifactId>
-                <version>${scala.version}</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -1145,7 +1118,7 @@
                                         </goals>
                                     </pluginExecutionFilter>
                                     <action>
-                                        <ignore />
+                                        <ignore/>
                                     </action>
                                 </pluginExecution>
                             </pluginExecutions>
@@ -1544,7 +1517,6 @@
                                 <exclude>**/*.jpg</exclude>
                                 <exclude>**/*.gif</exclude>
                                 <exclude>**/*.ico</exclude>
-                                <exclude>**/*.svg</exclude>
 
                                 <!--Test Data-->
                                 <exclude>**/src/test/resources/**</exclude>
@@ -1574,9 +1546,6 @@
                                 <exclude>**/*.doc</exclude>
                                 <exclude>**/*.txt</exclude>
                                 <exclude>**/.checkstyle</exclude>
-                                <exclude>**/*.eot</exclude>
-                                <exclude>**/*.ttf</exclude>
-                                <exclude>**/*.woff</exclude>
 
                                 <!-- Kylin's website content -->
                                 <exclude>**/.sass-cache/**</exclude>
