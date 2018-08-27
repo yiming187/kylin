@@ -23,7 +23,7 @@
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
         <version>19</version>
-        <relativePath />
+        <relativePath/>
         <!-- no parent resolution -->
     </parent>
 
@@ -63,7 +63,7 @@
         <kryo.version>4.0.0</kryo.version>
 
         <!-- Scala versions -->
-        <scala.version>2.11.0</scala.version>
+        <scala.version>2.11.12</scala.version>
 
         <!-- <reflections.version>0.9.10</reflections.version> -->
 
@@ -1145,7 +1145,7 @@
                                         </goals>
                                     </pluginExecutionFilter>
                                     <action>
-                                        <ignore />
+                                        <ignore/>
                                     </action>
                                 </pluginExecution>
                             </pluginExecutions>
