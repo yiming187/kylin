@@ -46,7 +46,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
     <!-- Hadoop versions -->
-    <hadoop2.version>2.7.1</hadoop2.version>
+    <hadoop2.version>3.0.0</hadoop2.version>
     <yarn.version>2.7.1</yarn.version>
 
     <!-- Hive versions -->
@@ -1451,7 +1451,7 @@
     <profile>
       <id>cdh5.7</id>
       <properties>
-        <hadoop2.version>2.6.0-cdh5.7.0</hadoop2.version>
+        <hadoop2.version>3.0.0</hadoop2.version>
         <yarn.version>2.6.0-cdh5.7.0</yarn.version>
         <hive.version>1.1.0-cdh5.7.0</hive.version>
         <hive-hcatalog.version>1.1.0-cdh5.7.0</hive-hcatalog.version>
