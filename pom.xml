@@ -77,7 +77,7 @@
     <hbase-hadoop2.version>1.1.1</hbase-hadoop2.version>
 
     <!-- Kafka versions -->
-    <kafka.version>1.0.0</kafka.version>
+    <kafka.version>2.3.0</kafka.version>
 
     <!-- Spark versions -->
     <spark.version>2.3.2</spark.version>
