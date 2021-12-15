@@ -23,7 +23,7 @@
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
     <version>19</version>
-    <relativePath />
+    <relativePath/>
     <!-- no parent resolution -->
   </parent>
 
@@ -73,7 +73,7 @@
     <hive-hcatalog.version>1.2.2</hive-hcatalog.version>
 
     <!-- HBase versions -->
-    <hbase-hadoop2.version>1.1.1</hbase-hadoop2.version>
+    <hbase-hadoop2.version>1.1.12</hbase-hadoop2.version>
 
     <!-- Kafka versions -->
     <kafka.version>2.1.1</kafka.version>
@@ -1587,7 +1587,7 @@
         <yarn.version>2.6.0-cdh5.7.0</yarn.version>
         <hive.version>1.1.0-cdh5.7.0</hive.version>
         <hive-hcatalog.version>1.1.0-cdh5.7.0</hive-hcatalog.version>
-        <hbase-hadoop2.version>1.2.0-cdh5.7.0</hbase-hadoop2.version>
+        <hbase-hadoop2.version>1.1.12</hbase-hadoop2.version>
         <zookeeper.version>3.4.5-cdh5.7.0</zookeeper.version>
       </properties>
       <build>
@@ -1939,7 +1939,7 @@
                         </goals>
                       </pluginExecutionFilter>
                       <action>
-                        <ignore />
+                        <ignore/>
                       </action>
                     </pluginExecution>
                   </pluginExecutions>
