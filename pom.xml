@@ -23,7 +23,7 @@
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
     <version>19</version>
-    <relativePath />
+    <relativePath/>
     <!-- no parent resolution -->
   </parent>
 
@@ -65,7 +65,7 @@
     <kylin.version>3.0.0</kylin.version>
 
     <!-- Hadoop versions -->
-    <hadoop2.version>2.7.1</hadoop2.version>
+    <hadoop2.version>3.2.2</hadoop2.version>
     <yarn.version>2.7.1</yarn.version>
 
     <!-- Hive versions -->
@@ -143,7 +143,7 @@
     <xalan.version>2.7.2</xalan.version>
     <ehcache.version>2.10.2.2.21</ehcache.version>
     <memcached.verion>2.12.3</memcached.verion>
-    <apache-httpclient.version>4.3.6</apache-httpclient.version>
+    <apache-httpclient.version>4.5.13</apache-httpclient.version>
     <roaring.version>0.6.18</roaring.version>
     <cglib.version>3.2.4</cglib.version>
     <supercsv.version>2.4.0</supercsv.version>
@@ -1583,7 +1583,7 @@
     <profile>
       <id>cdh5.7</id>
       <properties>
-        <hadoop2.version>2.6.0-cdh5.7.0</hadoop2.version>
+        <hadoop2.version>3.2.2</hadoop2.version>
         <yarn.version>2.6.0-cdh5.7.0</yarn.version>
         <hive.version>1.1.0-cdh5.7.0</hive.version>
         <hive-hcatalog.version>1.1.0-cdh5.7.0</hive-hcatalog.version>
@@ -1939,7 +1939,7 @@
                         </goals>
                       </pluginExecutionFilter>
                       <action>
-                        <ignore />
+                        <ignore/>
                       </action>
                     </pluginExecution>
                   </pluginExecutions>
