@@ -23,7 +23,7 @@
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
     <version>19</version>
-    <relativePath />
+    <relativePath/>
     <!-- no parent resolution -->
   </parent>
 
@@ -86,7 +86,7 @@
     <flink.version>1.11.1</flink.version>
 
     <!-- mysql versions -->
-    <mysql-connector.version>5.1.8</mysql-connector.version>
+    <mysql-connector.version>8.0.28</mysql-connector.version>
 
     <!-- Scala versions -->
     <scala.version>2.11.12</scala.version>
@@ -1939,7 +1939,7 @@
                         </goals>
                       </pluginExecutionFilter>
                       <action>
-                        <ignore />
+                        <ignore/>
                       </action>
                     </pluginExecution>
                   </pluginExecutions>
