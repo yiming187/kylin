@@ -23,7 +23,7 @@
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
     <version>19</version>
-    <relativePath />
+    <relativePath/>
     <!-- no parent resolution -->
   </parent>
 
@@ -65,28 +65,28 @@
     <kylin.version>3.0.0</kylin.version>
 
     <!-- Hadoop versions -->
-    <hadoop2.version>2.7.1</hadoop2.version>
-    <yarn.version>2.7.1</yarn.version>
+    <hadoop2.version>3.3.1</hadoop2.version>
+    <yarn.version>3.3.2</yarn.version>
 
     <!-- Hive versions -->
-    <hive.version>1.2.2</hive.version>
-    <hive-hcatalog.version>1.2.2</hive-hcatalog.version>
+    <hive.version>3.0.0</hive.version>
+    <hive-hcatalog.version>3.0.0</hive-hcatalog.version>
 
     <!-- HBase versions -->
-    <hbase-hadoop2.version>1.1.1</hbase-hadoop2.version>
+    <hbase-hadoop2.version>2.3.7</hbase-hadoop2.version>
 
     <!-- Kafka versions -->
     <kafka.version>2.1.1</kafka.version>
 
     <!-- Spark versions -->
-    <spark.version>2.4.5</spark.version>
+    <spark.version>2.4.6</spark.version>
     <kryo.version>4.0.0</kryo.version>
 
     <!-- Flink versions -->
     <flink.version>1.11.1</flink.version>
 
     <!-- mysql versions -->
-    <mysql-connector.version>5.1.8</mysql-connector.version>
+    <mysql-connector.version>8.0.28</mysql-connector.version>
 
     <!-- Scala versions -->
     <scala.version>2.11.12</scala.version>
@@ -143,12 +143,12 @@
     <xalan.version>2.7.2</xalan.version>
     <ehcache.version>2.10.2.2.21</ehcache.version>
     <memcached.verion>2.12.3</memcached.verion>
-    <apache-httpclient.version>4.3.6</apache-httpclient.version>
+    <apache-httpclient.version>4.5.13</apache-httpclient.version>
     <roaring.version>0.6.18</roaring.version>
     <cglib.version>3.2.4</cglib.version>
     <supercsv.version>2.4.0</supercsv.version>
     <cors.version>2.5</cors.version>
-    <tomcat.version>7.0.100</tomcat.version>
+    <tomcat.version>7.0.109</tomcat.version>
     <t-digest.version>3.1</t-digest.version>
     <freemarker.version>2.3.23</freemarker.version>
     <rocksdb.version>5.9.2</rocksdb.version>
@@ -1583,11 +1583,11 @@
     <profile>
       <id>cdh5.7</id>
       <properties>
-        <hadoop2.version>2.6.0-cdh5.7.0</hadoop2.version>
-        <yarn.version>2.6.0-cdh5.7.0</yarn.version>
-        <hive.version>1.1.0-cdh5.7.0</hive.version>
-        <hive-hcatalog.version>1.1.0-cdh5.7.0</hive-hcatalog.version>
-        <hbase-hadoop2.version>1.2.0-cdh5.7.0</hbase-hadoop2.version>
+        <hadoop2.version>3.3.1</hadoop2.version>
+        <yarn.version>3.3.2</yarn.version>
+        <hive.version>3.0.0</hive.version>
+        <hive-hcatalog.version>3.0.0</hive-hcatalog.version>
+        <hbase-hadoop2.version>2.3.7</hbase-hadoop2.version>
         <zookeeper.version>3.4.5-cdh5.7.0</zookeeper.version>
       </properties>
       <build>
@@ -1939,7 +1939,7 @@
                         </goals>
                       </pluginExecutionFilter>
                       <action>
-                        <ignore />
+                        <ignore/>
                       </action>
                     </pluginExecution>
                   </pluginExecutions>
