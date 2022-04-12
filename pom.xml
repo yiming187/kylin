@@ -23,7 +23,7 @@
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
     <version>19</version>
-    <relativePath />
+    <relativePath/>
     <!-- no parent resolution -->
   </parent>
 
@@ -65,8 +65,8 @@
     <kylin.version>3.0.0</kylin.version>
 
     <!-- Hadoop versions -->
-    <hadoop2.version>2.7.1</hadoop2.version>
-    <yarn.version>2.7.1</yarn.version>
+    <hadoop2.version>3.2.3</hadoop2.version>
+    <yarn.version>3.2.3</yarn.version>
 
     <!-- Hive versions -->
     <hive.version>1.2.2</hive.version>
@@ -1583,8 +1583,8 @@
     <profile>
       <id>cdh5.7</id>
       <properties>
-        <hadoop2.version>2.6.0-cdh5.7.0</hadoop2.version>
-        <yarn.version>2.6.0-cdh5.7.0</yarn.version>
+        <hadoop2.version>3.2.3</hadoop2.version>
+        <yarn.version>3.2.3</yarn.version>
         <hive.version>1.1.0-cdh5.7.0</hive.version>
         <hive-hcatalog.version>1.1.0-cdh5.7.0</hive-hcatalog.version>
         <hbase-hadoop2.version>1.2.0-cdh5.7.0</hbase-hadoop2.version>
@@ -1939,7 +1939,7 @@
                         </goals>
                       </pluginExecutionFilter>
                       <action>
-                        <ignore />
+                        <ignore/>
                       </action>
                     </pluginExecution>
                   </pluginExecutions>
