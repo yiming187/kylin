@@ -29,15 +29,15 @@
     <parent>
         <artifactId>kylin</artifactId>
         <groupId>org.apache.kylin</groupId>
-        <version>3.1.3-SNAPSHOT</version>
+        <version>3.1.3</version>
     </parent>
 
     <properties>
-        <hdp.version />
-        <fastBuildMode />
-        <simpleBuildMode />
-        <buildCubeUsingProvidedData />
-        <engineType />
+        <hdp.version/>
+        <fastBuildMode/>
+        <simpleBuildMode/>
+        <buildCubeUsingProvidedData/>
+        <engineType/>
     </properties>
 
     <!-- Dependencies. -->
@@ -505,7 +505,7 @@
                                             -javaagent:${project.basedir}/..//dev-support/org.jacoco.agent-${jacoco.version}-runtime.jar=includes=org.apache.kylin.*,output=file,destfile=jacoco-it-engine.exec
                                         </argument>
                                         <argument>-classpath</argument>
-                                        <classpath />
+                                        <classpath/>
                                         <argument>org.apache.kylin.provision.BuildCubeWithEngine
                                         </argument>
                                     </arguments>
@@ -535,7 +535,7 @@
                                             -javaagent:${project.basedir}/..//dev-support/org.jacoco.agent-${jacoco.version}-runtime.jar=includes=org.apache.kylin.*,output=file,destfile=jacoco-it-stream.exec
                                         </argument>
                                         <argument>-classpath</argument>
-                                        <classpath />
+                                        <classpath/>
                                         <argument>org.apache.kylin.provision.BuildCubeWithStream
                                         </argument>
                                     </arguments>
@@ -567,7 +567,7 @@
                                             -javaagent:${project.basedir}/..//dev-support/org.jacoco.agent-${jacoco.version}-runtime.jar=includes=org.apache.kylin.*,output=file,destfile=jacoco-it-streamv2.exec
                                         </argument>
                                         <argument>-classpath</argument>
-                                        <classpath />
+                                        <classpath/>
                                         <argument>org.apache.kylin.realtime.BuildCubeWithStreamV2
                                         </argument>
                                     </arguments>
