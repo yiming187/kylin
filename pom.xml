@@ -23,7 +23,7 @@
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
     <version>19</version>
-    <relativePath />
+    <relativePath/>
     <!-- no parent resolution -->
   </parent>
 
@@ -145,7 +145,7 @@
     <memcached.verion>2.12.3</memcached.verion>
     <apache-httpclient.version>4.3.6</apache-httpclient.version>
     <roaring.version>0.6.18</roaring.version>
-    <cglib.version>3.2.4</cglib.version>
+    <cglib.version>3.2.11</cglib.version>
     <supercsv.version>2.4.0</supercsv.version>
     <cors.version>2.5</cors.version>
     <tomcat.version>7.0.100</tomcat.version>
@@ -1939,7 +1939,7 @@
                         </goals>
                       </pluginExecutionFilter>
                       <action>
-                        <ignore />
+                        <ignore/>
                       </action>
                     </pluginExecution>
                   </pluginExecutions>
