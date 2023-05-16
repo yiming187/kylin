@@ -317,6 +317,10 @@ public class QueryContext implements Closeable {
         @Setter
         private List<Long> scanBytes;
 
+        @Getter
+        @Setter
+        private Boolean glutenFallback;
+
         public long getTotalScanBytes() {
             return calValueWithDefault(scanBytes);
         }

@@ -53,6 +53,10 @@
             <artifactId>kylin-soft-affinity-cache</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-soft-affinity-cache</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_2.12</artifactId>
         </dependency>

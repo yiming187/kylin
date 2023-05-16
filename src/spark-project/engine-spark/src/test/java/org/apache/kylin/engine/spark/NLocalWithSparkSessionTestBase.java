@@ -44,6 +44,7 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.optimizer.ConvertInnerJoinToSemiJoin;
+import org.apache.spark.sql.common.GlutenTestConfig;
 import org.apache.spark.sql.internal.StaticSQLConf;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
@@ -59,7 +60,7 @@ import lombok.extern.slf4j.Slf4j;
 public class NLocalWithSparkSessionTestBase extends NLocalFileMetadataTestCase implements Serializable {
 
     private static final String CSV_TABLE_DIR = TempMetadataBuilder.TEMP_TEST_METADATA + "/data/%s.csv";
-
+    private static final String GLUTEN_CH_LIB_PATH_KEY = "clickhouse.lib.path";
     protected static final String KYLIN_SQL_BASE_DIR = "../kylin-it/src/test/resources/query";
 
     protected static SparkConf sparkConf;
@@ -111,6 +112,9 @@ public class NLocalWithSparkSessionTestBase extends NLocalFileMetadataTestCase i
         sparkConf.set("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog");
         sparkConf.set("spark.databricks.delta.retentionDurationCheck.enabled", "false");
         sparkConf.set("spark.databricks.delta.vacuum.parallelDelete.enabled", "true");
+
+        GlutenTestConfig.configGluten(sparkConf);
+
         ss = SparkSession.builder().withExtensions(ext -> {
             ext.injectOptimizerRule(ss -> new ConvertInnerJoinToSemiJoin());
             return null;

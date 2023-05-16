@@ -77,6 +77,7 @@ import org.apache.kylin.query.util.QueryContextCutter;
 import org.apache.kylin.query.util.QueryInterruptChecker;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.query.util.RelAggPushDownUtil;
+import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -361,7 +362,11 @@ public class QueryExec {
         Prepare.CatalogReader.THREAD_LOCAL.remove();
         KylinConnectionConfig.THREAD_LOCAL.remove();
         FileSegments.clearFileSegFilterLocally();
-        clearAcceptCacheTimeLocally();
+        if (SparkSession.getDefaultSession().isDefined()) {
+            KylinCacheFileSystem.clearAcceptCacheTimeLocally();
+            SparkContext sparkContext = SparkSession.getDefaultSession().get().sparkContext();
+            sparkContext.setLocalProperty("gluten.enabledForCurrentThread", null);
+        }
     }
 
     public void setContextVar(String name, Object val) {

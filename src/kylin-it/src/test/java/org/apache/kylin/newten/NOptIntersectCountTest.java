@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-
 package org.apache.kylin.newten;
 
 import java.io.IOException;
@@ -49,12 +48,17 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
     @Override
     @Before
     public void setUp() throws Exception {
-        JobContextUtil.cleanUp();
+        super.setUp();
         overwriteSystemProp("kylin.engine.persist-flattable-enabled", "false");
         setOverlay("src/test/resources/ut_meta/opt_intersect_count");
-        super.setUp();
 
+        JobContextUtil.cleanUp();
         JobContextUtil.getJobContext(getTestConfig());
+    }
+
+    @Override
+    protected String[] getOverlay() {
+        return new String[] { "src/test/resources/ut_meta/opt_intersect_count" };
     }
 
     @Override
@@ -117,23 +121,23 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
         /*
         Source table: USER_ID, AGE, CITY, TAG
         TAG value split by "|"
-
+        
         group by key: 20,Shanghai
-
+        
         rich, 2
         tall, 1
         handsome, 2
         ====================================
-
+        
         group by key: 19,Beijing
-
+        
         rich, 1
         tall, 2
         handsome, 1
         ====================================
-
+        
         group by key: 18,Shenzhen
-
+        
         rich, 1
         tall, 1
         handsome, 1

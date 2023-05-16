@@ -18,17 +18,27 @@
 
 package org.apache.kylin.query.pushdown
 
+import java.math.BigDecimal
+import java.nio.charset.StandardCharsets
+import java.sql.Timestamp
+import java.util
+import java.util.concurrent.{Callable, Executors, TimeUnit, TimeoutException}
+import java.util.{UUID, List => JList}
+
 import org.apache.commons.lang3.StringUtils
+import org.apache.gluten.test.FallbackUtil
+import org.apache.kylin.cache.kylin.KylinCacheFileSystem
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil, Pair}
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
-import org.apache.kylin.guava30.shaded.common.collect.ImmutableList
-import org.apache.kylin.guava30.shaded.common.collect.Lists
+import org.apache.kylin.fileseg.FileSegments
+import org.apache.kylin.guava30.shaded.common.collect.{ImmutableList, Lists}
 import org.apache.kylin.metadata.project.NProjectManager
 import org.apache.kylin.metadata.query.StructField
 import org.apache.kylin.query.mask.QueryResultMasks
 import org.apache.kylin.query.runtime.plan.QueryToExecutionIDCache
 import org.apache.kylin.query.runtime.plan.ResultPlan.saveAsyncQueryResult
 import org.apache.kylin.query.util.{QueryInterruptChecker, SparkJobTrace}
+import org.apache.kylin.softaffinity.SoftAffinityManager
 import org.apache.spark.network.util.JavaUtils
 import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils
@@ -36,16 +46,6 @@ import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, Row, SparderEnv, SparkSession}
 import org.slf4j.{Logger, LoggerFactory}
 
-import org.apache.kylin.cache.kylin.KylinCacheFileSystem
-import org.apache.kylin.softaffinity.SoftAffinityManager
-import org.apache.kylin.fileseg.FileSegments
-
-import java.math.BigDecimal
-import java.nio.charset.StandardCharsets
-import java.sql.Timestamp
-import java.util
-import java.util.concurrent.{Callable, Executors, TimeUnit, TimeoutException}
-import java.util.{UUID, List => JList}
 import scala.collection.JavaConverters._
 import scala.collection.{immutable, mutable}
 import scala.concurrent.duration.Duration
@@ -201,6 +201,8 @@ object SparkSqlClient {
       val (jobCount, stageCount, taskCount) = QueryMetricUtils.collectTaskRelatedMetrics(jobGroup, ss.sparkContext)
       QueryContext.current().getMetrics.setScanRows(scanRows)
       QueryContext.current().getMetrics.setScanBytes(scanBytes)
+      val glutenFallback = FallbackUtil.hasFallback(df.queryExecution.executedPlan)
+      QueryContext.current().getMetrics.setGlutenFallback(glutenFallback)
       QueryContext.current().getMetrics.setQueryJobCount(jobCount)
       QueryContext.current().getMetrics.setQueryStageCount(stageCount)
       QueryContext.current().getMetrics.setQueryTaskCount(taskCount)

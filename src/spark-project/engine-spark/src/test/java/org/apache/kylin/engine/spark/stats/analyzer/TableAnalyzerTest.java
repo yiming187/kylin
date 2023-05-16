@@ -22,6 +22,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.GlutenDisabled;
+import org.apache.kylin.GlutenRunner;
 import org.apache.kylin.engine.spark.NLocalWithSparkSessionTestBase;
 import org.apache.kylin.engine.spark.utils.SparkConfHelper;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -34,10 +36,12 @@ import org.apache.spark.sql.SparkSession;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import lombok.val;
 import lombok.var;
 
+@RunWith(GlutenRunner.class)
 public class TableAnalyzerTest extends NLocalWithSparkSessionTestBase {
 
     private NTableMetadataManager tableMgr;
@@ -95,6 +99,7 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTestBase {
     }
 
     @Test
+    @GlutenDisabled("max(col) with null data gluten returns NaN, but spark return null")
     public void testSampleTableForColumnOrRowAlwaysNull() {
         // case 1: this case test specified column always null, corresponding column is 'CATEG_BUSN_MGR'
         TableDesc testCategoryGroupings = tableMgr.getTableDesc("DEFAULT.TEST_CATEGORY_GROUPINGS");

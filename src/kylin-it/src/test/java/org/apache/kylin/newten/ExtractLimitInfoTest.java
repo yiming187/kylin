@@ -31,6 +31,7 @@ import org.apache.kylin.util.ExecAndComp;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.common.GlutenTestConfig;
 import org.apache.spark.sql.execution.SparkPlan;
 import org.apache.spark.sql.internal.StaticSQLConf;
 import org.junit.After;
@@ -61,6 +62,7 @@ public class ExtractLimitInfoTest extends NLocalWithSparkSessionTest {
         sparkConf.set("spark.sql.crossJoin.enabled", "true");
         sparkConf.set("spark.sql.adaptive.enabled", "false");
         sparkConf.set("spark.sql.autoBroadcastJoinThreshold", "1");
+        GlutenTestConfig.configGluten(sparkConf);
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
     }
@@ -69,9 +71,15 @@ public class ExtractLimitInfoTest extends NLocalWithSparkSessionTest {
     @Before
     public void setUp() throws Exception {
         JobContextUtil.cleanUp();
+        super.setUp();
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata("src/test/resources/ut_meta/join_opt");
         JobContextUtil.getJobContext(KylinConfig.getInstanceFromEnv());
+    }
+
+    @Override
+    protected String[] getOverlay() {
+        return new String[] { "src/test/resources/ut_meta/join_opt" };
     }
 
     @Override

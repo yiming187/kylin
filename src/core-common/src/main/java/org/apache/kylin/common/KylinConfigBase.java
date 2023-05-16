@@ -4321,6 +4321,10 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.source.jdbc.extend", "");
     }
 
+    public boolean queryIndexUseGluten() {
+        return Boolean.parseBoolean(this.getOptional("kylin.query.index-use-gulten", TRUE));
+    }
+
     public boolean isPushdownSqlHintsErasingEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.query.pushdown.sql-hints-erasing.enabled", TRUE));
     }

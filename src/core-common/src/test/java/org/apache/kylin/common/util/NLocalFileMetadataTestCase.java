@@ -58,6 +58,10 @@ public class NLocalFileMetadataTestCase extends AbstractTestCase {
         return tempMetadataDirectory;
     }
 
+    protected String[] getOverlay() {
+        return new String[] {};
+    }
+
     public static ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> getInstanceByProjectFromSingleton()
             throws Exception {
         Field instanceField = Singletons.class.getDeclaredField("instance");
@@ -144,6 +148,9 @@ public class NLocalFileMetadataTestCase extends AbstractTestCase {
     }
 
     public void createTestMetadata(String... overlay) {
+        if (overlay == null || overlay.length == 0) {
+            overlay = getOverlay();
+        }
         staticCreateTestMetadata(overlay);
         val kylinHomePath = new File(getTestConfig().getMetadataUrl().toString()).getParentFile().getAbsolutePath();
         overwriteSystemProp("KYLIN_HOME", kylinHomePath);

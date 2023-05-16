@@ -59,6 +59,7 @@ import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.SparderTypeUtil;
 
@@ -91,7 +92,7 @@ public class ExecAndComp {
         }
 
         String ret = StringUtils.join(tokens, " ");
-        ret = ret.replaceAll(specialStr, System.getProperty("line.separator"));
+        ret = ret.replaceAll(specialStr, System.lineSeparator());
         log.info("The actual sql executed is: " + ret);
 
         return ret;
@@ -132,6 +133,15 @@ public class ExecAndComp {
             return true;
         }
         return false;
+    }
+
+    @SneakyThrows
+    public static QueryResult queryWithVanillaSpark(String prj, String originSql, String joinType, String sqlPath) {
+        SparkSession ss = SparkSession.active();
+        ss.sparkContext().setLocalProperty("gluten.enabledForCurrentThread", "false");
+        QueryResult result = queryWithSpark(prj, originSql, joinType, sqlPath);
+        ss.sparkContext().setLocalProperty("gluten.enabledForCurrentThread", null);
+        return result;
     }
 
     @SneakyThrows
@@ -285,7 +295,7 @@ public class ExecAndComp {
             if (file.listFiles() != null) {
                 sqlFiles = file.listFiles((dir, name) -> name.endsWith(".sql"));
             } else if (file.isFile()) {
-                sqlFiles = new File[] {file};
+                sqlFiles = new File[] { file };
             }
         }
         List<Pair<String, String>> ret = Lists.newArrayList();

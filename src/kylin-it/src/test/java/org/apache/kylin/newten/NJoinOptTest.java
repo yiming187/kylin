@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-
 package org.apache.kylin.newten;
 
 import java.sql.SQLException;
@@ -78,10 +77,16 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
     @Override
     @Before
     public void setUp() throws Exception {
-        JobContextUtil.cleanUp();
+        super.setUp();
         this.createTestMetadata("src/test/resources/ut_meta/join_opt");
 
+        JobContextUtil.cleanUp();
         JobContextUtil.getJobContext(getTestConfig());
+    }
+
+    @Override
+    protected String[] getOverlay() {
+        return new String[] { "src/test/resources/ut_meta/join_opt" };
     }
 
     @Override

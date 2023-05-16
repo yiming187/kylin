@@ -42,7 +42,6 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
         JobContextUtil.cleanUp();
         super.setUp();
         JobContextUtil.getJobContext(getTestConfig());
-
         populateSSWithCSVData(getTestConfig(), getProject(), ss);
     }
 

@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-
 package org.apache.kylin.newten;
 
 import java.util.ArrayList;
@@ -40,10 +39,16 @@ public class NPartitionColumnTest extends NLocalWithSparkSessionTest {
     @Override
     @Before
     public void setUp() throws Exception {
-        JobContextUtil.cleanUp();
+        super.setUp();
         this.createTestMetadata("src/test/resources/ut_meta/partition_col");
 
+        JobContextUtil.cleanUp();
         JobContextUtil.getJobContext(getTestConfig());
+    }
+
+    @Override
+    protected String[] getOverlay() {
+        return new String[] { "src/test/resources/ut_meta/partition_col" };
     }
 
     @Override

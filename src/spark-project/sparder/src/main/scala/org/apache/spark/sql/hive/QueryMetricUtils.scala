@@ -18,11 +18,12 @@
 
 package org.apache.spark.sql.hive
 
+import org.apache.gluten.execution.FileSourceScanExecTransformer
 import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.metrics.AppStatus
-import org.apache.spark.sql.execution.adaptive.{AdaptiveSparkPlanExec, ShuffleQueryStageExec}
 import org.apache.spark.sql.execution._
+import org.apache.spark.sql.execution.adaptive.{AdaptiveSparkPlanExec, ShuffleQueryStageExec}
 import org.apache.spark.sql.hive.execution.HiveTableScanExec
 
 import scala.collection.JavaConverters._
@@ -42,12 +43,14 @@ object QueryMetricUtils extends Logging {
   }
 
   def collectAdaptiveSparkPlanExecMetrics(exec: SparkPlan, scanRow: scala.Long,
-       scanBytes: scala.Long): (scala.Long, scala.Long) = {
+                                          scanBytes: scala.Long): (scala.Long, scala.Long) = {
     exec match {
       case exec: LayoutFileSourceScanExec =>
         (scanRow + exec.metrics.apply("numOutputRows").value, scanBytes + exec.metrics.apply("readBytes").value)
       case exec: KylinFileSourceScanExec =>
         (scanRow + exec.metrics.apply("numOutputRows").value, scanBytes + exec.metrics.apply("readBytes").value)
+      case transformer: FileSourceScanExecTransformer => // for native file scan
+        (scanRow + transformer.metrics.apply("numOutputRows").value, scanBytes + transformer.metrics.apply("outputBytes").value)
       case exec: FileSourceScanExec =>
         (scanRow + exec.metrics.apply("numOutputRows").value, scanBytes + exec.metrics.apply("readBytes").value)
       case exec: HiveTableScanExec =>

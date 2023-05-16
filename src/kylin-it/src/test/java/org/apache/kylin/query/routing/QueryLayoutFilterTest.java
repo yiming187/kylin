@@ -66,10 +66,8 @@ public class QueryLayoutFilterTest extends NLocalWithSparkSessionTest {
     @Override
     @Before
     public void setUp() throws Exception {
-        JobContextUtil.cleanUp();
+        super.setUp();
         overwriteSystemProp("kylin.job.scheduler.poll-interval-second", "1");
-        this.createTestMetadata();
-
         JobContextUtil.getJobContext(getTestConfig());
     }
 
