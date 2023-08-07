@@ -23,7 +23,6 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.AtomicLong
 import java.{lang, util}
 
-import io.kyligence.kap.secondstorage.SecondStorageUtil
 import org.apache.calcite.rel.`type`.{RelDataType, RelDataTypeField}
 import org.apache.commons.io.IOUtils
 import org.apache.hadoop.fs.Path
@@ -49,6 +48,8 @@ import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparderEnv}
 import scala.collection.JavaConverters._
 import scala.collection.convert.ImplicitConversions.`iterator asScala`
 import scala.collection.mutable
+
+import io.kyligence.kap.secondstorage.SecondStorageUtil
 
 // scalastyle:off
 object ResultType extends Enumeration {

@@ -18,6 +18,7 @@
 package org.apache.kylin.query.sql;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.guava30.shaded.common.collect.ImmutableBiMap;
 import org.apache.kylin.junit.annotation.MetadataInfo;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
@@ -26,16 +27,16 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.TimeRange;
 import org.apache.spark.sql.KylinDataFrameManager;
 import org.apache.spark.sql.SparkSession;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.util.ReflectionUtils;
 
-import org.apache.kylin.guava30.shaded.common.collect.ImmutableBiMap;
-
 import lombok.val;
 import lombok.var;
 
+@Disabled("Not for open source")
 @MetadataInfo(project = "streaming_test")
 class KylinDataFrameManagerTest {
 
@@ -45,7 +46,7 @@ class KylinDataFrameManagerTest {
         val config = KylinConfig.getInstanceFromEnv();
         val dataflowManager = NDataflowManager.getInstance(config, "streaming_test");
         var dataflow = dataflowManager.getDataflow("4965c827-fbb4-4ea1-a744-3f341a3b030d");
-        Assert.assertTrue(dataflow.isStreaming() && dataflow.getModel().isFusionModel());
+        Assertions.assertTrue(dataflow.isStreaming() && dataflow.getModel().isFusionModel());
 
         val kylinDataFrameManager = Mockito.spy(new KylinDataFrameManager(ss));
         kylinDataFrameManager.option("isFastBitmapEnabled", "false");
@@ -56,14 +57,15 @@ class KylinDataFrameManagerTest {
             ImmutableBiMap.Builder<Integer, TblColRef> dimsBuilder = ImmutableBiMap.builder();
             ImmutableBiMap<Integer, TblColRef> orderedDimensions = dimsBuilder.put(1, partitionTblCol).build();
             Mockito.when(layoutEntity.getOrderedDimensions()).thenReturn(orderedDimensions);
-            val df = kylinDataFrameManager.cuboidTable(dataflow, layoutEntity, "3e560d22-b749-48c3-9f64-d4230207f120");
-            Assert.assertEquals(1, df.columns().length);
+            val plan = kylinDataFrameManager.cuboidTable(dataflow, layoutEntity,
+                    "3e560d22-b749-48c3-9f64-d4230207f120");
+            Assertions.assertEquals(1, plan.output().size());
         }
         {
             // condition: id == null
-            val df = kylinDataFrameManager.cuboidTable(dataflow, new LayoutEntity(),
+            val plan = kylinDataFrameManager.cuboidTable(dataflow, new LayoutEntity(),
                     "3e560d22-b749-48c3-9f64-d4230207f120");
-            Assert.assertEquals(0, df.columns().length);
+            Assertions.assertEquals(0, plan.output().size());
         }
 
         {
@@ -87,12 +89,13 @@ class KylinDataFrameManagerTest {
                         ReflectionUtils.setField(field, timeRange, Long.MIN_VALUE);
                         seg.setTimeRange(timeRange);
                     } catch (Exception e) {
-                        Assert.fail(e.getMessage());
+                        Assertions.fail(e.getMessage());
                     }
                 });
             });
-            val df = kylinDataFrameManager.cuboidTable(dataflow, layoutEntity, "3e560d22-b749-48c3-9f64-d4230207f120");
-            Assert.assertEquals(1, df.columns().length);
+            val plan = kylinDataFrameManager.cuboidTable(dataflow, layoutEntity,
+                    "3e560d22-b749-48c3-9f64-d4230207f120");
+            Assertions.assertEquals(1, plan.output().size());
         }
         ss.stop();
     }
@@ -103,13 +106,14 @@ class KylinDataFrameManagerTest {
         val config = KylinConfig.getInstanceFromEnv();
         val dataflowManager = NDataflowManager.getInstance(config, "streaming_test");
         val dataflow = dataflowManager.getDataflow("cd2b9a23-699c-4699-b0dd-38c9412b3dfd");
-        Assert.assertFalse(dataflow.isStreaming());
+        Assertions.assertFalse(dataflow.isStreaming());
         val kylinDataFrameManager = Mockito.spy(new KylinDataFrameManager(ss));
         kylinDataFrameManager.option("isFastBitmapEnabled", "false");
         val layoutEntity = new LayoutEntity();
         {
-            val df = kylinDataFrameManager.cuboidTable(dataflow, layoutEntity, "86b5daaa-e295-4e8c-b877-f97bda69bee5");
-            Assert.assertEquals(0, df.columns().length);
+            val plan = kylinDataFrameManager.cuboidTable(dataflow, layoutEntity,
+                    "86b5daaa-e295-4e8c-b877-f97bda69bee5");
+            Assertions.assertEquals(0, plan.output().size());
         }
         ss.stop();
     }

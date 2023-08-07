@@ -47,6 +47,7 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 
 import scala.collection.JavaConverters._
 
+
 trait JobSupport
   extends BeforeAndAfterAll
     with BeforeAndAfterEach
@@ -147,9 +148,9 @@ trait JobSupport
 
   @throws[Exception]
   protected def buildSegment(cubeName: String,
-                           segmentRange: SegmentRange[_ <: Comparable[_]],
-                           toBuildLayouts: java.util.Set[LayoutEntity],
-                           prj: String): NDataSegment = {
+                             segmentRange: SegmentRange[_ <: Comparable[_]],
+                             toBuildLayouts: java.util.Set[LayoutEntity],
+                             prj: String): NDataSegment = {
     val config: KylinConfig = KylinConfig.getInstanceFromEnv
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(config, prj)
     val execMgr: NExecutableManager =
