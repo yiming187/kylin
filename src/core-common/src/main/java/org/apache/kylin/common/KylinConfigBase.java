@@ -1914,6 +1914,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(this.getOptional("kylin.query.replace-dynamic-params-enabled", FALSE));
     }
 
+    public boolean isCollectUnionInOrder() {
+        return Boolean.parseBoolean(this.getOptional("kylin.query.collect-union-in-order", TRUE));
+    }
+
     // ============================================================================
     // Cache
     // ============================================================================
