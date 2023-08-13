@@ -62,6 +62,7 @@ import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.guava30.shaded.common.io.ByteSource;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.tool.HDFSMetadataTool;
+import org.apache.kylin.tool.constant.StringConstant;
 import org.apache.kylin.tool.garbage.StorageCleaner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,7 +75,7 @@ import lombok.var;
 */
 public class MetadataToolHelper {
 
-    public static final DateTimeFormatter DATE_TIME_FORMATTER = HelperConstants.DATE_TIME_FORMATTER;
+    public static final DateTimeFormatter DATE_TIME_FORMATTER = StringConstant.DATE_TIME_FORMATTER;
     private static final String GLOBAL = "global";
     private static final String HDFS_METADATA_URL_FORMATTER = "kylin_metadata@hdfs,path=%s";
 
@@ -380,9 +381,9 @@ public class MetadataToolHelper {
             System.out.println("cleanup HDFS finished");
         } catch (Exception e) {
             logger.error("cleanup HDFS failed", e);
-            System.out.println(StorageCleaner.ANSI_RED
+            System.out.println(StringConstant.ANSI_RED
                     + "cleanup HDFS failed. Detailed Message is at ${KYLIN_HOME}/logs/shell.stderr"
-                    + StorageCleaner.ANSI_RESET);
+                    + StringConstant.ANSI_RESET);
         }
     }
 

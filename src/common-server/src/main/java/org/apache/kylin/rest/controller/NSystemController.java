@@ -43,6 +43,7 @@ import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.persistence.transaction.UnitOfWorkParams;
 import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.AddressUtil;
+import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
 import org.apache.kylin.helper.MetadataToolHelper;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -78,8 +79,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-
-import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
 
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
@@ -148,7 +147,8 @@ public class NSystemController extends NBasicController {
             diagPackageRequest.setStart("");
             diagPackageRequest.setEnd("");
         } else {
-            if (StringUtils.isBlank(diagPackageRequest.getStart()) || StringUtils.isBlank(diagPackageRequest.getEnd())) {
+            if (StringUtils.isBlank(diagPackageRequest.getStart())
+                    || StringUtils.isBlank(diagPackageRequest.getEnd())) {
                 throw new KylinException(TIME_INVALID_RANGE_NOT_CONSISTENT);
             }
         }
@@ -210,7 +210,7 @@ public class NSystemController extends NBasicController {
             return systemService.getExtractorStatus(id, project);
         } else {
             String url = host + "/kylin/api/system/diag/status?id=" + id;
-            if(StringUtils.isNotEmpty(project)){
+            if (StringUtils.isNotEmpty(project)) {
                 url = url + "&project=" + project;
             }
             return generateTaskForRemoteHost(request, url);
@@ -229,7 +229,7 @@ public class NSystemController extends NBasicController {
                     response);
         } else {
             String url = host + "/kylin/api/system/diag?id=" + id;
-            if(StringUtils.isNotEmpty(project)){
+            if (StringUtils.isNotEmpty(project)) {
                 url = url + "&project=" + project;
             }
             downloadFromRemoteHost(request, url, response);
@@ -284,11 +284,9 @@ public class NSystemController extends NBasicController {
         val servers = clusterManager.getServers();
         response.setStatus(maintenanceModeService.getMaintenanceMode());
         if (ext) {
-            response.setServers(
-                servers.stream().map(server ->
-                    new ServerExtInfoResponse()
-                    .setServer(server)
-                    .setSecretName(encodeHost(server.getHost()))).collect(Collectors.toList()));
+            response.setServers(servers.stream().map(
+                    server -> new ServerExtInfoResponse().setServer(server).setSecretName(encodeHost(server.getHost())))
+                    .collect(Collectors.toList()));
         } else {
             response.setServers(servers.stream().map(ServerInfoResponse::getHost).collect(Collectors.toList()));
         }
