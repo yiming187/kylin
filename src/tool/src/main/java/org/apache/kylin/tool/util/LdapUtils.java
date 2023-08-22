@@ -112,8 +112,18 @@ public class LdapUtils {
                 left += maxValRange;
             }
         }
-
+        ldapUserDNs = rewriteUserDnIfNeeded(ldapUserDNs);
         return ldapUserDNs;
     }
 
+    public static Set<String> rewriteUserDnIfNeeded(Set<String> ldapUserDNs) {
+        String ldapUserSearchBase = KylinConfig.getInstanceFromEnv().getLDAPUserSearchBase();
+        return ldapUserDNs.stream().map(dn -> {
+            String dnName = dn;
+            if (!dn.contains(ldapUserSearchBase)) {
+                dnName = "uid=" + dn + "," + ldapUserSearchBase;
+            }
+            return dnName;
+        }).collect(Collectors.toSet());
+    }
 }
