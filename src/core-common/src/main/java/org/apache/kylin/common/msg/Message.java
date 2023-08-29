@@ -1628,4 +1628,13 @@ public class Message {
 
     }
 
+    public String getInvalidDataBinderAutoGrowCollectionLimit() {
+        return "Operation failed, please increase the value of "
+                + "kylin.web.data-binder.auto-grow-collection-limit and try again.";
+    }
+
+    public String getRedisInitFailed() {
+        return "Redis init failed";
+    }
+
 }
