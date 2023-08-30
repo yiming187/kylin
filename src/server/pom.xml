@@ -420,6 +420,8 @@
                                 org.json4s,
                                 org.mortbay.jetty,
                                 org.scala-lang,
+                                com.alibaba.nacos,
+                                com.alibaba.cloud,
                                 com.google.flatbuffers,
                                 com.google.inject
                                 com.sun.jersey,
