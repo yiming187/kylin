@@ -268,7 +268,8 @@ public class RealizationChooser {
         checkNoRealizationWithStreaming(context);
         RelAggPushDownUtil.registerUnmatchedJoinDigest(context.getTopNode());
         String msg = NProjectManager.getProjectConfig(context.olapSchema.getProjectName()).isQueryDryRunEnabled()
-                ? helpfulMessageForUser(context) : toErrorMsg(context);
+                ? helpfulMessageForUser(context)
+                : toErrorMsg(context);
         throw new NoRealizationFoundException("No realization found for " + msg);
     }
 
@@ -347,8 +348,9 @@ public class RealizationChooser {
         }
 
         Candidate candidate = new Candidate(realization, olapContext, matchedJoinGraphAliasMap);
-        logger.info("Find candidates for {}, by table {} and project={} : {}", olapContext.id, olapContext.firstTableScan.getTableName(),
-                olapContext.olapSchema.getProjectName(), candidate.getRealization().getModel().getAlias());
+        logger.info("Find candidates for {}, by table {} and project={} : {}", olapContext.id,
+                olapContext.firstTableScan.getTableName(), olapContext.olapSchema.getProjectName(),
+                candidate.getRealization().getModel().getAlias());
 
         QueryRouter.applyRules(candidate);
 
@@ -356,7 +358,8 @@ public class RealizationChooser {
             return null;
         }
 
-        logger.info("Chosen model for current olap context {} is {}", olapContext.id, candidate.realization.getCanonicalName());
+        logger.info("Chosen model for current olap context {} is {}", olapContext.id,
+                candidate.realization.getCanonicalName());
         return candidate;
     }
 
@@ -401,7 +404,8 @@ public class RealizationChooser {
     }
 
     private static boolean hasReadySegments(NDataModel model) {
-        if (QueryContext.current().isDryRun()) return true;
+        if (QueryContext.current().isDryRun())
+            return true;
         val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject())
                 .getDataflow(model.getUuid());
         if (model.isFusionModel()) {
@@ -673,11 +677,13 @@ public class RealizationChooser {
     private static String helpfulMessageForUser(OLAPContext ctx) {
         StringBuilder buf = new StringBuilder(ctx.toHumanReadString());
         buf.append(System.getProperty("line.separator"));
-        if(ctx.getJoinsGraph() != null) {
-            buf.append("  Join graph : ").append(ctx.getJoinsGraph().toString()).append(System.getProperty("line.separator"));
+        if (ctx.getJoinsGraph() != null) {
+            buf.append("  Join graph : ").append(ctx.getJoinsGraph().toString())
+                    .append(System.getProperty("line.separator"));
         }
         buf.append("  Incapable message : ");
-        for (List<RealizationCheck.IncapableReason> reasons : ctx.realizationCheck.getModelIncapableReasons().values()) {
+        for (List<RealizationCheck.IncapableReason> reasons : ctx.realizationCheck.getModelIncapableReasons()
+                .values()) {
             for (RealizationCheck.IncapableReason reason : reasons) {
                 buf.append(reason).append(", ");
             }
@@ -721,10 +727,9 @@ public class RealizationChooser {
                             partialMatchNonEquiJoin);
                     logger.info("Match result for match join with join match optimization mode is: {}", matched);
                 }
-                logger.debug("Context [{}] join graph missed model {}, model join graph {}, unmatched model join graph {}, unmatched olap join graph {}",
-                        ctx.id,
-                        model.getAlias(),
-                        model.getJoinsGraph(),
+                logger.debug(
+                        "Context [{}] join graph missed model {}, model join graph {}, unmatched model join graph {}, unmatched olap join graph {}",
+                        ctx.id, model.getAlias(), model.getJoinsGraph(),
                         ctx.getJoinsGraph().unmatched(model.getJoinsGraph()),
                         model.getJoinsGraph().unmatched(ctx.getJoinsGraph()));
             }

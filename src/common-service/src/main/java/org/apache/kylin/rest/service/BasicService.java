@@ -33,6 +33,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.transaction.BroadcastEventReadyNotifier;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.guava30.shaded.common.base.CaseFormat;
 import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.NProjectManager;
@@ -50,8 +51,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.client.RestTemplate;
-
-import org.apache.kylin.guava30.shaded.common.base.CaseFormat;
 
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -162,7 +161,7 @@ public abstract class BasicService {
         }, project);
     }
 
-    public NProjectManager getProjectManager(){
+    public NProjectManager getProjectManager() {
         return NProjectManager.getInstance(getConfig());
     }
 }

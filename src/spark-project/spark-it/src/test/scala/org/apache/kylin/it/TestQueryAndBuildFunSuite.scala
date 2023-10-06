@@ -19,9 +19,8 @@ package org.apache.kylin.it
 
 import java.io.File
 
-import io.netty.util.internal.ThrowableUtil
-import org.apache.kylin.common.{KylinConfig, _}
-import org.apache.kylin.common.util.TestUtils
+import org.apache.kylin.common._
+import org.apache.kylin.common.util.{TestUtils, TimeZoneUtils}
 import org.apache.kylin.engine.spark.IndexDataWarehouse
 import org.apache.kylin.metadata.cube.model.NDataflowManager.NDataflowUpdater
 import org.apache.kylin.metadata.cube.model.{NDataflow, NDataflowManager}
@@ -33,6 +32,8 @@ import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.execution.{KylinFileSourceScanExec, LayoutFileSourceScanExec}
 import org.apache.spark.sql.{DataFrame, SparderEnv}
+
+import io.netty.util.internal.ThrowableUtil
 
 class TestQueryAndBuildFunSuite
   extends SparderBaseFunSuite
@@ -126,6 +127,7 @@ class TestQueryAndBuildFunSuite
     overwriteSystemProp("kylin.dictionary.null-encoding-opt-threshold", "1")
     overwriteSystemProp("kylin.query.spark-job-trace-enabled", "false")
     overwriteSystemProp("kylin.web.timezone", "GMT+8")
+    TimeZoneUtils.setDefaultTimeZone(KylinConfig.getInstanceFromEnv)
     NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, DEFAULT_PROJECT)
       .updateDataflow(DF_NAME, Updater(RealizationStatusEnum.OFFLINE))
     overwriteSystemProp("kylin.query.pushdown.runner-class-name", "")

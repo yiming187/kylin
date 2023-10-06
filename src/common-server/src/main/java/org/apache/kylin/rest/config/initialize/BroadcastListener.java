@@ -91,6 +91,7 @@ public class BroadcastListener implements BroadcastEventHandler {
         broadcaster.close();
         broadcaster.unregister();
     }
+
     @Subscribe
     public void onEventReady(BroadcastEventReadyNotifier notifier) {
         broadcaster.announce(notifier);
@@ -118,16 +119,16 @@ public class BroadcastListener implements BroadcastEventHandler {
             AclTCRRevokeEventNotifier aclTCRRevokeEventNotifier = (AclTCRRevokeEventNotifier) notifier;
             aclTCRService.revokeAclTCR(aclTCRRevokeEventNotifier.getSid(), aclTCRRevokeEventNotifier.isPrinciple());
         } else if (notifier instanceof AddCredentialToSparkBroadcastEventNotifier) {
-            AddCredentialToSparkBroadcastEventNotifier credentialNotifier = (AddCredentialToSparkBroadcastEventNotifier) notifier;
-            SparderEnv.addCredential(
-                    new TableExtDesc.RoleCredentialInfo(credentialNotifier.getBucket(),
-                            credentialNotifier.getRole(), credentialNotifier.getEndpoint(), credentialNotifier.getType(), credentialNotifier.getRegion()),
-                    SparderEnv.getSparkSession());
+            AddCredentialToSparkBroadcastEventNotifier credentialNotifier //
+                    = (AddCredentialToSparkBroadcastEventNotifier) notifier;
+            SparderEnv.addCredential(new TableExtDesc.RoleCredentialInfo(credentialNotifier.getBucket(),
+                    credentialNotifier.getRole(), credentialNotifier.getEndpoint(), credentialNotifier.getType(),
+                    credentialNotifier.getRegion()), SparderEnv.getSparkSession());
         } else if (notifier instanceof AdminUserSyncEventNotifier) {
             AdminUserSyncEventNotifier adminUserSyncEventNotifier = (AdminUserSyncEventNotifier) notifier;
             userAclService.syncAdminUserAcl(adminUserSyncEventNotifier.getAdminUserList(),
                     adminUserSyncEventNotifier.isUseEmptyPermission());
-        } else if(notifier instanceof LogicalViewBroadcastNotifier) {
+        } else if (notifier instanceof LogicalViewBroadcastNotifier) {
             LogicalViewLoader.syncViewAsync();
         }
     }

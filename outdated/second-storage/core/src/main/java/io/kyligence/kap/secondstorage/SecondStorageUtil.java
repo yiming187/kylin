@@ -46,6 +46,12 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.ServerErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
+import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
+import org.apache.kylin.guava30.shaded.common.collect.ImmutableSet;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -71,13 +77,6 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.query.NativeQueryRealization;
 
-import org.apache.kylin.guava30.shaded.common.base.Preconditions;
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
-import org.apache.kylin.guava30.shaded.common.collect.Maps;
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
-
-import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
-import org.apache.kylin.guava30.shaded.common.collect.ImmutableSet;
 import io.kyligence.kap.secondstorage.config.Node;
 import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
 import io.kyligence.kap.secondstorage.metadata.Manager;
@@ -88,6 +87,7 @@ import io.kyligence.kap.secondstorage.metadata.TablePartition;
 import io.kyligence.kap.secondstorage.metadata.TablePlan;
 import io.kyligence.kap.secondstorage.response.SecondStorageInfo;
 import io.kyligence.kap.secondstorage.response.SecondStorageNode;
+
 // CALL FROM CORE
 public class SecondStorageUtil {
     public static final Set<ExecutableState> RUNNING_STATE = ImmutableSet.of(ExecutableState.RUNNING,
@@ -236,11 +236,11 @@ public class SecondStorageUtil {
     }
 
     public static boolean isModelEnable(String project, String model) {
-//        if (isProjectEnable(project)) {
-//            KylinConfig config = KylinConfig.getInstanceFromEnv();
-//            Optional<Manager<TableFlow>> tableFlowManager = tableFlowManager(config, project);
-//            return tableFlowManager.isPresent() && tableFlowManager.get().get(model).isPresent();
-//        }
+        //        if (isProjectEnable(project)) {
+        //            KylinConfig config = KylinConfig.getInstanceFromEnv();
+        //            Optional<Manager<TableFlow>> tableFlowManager = tableFlowManager(config, project);
+        //            return tableFlowManager.isPresent() && tableFlowManager.get().get(model).isPresent();
+        //        }
         return false;
     }
 
@@ -288,7 +288,9 @@ public class SecondStorageUtil {
                 .flatMap(partition -> partition.getSizeInNode().entrySet().stream())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, Long::sum));
 
-        return shards.stream().mapToLong(shard -> shard.stream().mapToLong(replica -> nodesSize.getOrDefault(replica, 0L)).max().orElse(0)).sum();
+        return shards.stream().mapToLong(
+                shard -> shard.stream().mapToLong(replica -> nodesSize.getOrDefault(replica, 0L)).max().orElse(0))
+                .sum();
     }
 
     public static SecondStorageNode transformNode(String name) {
@@ -342,15 +344,12 @@ public class SecondStorageUtil {
             KylinConfig config = KylinConfig.getInstanceFromEnv();
             Optional<Manager<TableFlow>> tableFlowManager = SecondStorageUtil.tableFlowManager(config, project);
             tableFlowManager.ifPresent(manager -> manager.listAll().stream()
-                    .filter(tableFlow -> tableFlow.getId().equals(model)).forEach(tableFlow ->
-                            tableFlow.update(copy ->
-                                    copy.getTableDataList().stream().filter(
-                                            tableData -> tableData.getDatabase().equals(NameUtil.getDatabase(config, project))
-                                                    && tableData.getTable().startsWith(NameUtil.tablePrefix(model)))
-                                            .forEach(tableData -> tableData.removePartitions(
-                                                    tablePartition -> segments.contains(tablePartition.getSegmentId())))
-                            )
-                    ));
+                    .filter(tableFlow -> tableFlow.getId().equals(model))
+                    .forEach(tableFlow -> tableFlow.update(copy -> copy.getTableDataList().stream()
+                            .filter(tableData -> tableData.getDatabase().equals(NameUtil.getDatabase(config, project))
+                                    && tableData.getTable().startsWith(NameUtil.tablePrefix(model)))
+                            .forEach(tableData -> tableData.removePartitions(
+                                    tablePartition -> segments.contains(tablePartition.getSegmentId()))))));
             return null;
         }, project, 1, UnitOfWork.DEFAULT_EPOCH_ID);
     }
@@ -432,13 +431,13 @@ public class SecondStorageUtil {
         }
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         ExecutablePO executablePO = JobContextUtil.getJobInfoDao(config).getExecutablePOByUuid(jobId);
-        AbstractExecutable executable = ExecutableManager.getInstance(config, project)
-                .fromPO(executablePO);
+        AbstractExecutable executable = ExecutableManager.getInstance(config, project).fromPO(executablePO);
         checkJobRestart(project, executable);
     }
 
     public static void checkJobRestart(String project, AbstractExecutable executable) {
-        if (!isProjectEnable(project)) return;
+        if (!isProjectEnable(project))
+            return;
         JobTypeEnum type = executable.getJobType();
         boolean canRestart = type != JobTypeEnum.EXPORT_TO_SECOND_STORAGE
                 && type != JobTypeEnum.SECOND_STORAGE_REFRESH_SECONDARY_INDEXES;
@@ -531,28 +530,26 @@ public class SecondStorageUtil {
         if (executable.getJobSchedulerMode() != JobSchedulerModeEnum.DAG) {
             return true;
         }
-        Optional<ChainedStageExecutable> buildSparkCubeTask = getChainedStageExecutableByName(STEP_NAME_BUILD_SPARK_CUBE, executable);
+        Optional<ChainedStageExecutable> buildSparkCubeTask = getChainedStageExecutableByName(
+                STEP_NAME_BUILD_SPARK_CUBE, executable);
         if (!buildSparkCubeTask.isPresent()) {
             return true;
         }
         Map<String, List<StageBase>> stages = buildSparkCubeTask.get().getStagesMap();
-        return stages.entrySet().stream()
-                .map(segmentStages -> {
-                    String segmentId = segmentStages.getKey();
-                    return segmentStages.getValue().stream()
-                            .filter(segmentStage -> ExecutableConstants.STAGE_NAME_GENERATE_FLAT_TABLE.equals(segmentStage.getName()))
-                            .map(segmentStage -> segmentStage.getOutput(segmentId).getState() == ExecutableState.SUCCEED)
-                            .findFirst()
-                            .orElse(true);
-                }).reduce((b1, b2) -> b1 && b2)
-                .orElse(true);
+        return stages.entrySet().stream().map(segmentStages -> {
+            String segmentId = segmentStages.getKey();
+            return segmentStages.getValue().stream()
+                    .filter(segmentStage -> ExecutableConstants.STAGE_NAME_GENERATE_FLAT_TABLE
+                            .equals(segmentStage.getName()))
+                    .map(segmentStage -> segmentStage.getOutput(segmentId).getState() == ExecutableState.SUCCEED)
+                    .findFirst().orElse(true);
+        }).reduce((b1, b2) -> b1 && b2).orElse(true);
     }
 
-    private static Optional<ChainedStageExecutable> getChainedStageExecutableByName(String name, AbstractExecutable executable) {
+    private static Optional<ChainedStageExecutable> getChainedStageExecutableByName(String name,
+            AbstractExecutable executable) {
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) executable).getTasks();
-        return tasks.stream()
-                .filter(task -> name.equals(task.getName()))
-                .map(ChainedStageExecutable.class::cast)
+        return tasks.stream().filter(task -> name.equals(task.getName())).map(ChainedStageExecutable.class::cast)
                 .findFirst();
     }
 
@@ -560,21 +557,20 @@ public class SecondStorageUtil {
         if (executable.getJobSchedulerMode() != JobSchedulerModeEnum.DAG) {
             return true;
         }
-        Optional<ChainedStageExecutable> mergeSparkCubeTask = getChainedStageExecutableByName(STEP_NAME_MERGER_SPARK_SEGMENT, executable);
+        Optional<ChainedStageExecutable> mergeSparkCubeTask = getChainedStageExecutableByName(
+                STEP_NAME_MERGER_SPARK_SEGMENT, executable);
         if (!mergeSparkCubeTask.isPresent()) {
             return true;
         }
         Map<String, List<StageBase>> stages = mergeSparkCubeTask.get().getStagesMap();
-        return stages.entrySet().stream()
-                .map(segmentStages -> {
-                    String segmentId = segmentStages.getKey();
-                    return segmentStages.getValue().stream()
-                            .filter(segmentStage -> ExecutableConstants.STAGE_NAME_MERGE_FLAT_TABLE.equals(segmentStage.getName()))
-                            .map(segmentStage -> segmentStage.getOutput(segmentId).getState() == ExecutableState.SUCCEED)
-                            .findFirst()
-                            .orElse(true);
-                }).reduce((b1, b2) -> b1 && b2)
-                .orElse(true);
+        return stages.entrySet().stream().map(segmentStages -> {
+            String segmentId = segmentStages.getKey();
+            return segmentStages.getValue().stream()
+                    .filter(segmentStage -> ExecutableConstants.STAGE_NAME_MERGE_FLAT_TABLE
+                            .equals(segmentStage.getName()))
+                    .map(segmentStage -> segmentStage.getOutput(segmentId).getState() == ExecutableState.SUCCEED)
+                    .findFirst().orElse(true);
+        }).reduce((b1, b2) -> b1 && b2).orElse(true);
     }
 
     public static boolean checkBuildDfsIsSuccess(AbstractExecutable executable) {
@@ -583,11 +579,8 @@ public class SecondStorageUtil {
         }
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) executable).getTasks();
 
-        return tasks.stream()
-                .filter(task -> STEP_UPDATE_METADATA.equals(task.getName()))
-                .map(task -> task.getStatus() == ExecutableState.SUCCEED)
-                .findFirst()
-                .orElse(true);
+        return tasks.stream().filter(task -> STEP_UPDATE_METADATA.equals(task.getName()))
+                .map(task -> task.getStatus() == ExecutableState.SUCCEED).findFirst().orElse(true);
     }
 
     public static boolean checkMergeDfsIsSuccess(AbstractExecutable executable) {
@@ -597,11 +590,8 @@ public class SecondStorageUtil {
 
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) executable).getTasks();
 
-        return tasks.stream()
-                .filter(task -> STEP_NAME_CLEANUP.equals(task.getName()))
-                .map(task -> task.getStatus() == ExecutableState.SUCCEED)
-                .findFirst()
-                .orElse(true);
+        return tasks.stream().filter(task -> STEP_NAME_CLEANUP.equals(task.getName()))
+                .map(task -> task.getStatus() == ExecutableState.SUCCEED).findFirst().orElse(true);
     }
 
     public static Set<Long> listEnableLayoutBySegment(String project, String modelId, String segmentId) {
@@ -629,7 +619,8 @@ public class SecondStorageUtil {
 
     public static String collectExecutedPlan(String executedPlan) {
         StringBuilder pushedExecutedPlan = new StringBuilder();
-        List<Pattern> pushedPattern = Lists.newArrayList(PUSHED_AGGREGATES, PUSHED_FILTERS, PUSHED_GROUP_BY, PUSHED_LIMIT, PUSHED_OFFSET, PUSHED_TOP_N);
+        List<Pattern> pushedPattern = Lists.newArrayList(PUSHED_AGGREGATES, PUSHED_FILTERS, PUSHED_GROUP_BY,
+                PUSHED_LIMIT, PUSHED_OFFSET, PUSHED_TOP_N);
         for (Pattern pattern : pushedPattern) {
             Matcher match = pattern.matcher(executedPlan);
             if (match.find()) {
@@ -639,10 +630,11 @@ public class SecondStorageUtil {
         return pushedExecutedPlan.toString();
     }
 
-    public static String convertExecutedPlan(String executedPlan, String project, List<NativeQueryRealization> realizations) {
+    public static String convertExecutedPlan(String executedPlan, String project,
+            List<NativeQueryRealization> realizations) {
         Pattern columnName = Pattern.compile("c[0-9]+");
-        List<NativeQueryRealization> secondStorageLayout = realizations.stream().filter(NativeQueryRealization::isSecondStorage)
-                .collect(Collectors.toList());
+        List<NativeQueryRealization> secondStorageLayout = realizations.stream()
+                .filter(NativeQueryRealization::isSecondStorage).collect(Collectors.toList());
         if (secondStorageLayout.isEmpty() || project == null)
             return null;
 

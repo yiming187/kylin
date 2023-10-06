@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.cache.kylin.KylinCacheFileSystem;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.spark.job.stage.BuildParam;
 import org.apache.kylin.engine.spark.job.stage.build.MaterializedFactTableView;
@@ -33,10 +34,9 @@ import org.apache.kylin.query.plugin.runtime.MppOnTheFlyProvider;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-
-import org.apache.kylin.cache.kylin.KylinCacheFileSystem;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class MppOnTheFlyImpl implements MppOnTheFlyProvider {
@@ -49,8 +49,7 @@ public class MppOnTheFlyImpl implements MppOnTheFlyProvider {
     @Override
     public LogicalPlan computeMissingLayout(List<NDataSegment> prunedSegments, long layoutId, SparkSession ss) {
         List<NDataSegment> missingLayoutSegs = prunedSegments.stream()
-                .filter(seg -> !seg.getLayoutsMap().containsKey(layoutId))
-                .collect(Collectors.toList());
+                .filter(seg -> !seg.getLayoutsMap().containsKey(layoutId)).collect(Collectors.toList());
 
         // quick return if all segments have the layout
         if (missingLayoutSegs.isEmpty())
@@ -144,8 +143,10 @@ public class MppOnTheFlyImpl implements MppOnTheFlyProvider {
                 public boolean updateSparkJobInfo(Map<String, String> params, String url, String json) {
                     return false;
                 }
+
                 @Override
-                public boolean updateSparkJobExtraInfo(Map<String, String> params, String url, String project, String jobId, Map<String, String> extraInfo) {
+                public boolean updateSparkJobExtraInfo(Map<String, String> params, String url, String project,
+                        String jobId, Map<String, String> extraInfo) {
                     return false;
                 }
             };

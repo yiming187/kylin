@@ -38,12 +38,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
 import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 import org.apache.kylin.guava30.shaded.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DateFormat {
 
@@ -68,7 +67,7 @@ public class DateFormat {
     private static final int MILLIS_TIMESTAMP_LENGTH = 13;
     private static final int SECONDS_TIMESTAMP_LENGTH = 10;
 
-    static final private Map<String, FastDateFormat> formatMap = new ConcurrentHashMap<String, FastDateFormat>();
+    private static final Map<String, FastDateFormat> formatMap = new ConcurrentHashMap<>();
 
     private static final Map<String, String> dateFormatRegex = Maps.newHashMap();
 

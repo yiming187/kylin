@@ -1379,7 +1379,6 @@ public class IndexPlanService extends BasicService implements TableIndexPlanSupp
 
     @Override
     public Object getIndexUpdateHelper(NDataModel model, boolean createIfNotExist) {
-        val baseIndexUpdater = new BaseIndexUpdateHelper(model, false);
-        return baseIndexUpdater;
+        return new BaseIndexUpdateHelper(model, false);
     }
 }

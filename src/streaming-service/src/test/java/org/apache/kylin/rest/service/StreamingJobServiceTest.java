@@ -47,6 +47,8 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.junit.rule.TransactionExceptedException;
@@ -91,9 +93,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.BeanUtils;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
 
 import lombok.val;
 import lombok.var;

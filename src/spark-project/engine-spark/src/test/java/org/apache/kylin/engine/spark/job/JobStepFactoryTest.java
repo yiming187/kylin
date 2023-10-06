@@ -18,12 +18,13 @@
 
 package org.apache.kylin.engine.spark.job;
 
-import org.apache.kylin.engine.spark.stats.analyzer.TableAnalyzerJob;
-import lombok.val;
-import lombok.var;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.engine.spark.NLocalWithSparkSessionTestBase;
+import org.apache.kylin.engine.spark.stats.analyzer.TableAnalyzerJob;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
@@ -47,8 +48,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sparkproject.guava.collect.Sets;
 
-import java.util.Set;
-import java.util.stream.Collectors;
+import lombok.val;
+import lombok.var;
 
 public class JobStepFactoryTest extends NLocalWithSparkSessionTestBase {
     private KylinConfig config;

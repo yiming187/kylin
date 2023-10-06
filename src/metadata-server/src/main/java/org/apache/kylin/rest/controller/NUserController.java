@@ -44,6 +44,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -106,8 +108,6 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import io.swagger.annotations.ApiOperation;
 import lombok.SneakyThrows;
 import lombok.val;
-
-import javax.servlet.http.HttpServletRequest;
 
 @Controller
 @RequestMapping(value = "/api/user", produces = { HTTP_VND_APACHE_KYLIN_JSON })
@@ -667,9 +667,8 @@ public class NUserController extends NBasicController implements ApplicationList
 
     private void checkSessionStoreType(KylinConfig env) {
         String type = env.getSpringStoreType();
-        HttpServletRequest request =
-                ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes()))
-                        .getRequest();
+        HttpServletRequest request = ((ServletRequestAttributes) Objects
+                .requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
         //todo other session store-type
         if ("jbdc".equals(type)) {
             request.getSession().setMaxInactiveInterval(env.getJdbcSessionMaxInactiveInterval());

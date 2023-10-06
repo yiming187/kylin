@@ -29,11 +29,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
-import org.apache.kylin.rest.service.UserService;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.metadata.user.ManagedUser;
 import org.apache.kylin.metadata.user.NKylinUserManager;
 import org.apache.kylin.rest.service.MaintenanceModeSupporter;
+import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.tool.restclient.RestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,8 +48,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-
-import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 
 public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider {
 

@@ -32,6 +32,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.junit.annotation.OverwriteProp;
+import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.rest.cluster.MockClusterManager;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
@@ -53,7 +54,6 @@ import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
-import org.apache.kylin.metadata.epoch.EpochManager;
 import lombok.SneakyThrows;
 import lombok.val;
 import lombok.var;

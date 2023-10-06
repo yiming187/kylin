@@ -73,10 +73,10 @@ public abstract class TCPMemcachedNodeImpl extends SpyObject implements Memcache
     private volatile long lastReadTimestamp = System.nanoTime();
     private MemcachedConnection connection;
 
-    @SuppressWarnings({"squid:S107", "squid:S5993"})
+    @SuppressWarnings({ "squid:S107", "squid:S5993" })
     public TCPMemcachedNodeImpl(SocketAddress sa, SocketChannel c, int bufSize, BlockingQueue<Operation> rq,
-                                   BlockingQueue<Operation> wq, BlockingQueue<Operation> iq, long opQueueMaxBlockTime,
-                                   boolean waitForAuth, long dt, long authWaitTime, ConnectionFactory fact) {
+            BlockingQueue<Operation> wq, BlockingQueue<Operation> iq, long opQueueMaxBlockTime, boolean waitForAuth,
+            long dt, long authWaitTime, ConnectionFactory fact) {
         super();
         if (sa == null) {
             throw new IllegalArgumentException("No SocketAddress");
@@ -235,8 +235,8 @@ public abstract class TCPMemcachedNodeImpl extends SpyObject implements Memcache
             }
             getWbuf().flip();
             assert toWrite <= getWbuf().capacity() : "toWrite exceeded capacity: " + this;
-            assert toWrite == getWbuf().remaining() : "Expected " + toWrite + " remaining, got "
-                    + getWbuf().remaining();
+            assert toWrite == getWbuf().remaining()
+                    : "Expected " + toWrite + " remaining, got " + getWbuf().remaining();
         } else {
             getLogger().debug("Buffer is full, skipping");
         }

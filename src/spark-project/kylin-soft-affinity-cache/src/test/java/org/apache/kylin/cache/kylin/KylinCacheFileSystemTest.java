@@ -29,6 +29,10 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.cache.fs.AbstractCacheFileSystem;
+import org.apache.kylin.cache.fs.AlluxioHdfsFileInputStream;
+import org.apache.kylin.cache.fs.CacheFileInputStream;
+import org.apache.kylin.cache.fs.CacheFileSystemConstants;
 import org.apache.kylin.common.AbstractTestCase;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -36,11 +40,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import org.apache.kylin.cache.fs.AbstractCacheFileSystem;
-import org.apache.kylin.cache.fs.AlluxioHdfsFileInputStream;
-import org.apache.kylin.cache.fs.CacheFileInputStream;
-import org.apache.kylin.cache.fs.CacheFileSystemConstants;
 
 public class KylinCacheFileSystemTest extends AbstractTestCase {
 

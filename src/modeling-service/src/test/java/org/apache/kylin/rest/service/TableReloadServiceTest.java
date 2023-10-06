@@ -1155,7 +1155,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testReloadTableRemoveCol() throws Exception {
-            ExecutableManager executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
+        ExecutableManager executableManager = ExecutableManager.getInstance(getTestConfig(), PROJECT);
         AbstractExecutable job = new NTableSamplingJob();
         String tableIdentity = "DEFAULT.TEST_ORDER";
         job.setTargetSubject(tableIdentity);
@@ -1232,9 +1232,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     }
 
     private Optional<ColumnDesc> findColumn(ColumnDesc[] columns, String name) {
-        return Stream.of(columns)
-                .filter(col -> col.getName().equalsIgnoreCase(name))
-                .findFirst();
+        return Stream.of(columns).filter(col -> col.getName().equalsIgnoreCase(name)).findFirst();
     }
 
     @Test
@@ -1746,7 +1744,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     public void testReloadTableWithSecondStorage() throws Exception {
         val model = "741ca86a-1f13-46da-a59f-95fb68615e3a";
         val project = "default";
-//        MockSecondStorage.mock("default", new ArrayList<>(), this);
+        //        MockSecondStorage.mock("default", new ArrayList<>(), this);
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             indexPlanManager.updateIndexPlan(model, indexPlan -> {
@@ -1923,8 +1921,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         changeTypeColumn(tableIdentity, columns, Collections.emptyMap(), useMeta);
     }
 
-    private void changeTypeColumn(String tableIdentity, Map<String, String> columns, Map<String, String> comments, boolean useMeta)
-            throws IOException {
+    private void changeTypeColumn(String tableIdentity, Map<String, String> columns, Map<String, String> comments,
+            boolean useMeta) throws IOException {
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
         val factTable = tableManager.getTableDesc(tableIdentity);
         String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();

@@ -186,7 +186,8 @@ public class StorageCleaner implements GarbageCleaner {
         allFileSystems.add(new StorageItem(FileSystemDecorator.getInstance(HadoopUtil.getWorkingFileSystem()),
                 config.getHdfsWorkingDirectory()));
         // Check if independent storage of flat tables under read/write separation is enabled
-        // For build tasks it is a project-level parameter(Higher project-level priority), but for cleaning up storage garbage,
+        // For build tasks it is a project-level parameter(Higher project-level priority), 
+        // but for cleaning up storage garbage,
         // WRITING_CLUSTER_WORKING_DIR is a system-level parameter
         if (kylinConfig.isBuildFilesSeparationEnabled()) {
             allFileSystems
@@ -308,8 +309,7 @@ public class StorageCleaner implements GarbageCleaner {
                     RawResource raw = resourceStore.getResource(ResourceStore.METASTORE_TRASH_RECORD);
                     long mvcc = raw == null ? -1 : raw.getMvcc();
                     // TrashRecord doesn't extend RootPersistentEntity. Let's manually lock it's resource path.
-                    MemoryLockUtils.doWithLock(ResourceStore.METASTORE_TRASH_RECORD, false, threadViewRS,
-                            () -> null);
+                    MemoryLockUtils.doWithLock(ResourceStore.METASTORE_TRASH_RECORD, false, threadViewRS, () -> null);
                     threadViewRS.checkAndPutResource(ResourceStore.METASTORE_TRASH_RECORD,
                             ByteSource.wrap(JsonUtil.writeValueAsBytes(new TrashRecord(trashRecord))), mvcc);
                     return 0;

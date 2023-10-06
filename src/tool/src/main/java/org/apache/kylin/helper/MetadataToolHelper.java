@@ -78,7 +78,7 @@ import lombok.val;
 import lombok.var;
 
 /*
-* this class is only for removing dependency of kylin-tool module, and should be refactor later
+* this class is only for removing dependency of kylin-tool module, and should be refactored later
 */
 public class MetadataToolHelper extends CancelableTask {
 
@@ -119,8 +119,8 @@ public class MetadataToolHelper extends CancelableTask {
         new MetadataToolHelper().backup(kylinConfig, project, backupPath, true, false);
     }
 
-    public Pair<String, String> backup(KylinConfig kylinConfig, String project, String path, String folder, boolean compress,
-                                       boolean excludeTableExd) throws Exception {
+    public Pair<String, String> backup(KylinConfig kylinConfig, String project, String path, String folder,
+            boolean compress, boolean excludeTableExd) throws Exception {
         Pair<String, String> pair = getBackupPath(path, folder);
         String coreMetadataBackupPath = StringUtils.appendIfMissing(pair.getFirst(), "/") + "core_meta";
         backup(kylinConfig, project, coreMetadataBackupPath, compress, excludeTableExd);
@@ -169,7 +169,8 @@ public class MetadataToolHelper extends CancelableTask {
             throws Exception {
         ResourceStore resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
         boolean isUTEnv = kylinConfig.isUTEnv();
-        //FIXME should replace printf with Logger while Logger MUST print this message to console, because test depends on it
+        //FIXME should replace printf with Logger while Logger MUST print this message to console,
+        // because test depends on it
         System.out.printf(Locale.ROOT, "The metadata backup path is %s.%n", backupPath);
         val backupMetadataUrl = getMetadataUrl(backupPath, compress, kylinConfig);
         val backupConfig = KylinConfig.createKylinConfig(kylinConfig);
@@ -302,7 +303,8 @@ public class MetadataToolHelper extends CancelableTask {
         }
     }
 
-    public void restore(KylinConfig kylinConfig, String project, String path, boolean delete, boolean backup) throws Exception {
+    public void restore(KylinConfig kylinConfig, String project, String path, boolean delete, boolean backup)
+            throws Exception {
         logger.info("Restore metadata with delete : {}", delete);
         ResourceStore resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
         val restoreMetadataUrl = getMetadataUrl(path, false, kylinConfig);
@@ -403,7 +405,7 @@ public class MetadataToolHelper extends CancelableTask {
             String errorMsg = duplicateUuidModelByProject.entrySet().stream()
                     .map(m -> "[" + m.getKey() + "]:" + String.join(",", m.getValue()))
                     .collect(Collectors.joining(";"));
-            String info = String.format(
+            String info = String.format(Locale.ROOT,
                     "[UNEXPECTED_THINGS_HAPPENED] There will be models with the same name after recovery, please rename these models first:[project]:models: %s ",
                     errorMsg);
             logger.error(info);
@@ -504,7 +506,8 @@ public class MetadataToolHelper extends CancelableTask {
             Set<String> destResources, Set<String> srcResources, boolean delete) throws IOException {
         val threadViewRS = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
 
-        //check destResources and srcResources are null,because  Sets.difference(srcResources, destResources) will report NullPointerException
+        // check destResources and srcResources are null,
+        // because Sets.difference(srcResources, destResources) will report NullPointerException
         destResources = destResources == null ? Collections.emptySet() : destResources;
         srcResources = srcResources == null ? Collections.emptySet() : srcResources;
 
@@ -548,8 +551,7 @@ public class MetadataToolHelper extends CancelableTask {
     }
 
     public DataSource getDataSource(KylinConfig kylinConfig) throws Exception {
-        val url = kylinConfig.getMetadataUrl();
-        val props = JdbcUtil.datasourceParameters(url);
+        val props = JdbcUtil.datasourceParameters(kylinConfig.getMetadataUrl());
         return JdbcDataSource.getDataSource(props);
     }
 

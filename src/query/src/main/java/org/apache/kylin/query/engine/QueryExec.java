@@ -192,7 +192,8 @@ public class QueryExec {
             queryContext.record("end_calcite_optimize");
 
             List<StructField> resultFields = RelColumnMetaDataExtractor.getColumnMetadata(relRoot.validatedRowType);
-            if (resultFields.isEmpty()) { // result fields size may be 0 because of ACL controls and should return immediately
+            if (resultFields.isEmpty()) {
+                // result fields size may be 0 because of ACL controls and should return immediately
                 QueryContext.fillEmptyResultSetMetrics();
                 return new QueryResult();
             }
@@ -389,7 +390,8 @@ public class QueryExec {
         if (!QueryContext.current().getQueryTagInfo().isAsyncQuery()
                 && KapConfig.wrap(kylinConfig).runConstantQueryLocally() && routeToCalcite) {
             QueryContext.current().getQueryTagInfo().setConstantQuery(true);
-            return new CalciteQueryPlanExec().executeToIterable(rels.get(0), dataContext); // if sparder is not enabled, or the sql can run locally, use the calcite engine
+            // if sparder is not enabled, or the sql can run locally, use the calcite engine
+            return new CalciteQueryPlanExec().executeToIterable(rels.get(0), dataContext);
         } else {
             return sparderQuery(rels);
         }
@@ -499,9 +501,6 @@ public class QueryExec {
 
     /**
      * Calcite is not capable for some constant queries, need to route to Sparder
-     *
-     * @param rel
-     * @return
      */
     private boolean isCalciteEngineCapable(RelNode rel) {
         if (rel instanceof Project) {
@@ -539,28 +538,20 @@ public class QueryExec {
             StringBuilder diagnosticInfo = new StringBuilder(System.getProperty("line.separator"));
             diagnosticInfo.append("<-------------------- Dry Run Info -------------------->");
 
-            diagnosticInfo.append(SEP)
-                    .append("1. Last Exception :")
-                    .append(SEP).append("  ");
+            diagnosticInfo.append(SEP).append("1. Last Exception :").append(SEP).append("  ");
             diagnosticInfo.append(msg).append(SEP);
 
-            diagnosticInfo.append(SEP)
-                    .append("2. RelNode(with ctx id) :")
-                    .append(SEP).append("  ");
+            diagnosticInfo.append(SEP).append("2. RelNode(with ctx id) :").append(SEP).append("  ");
             diagnosticInfo.append(QueryContext.current().getLastUsedRelNode());
 
-            diagnosticInfo.append(SEP)
-                    .append("3. OLAPContext(s) and matched model(s) :");
+            diagnosticInfo.append(SEP).append("3. OLAPContext(s) and matched model(s) :");
             if (OLAPContext.getThreadLocalContexts() != null) {
-                String olapMatchInfo =
-                        OLAPContext.getNativeRealizations().stream()
-                                .map(r -> String.format(" Ctx=%d, \tMatched=%s, \tIndexType=%s, \tLayoutId=%d",
-                                        r.getCxtId(), r.getModelAlias(), r.getIndexType(), r.getLayoutId()))
-                                .collect(Collectors.joining(SEP));
+                String olapMatchInfo = OLAPContext.getNativeRealizations().stream()
+                        .map(r -> String.format(" Ctx=%d, \tMatched=%s, \tIndexType=%s, \tLayoutId=%d", r.getCxtId(),
+                                r.getModelAlias(), r.getIndexType(), r.getLayoutId()))
+                        .collect(Collectors.joining(SEP));
                 if (olapMatchInfo.length() >= 10) {
-                    diagnosticInfo.append(SEP)
-                            .append(olapMatchInfo)
-                            .append(SEP);
+                    diagnosticInfo.append(SEP).append(olapMatchInfo).append(SEP);
                 }
 
                 for (OLAPContext ctx : OLAPContext.getThreadLocalContexts()) {
@@ -573,26 +564,19 @@ public class QueryExec {
                         diagnosticInfo.append(" is matched by ").append(ctx.realization.getCanonicalName())
                                 .append(", expected ").append(ctx.tipsForUser());
                     }
-//                    diagnosticInfo.append(", verbose text:").append(ctx);
+                    //                    diagnosticInfo.append(", verbose text:").append(ctx);
                 }
                 diagnosticInfo.append(SEP);
             }
 
-            diagnosticInfo.append(SEP)
-                    .append("4. SQL Text :")
-                    .append(SEP);
-            diagnosticInfo.append(sql)
-                    .append(SEP);
+            diagnosticInfo.append(SEP).append("4. SQL Text :").append(SEP);
+            diagnosticInfo.append(sql).append(SEP);
 
-            diagnosticInfo.append(SEP)
-                    .append("5. Physical plan :")
-                    .append(SEP);
+            diagnosticInfo.append(SEP).append("5. Physical plan :").append(SEP);
             diagnosticInfo.append(plan).append(SEP);
 
-            diagnosticInfo.append(SEP)
-                    .append("<-------------------- Dry Run Info -------------------->");
-            diagnosticInfo.append(SEP)
-                    .append(DRY_RUN_TIP);
+            diagnosticInfo.append(SEP).append("<-------------------- Dry Run Info -------------------->");
+            diagnosticInfo.append(SEP).append(DRY_RUN_TIP);
             diagnosticStr = diagnosticInfo.toString();
             return new SQLException(diagnosticStr, e);
         } else {
@@ -615,10 +599,9 @@ public class QueryExec {
         }
     }
 
-    public final static String SEP = System.getProperty("line.separator");
-    public final static String DRY_RUN_TIP = SEP
-            + "Tip : Dryrun is a experimental feature for user to create proper model."
-            + SEP + "To enable/disable dry run, please set 'kylin.query.dryrun-enabled=true/false'"
-            + SEP + "in Setting -> Advanced Settings -> Custom Project Configuration."
-            + SEP;
+    public static final String SEP = System.getProperty("line.separator");
+    public static final String DRY_RUN_TIP = SEP
+            + "Tip : Dryrun is a experimental feature for user to create proper model." + SEP
+            + "To enable/disable dry run, please set 'kylin.query.dryrun-enabled=true/false'" + SEP
+            + "in Setting -> Advanced Settings -> Custom Project Configuration." + SEP;
 }

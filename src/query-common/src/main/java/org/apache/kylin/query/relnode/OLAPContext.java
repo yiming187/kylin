@@ -30,9 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.kylin.fileseg.FileSegments;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
@@ -44,6 +41,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.fileseg.FileSegments;
 import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.guava30.shaded.common.collect.Sets;
@@ -70,11 +68,12 @@ import org.apache.kylin.query.routing.RealizationCheck;
 import org.apache.kylin.query.schema.OLAPSchema;
 import org.apache.kylin.query.schema.OLAPTable;
 import org.apache.kylin.storage.StorageContext;
-import org.apache.spark.sql.util.SparderTypeUtil;
 import org.apache.logging.log4j.util.Strings;
+import org.apache.spark.sql.util.SparderTypeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -106,8 +105,9 @@ public class OLAPContext {
     public RealizationCheck realizationCheck = new RealizationCheck();
     public Set<TblColRef> allColumns = new HashSet<>();
     public Set<TblColRef> metricsColumns = new HashSet<>();
-    public List<FunctionDesc> aggregations = new ArrayList<>(); // storage level measure type, on top of which various sql aggr function may apply
+    // storage level measure type, on top of which various sql aggr function may apply
     public Set<TblColRef> filterColumns = new LinkedHashSet<>();
+    public List<FunctionDesc> aggregations = new ArrayList<>();
     public List<JoinDesc> joins = new LinkedList<>();
     // rewrite info
     public Map<String, RelDataType> rewriteFields = new HashMap<>();
@@ -125,12 +125,13 @@ public class OLAPContext {
     @Setter
     @Getter
     private OLAPRel topNode = null; // the context's toppest node
-    @Setter
-    @Getter
-    private RelNode parentOfTopNode = null; // record the JoinRel that cuts off its children into new context(s), in other case it should be null
+    // record the JoinRel that cuts off its children into new context(s), in other case it should be null
     @Setter
     @Getter
     private int limit = Integer.MAX_VALUE;
+    @Setter
+    @Getter
+    private RelNode parentOfTopNode = null;
     @Setter
     @Getter
     private boolean hasJoin = false;
@@ -156,19 +157,26 @@ public class OLAPContext {
     // collect inner columns in filter
     // this filed is used by CC proposer only
     private Set<TblColRef> innerFilterColumns = Sets.newLinkedHashSet();
+
+    //subqueryJoinParticipants will be added to groupByColumns(only when other group by co-exists) and allColumns
     @Setter
     @Getter
-    private Set<TblColRef> subqueryJoinParticipants = new HashSet<>();//subqueryJoinParticipants will be added to groupByColumns(only when other group by co-exists) and allColumns
+    private Set<TblColRef> subqueryJoinParticipants = new HashSet<>();
+    // join keys in the direct outer join (without agg, union etc in between)
     @Setter
     @Getter
-    private Set<TblColRef> outerJoinParticipants = new HashSet<>();// join keys in the direct outer join (without agg, union etc in between)
+    private Set<TblColRef> outerJoinParticipants = new HashSet<>();
+
+    // agg like min(2),max(2),avg(2), not including count(1)
     @Setter
     @Getter
-    private List<FunctionDesc> constantAggregations = new ArrayList<>(); // agg like min(2),max(2),avg(2), not including count(1)
+    private List<FunctionDesc> constantAggregations = new ArrayList<>();
     @Getter
     private List<RexNode> expandedFilterConditions = new LinkedList<>();
+
+    // tables which have not null filter(s), can be used in join-match-optimization
     @Getter
-    private Set<TableRef> notNullTables = new HashSet<>(); // tables which have not null filter(s), can be used in join-match-optimization
+    private Set<TableRef> notNullTables = new HashSet<>();
     @Getter
     @Setter
     private JoinsGraph joinsGraph;
@@ -306,13 +314,15 @@ public class OLAPContext {
         realization.setCxtId(ctx.id);
         realization.setSecondStorage(
                 QueryContext.current().getSecondStorageUsageMap().getOrDefault(realization.getLayoutId(), false));
-        realization.setRecommendSecondStorage(recommendSecondStorage(ctx.realization.getProject(), modelId, realizationType));
+        realization.setRecommendSecondStorage(
+                recommendSecondStorage(ctx.realization.getProject(), modelId, realizationType));
 
         // lastDataLoadTime & isLoadingData
         if (ctx.realization instanceof NDataflow) {
             NDataflow df = (NDataflow) ctx.realization;
             if (df.getModel().isFilePartitioned()) {
-                boolean isLoadingData = df.getSegments().stream().anyMatch(seg -> seg.getStatus() == SegmentStatusEnum.NEW);
+                boolean isLoadingData = df.getSegments().stream()
+                        .anyMatch(seg -> seg.getStatus() == SegmentStatusEnum.NEW);
                 realization.setLoadingData(isLoadingData);
                 realization.setBuildingIndex(FileSegments.guessIsBuildingIndex(df));
                 realization.setLastDataRefreshTime(df.getLastDataRefreshTime());
@@ -383,7 +393,8 @@ public class OLAPContext {
                     Lists.newArrayList(groupByColumns), Sets.newHashSet(subqueryJoinParticipants), // group by
                     Sets.newHashSet(metricsColumns), Lists.newArrayList(aggregations), // aggregation
                     Sets.newLinkedHashSet(filterColumns), // filter
-                    Lists.newArrayList(sortColumns), Lists.newArrayList(sortOrders), limit, limitPrecedesAggr, // sort & limit
+                    Lists.newArrayList(sortColumns), Lists.newArrayList(sortOrders), //
+                    limit, limitPrecedesAggr, // sort & limit
                     Sets.newHashSet(involvedMeasure));
         }
         return sqlDigest;
@@ -545,30 +556,26 @@ public class OLAPContext {
                 + ", filterColumns=" + filterColumns + '}';
     }
 
-    public final static String SEP = System.getProperty("line.separator");
-    public final static String INDENT = "  ";
+    public static final String SEP = System.getProperty("line.separator");
+    public static final String INDENT = "  ";
 
-    public final static String olapContextFormat = SEP
-            + "{"
-            + SEP + INDENT + "\"Fact Table\" = \"%s\","
-            + SEP + INDENT + "\"Dimension Tables\" = [%s],"
-            + SEP + INDENT + "\"Recommend Dimension(Group by)\" = [%s],"
-            + SEP + INDENT + "\"Recommend Dimension(Filter cond)\" = [%s],"
-            + SEP + INDENT + "\"Measures\" = [%s],"
-            + SEP + "}"
-            + SEP;
+    public static final String olapContextFormat = SEP + "{" + SEP + INDENT + "\"Fact Table\" = \"%s\"," + SEP + INDENT
+            + "\"Dimension Tables\" = [%s]," + SEP + INDENT + "\"Recommend Dimension(Group by)\" = [%s]," + SEP + INDENT
+            + "\"Recommend Dimension(Filter cond)\" = [%s]," + SEP + INDENT + "\"Measures\" = [%s]," + SEP + "}" + SEP;
 
     public String tipsForUser() {
         Set<String> allTables = allTableScans.stream().map(OLAPTableScan::getTableName).collect(Collectors.toSet());
         if (!allTables.isEmpty() && firstTableScan != null) {
             allTables.remove(firstTableScan.getTableName());
-            return String.format(olapContextFormat,
-                    firstTableScan.getTableName(),
+            return String.format(olapContextFormat, firstTableScan.getTableName(),
                     Strings.join(allTables.stream().map(c -> "\"" + c + "\"").iterator(), ','),
-                    Strings.join(groupByColumns.stream().map(c -> "\"" + c.getColumnWithTableAndSchema() + "\"").iterator(), ','),
-                    Strings.join(filterColumns.stream().map(c -> "\"" + c.getColumnWithTableAndSchema() + "\"").iterator(), ','),
-                    Strings.join(aggregations.stream().map(c -> "\"" + c.getFullExpression() + "\"").iterator(), ',')
-                    );
+                    Strings.join(
+                            groupByColumns.stream().map(c -> "\"" + c.getColumnWithTableAndSchema() + "\"").iterator(),
+                            ','),
+                    Strings.join(
+                            filterColumns.stream().map(c -> "\"" + c.getColumnWithTableAndSchema() + "\"").iterator(),
+                            ','),
+                    Strings.join(aggregations.stream().map(c -> "\"" + c.getFullExpression() + "\"").iterator(), ','));
         } else {
             return "empty";
         }
@@ -576,10 +583,8 @@ public class OLAPContext {
 
     public String toHumanReadString() {
         String r = realization == null ? "not matched" : realization.getCanonicalName();
-        return "{id = " + id
-                + ", model = " + r
-                + ", fact table = " + (firstTableScan != null ? firstTableScan.getTableName() : "?")
-                + "}";
+        return "{id = " + id + ", model = " + r + ", fact table = "
+                + (firstTableScan != null ? firstTableScan.getTableName() : "?") + "}";
     }
 
     public void matchJoinWithFilterTransformation() {

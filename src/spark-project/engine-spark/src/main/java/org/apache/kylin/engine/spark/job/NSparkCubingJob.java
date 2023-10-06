@@ -109,8 +109,8 @@ public class NSparkCubingJob extends DefaultExecutableOnModel {
     }
 
     @VisibleForTesting
-    public static NSparkCubingJob createIncBuildJob(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
-                                                    Set<JobBucket> buckets) {
+    public static NSparkCubingJob createIncBuildJob(Set<NDataSegment> segments, Set<LayoutEntity> layouts,
+            String submitter, Set<JobBucket> buckets) {
         return create(segments, layouts, submitter, JobTypeEnum.INC_BUILD, RandomUtil.randomUUIDStr(), null, null,
                 buckets);
     }
@@ -386,14 +386,14 @@ public class NSparkCubingJob extends DefaultExecutableOnModel {
             existsSegments.add(segment.getId());
         }
         switch (getJobType()) {
-            case SUB_PARTITION_BUILD:
-                dataFlowUpdateRequest.setToRemoveSegmentPartitions(new Pair<>(existsSegments, partitions));
-                break;
-            case SUB_PARTITION_REFRESH:
-                dataFlowUpdateRequest.setResetToReadyPartitions(new Pair<>(existsSegments, partitions));
-                break;
-            default:
-                break;
+        case SUB_PARTITION_BUILD:
+            dataFlowUpdateRequest.setToRemoveSegmentPartitions(new Pair<>(existsSegments, partitions));
+            break;
+        case SUB_PARTITION_REFRESH:
+            dataFlowUpdateRequest.setResetToReadyPartitions(new Pair<>(existsSegments, partitions));
+            break;
+        default:
+            break;
         }
     }
 

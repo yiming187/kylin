@@ -91,7 +91,7 @@ public class NSparkMergingJob extends DefaultExecutableOnModel {
     }
 
     public static NSparkMergingJob merge(NDataSegment mergedSegment, Set<LayoutEntity> layouts, String submitter,
-                                         String jobId) {
+            String jobId) {
         return merge(mergedSegment, layouts, submitter, jobId, null, null);
     }
 
@@ -103,7 +103,7 @@ public class NSparkMergingJob extends DefaultExecutableOnModel {
      *                       the ready cuboids in the segments.
      */
     public static NSparkMergingJob merge(NDataSegment mergedSegment, Set<LayoutEntity> layouts, String submitter,
-                                         String jobId, Set<Long> partitions, Set<JobBucket> buckets) {
+            String jobId, Set<Long> partitions, Set<JobBucket> buckets) {
         Preconditions.checkArgument(mergedSegment != null);
         Preconditions.checkArgument(submitter != null);
 
@@ -155,7 +155,7 @@ public class NSparkMergingJob extends DefaultExecutableOnModel {
     }
 
     private static AbstractExecutable initSecondMergeStep(NDataSegment mergedSegment, Set<LayoutEntity> layouts,
-                                                          NDataflow df, NSparkMergingJob job, KylinConfig config, Segments<NDataSegment> mergingSegments) {
+            NDataflow df, NSparkMergingJob job, KylinConfig config, Segments<NDataSegment> mergingSegments) {
         AbstractExecutable mergeStep = null;
         if (SecondStorageUtil.isModelEnable(df.getProject(), job.getTargetSubject())
                 && layouts.stream().anyMatch(SecondStorageUtil::isBaseTableIndex)) {
@@ -170,8 +170,8 @@ public class NSparkMergingJob extends DefaultExecutableOnModel {
     }
 
     public static void setDAGRelations(AbstractExecutable job, KylinConfig config, AbstractExecutable resourceDetect,
-                                       AbstractExecutable merging, AbstractExecutable clean, AbstractExecutable secondStorageMerge,
-                                       AbstractExecutable updateMetadata) {
+            AbstractExecutable merging, AbstractExecutable clean, AbstractExecutable secondStorageMerge,
+            AbstractExecutable updateMetadata) {
         if (!StringUtils.equalsIgnoreCase(config.getJobSchedulerMode(), JobSchedulerModeEnum.CHAIN.toString())) {
             initResourceDetectDagNode(resourceDetect, merging, secondStorageMerge);
             merging.setNextSteps(Sets.newHashSet(clean.getId()));

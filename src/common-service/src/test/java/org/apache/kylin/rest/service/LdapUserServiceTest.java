@@ -40,7 +40,11 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.EncryptUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.guava30.shaded.common.cache.Cache;
+import org.apache.kylin.guava30.shaded.common.collect.ImmutableMap;
 import org.apache.kylin.helper.UpdateUserAclToolHelper;
+import org.apache.kylin.metadata.epoch.EpochManager;
+import org.apache.kylin.metadata.user.ManagedUser;
 import org.apache.kylin.metadata.usergroup.UserGroup;
 import org.apache.kylin.rest.response.UserGroupResponseKI;
 import org.apache.kylin.rest.security.AclPermission;
@@ -76,14 +80,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import org.apache.kylin.guava30.shaded.common.cache.Cache;
-import org.apache.kylin.guava30.shaded.common.collect.ImmutableMap;
 import com.unboundid.ldap.listener.InMemoryDirectoryServer;
 import com.unboundid.ldap.listener.InMemoryDirectoryServerConfig;
 import com.unboundid.ldap.listener.InMemoryListenerConfig;
 
-import org.apache.kylin.metadata.epoch.EpochManager;
-import org.apache.kylin.metadata.user.ManagedUser;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -92,8 +92,8 @@ import lombok.extern.slf4j.Slf4j;
 @ContextHierarchy({ @ContextConfiguration(locations = { "classpath:applicationContext.xml" }),
         @ContextConfiguration(locations = { "classpath:kylinSecurity.xml" }) })
 @WebAppConfiguration(value = "src/main/resources")
-@TestPropertySource(properties = {"spring.cloud.nacos.discovery.enabled = false"})
-@TestPropertySource(properties = {"spring.session.store-type = NONE"})
+@TestPropertySource(properties = { "spring.cloud.nacos.discovery.enabled = false" })
+@TestPropertySource(properties = { "spring.session.store-type = NONE" })
 @ActiveProfiles({ "ldap", "ldap-test", "test" })
 public class LdapUserServiceTest extends NLocalFileMetadataTestCase {
 

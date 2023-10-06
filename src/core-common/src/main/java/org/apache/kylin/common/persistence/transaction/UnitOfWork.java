@@ -17,10 +17,6 @@
  */
 package org.apache.kylin.common.persistence.transaction;
 
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import static org.apache.kylin.common.persistence.lock.TransactionDeadLockHandler.THREAD_NAME_PREFIX;
 
 import java.util.Arrays;
@@ -59,8 +55,12 @@ import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.common.util.Unsafe;
 import org.apache.kylin.guava30.shaded.common.base.Preconditions;
-
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
+
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -416,7 +416,7 @@ public class UnitOfWork {
         try {
             task.run();
         } catch (KylinException e) {
-          throw e;
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException("Execute 'doAfterUpdate' failed.", e);
         }

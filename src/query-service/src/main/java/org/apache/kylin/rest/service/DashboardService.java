@@ -18,10 +18,16 @@
 
 package org.apache.kylin.rest.service;
 
-import lombok.extern.slf4j.Slf4j;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 import org.apache.kylin.common.response.MetricsResponse;
-import org.apache.kylin.metadata.realization.HybridRealization;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.realization.HybridRealization;
 import org.apache.kylin.query.exception.UnsupportedQueryException;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.JobStatisticsResponse;
@@ -36,12 +42,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component("dashboardService")

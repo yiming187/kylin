@@ -53,7 +53,6 @@ public class MetadataTool extends ExecutableApplication {
 
     private static final Logger logger = LoggerFactory.getLogger("diag");
 
-    @SuppressWarnings("static-access")
     private static final Option OPERATE_BACKUP = OptionBuilder.getInstance()
             .withDescription("Backup metadata to local path or HDFS path").isRequired(false).create("backup");
 
@@ -94,9 +93,9 @@ public class MetadataTool extends ExecutableApplication {
     private final KylinConfig kylinConfig;
     private final MetadataToolHelper helper;
 
-    private JobInfoTool jobInfoTool = new JobInfoTool();
-    private QueryHistoryOffsetTool queryHistoryOffsetTool = new QueryHistoryOffsetTool();
-    private FavoriteRuleTool favoriteRuleTool = new FavoriteRuleTool();
+    private final JobInfoTool jobInfoTool = new JobInfoTool();
+    private final QueryHistoryOffsetTool queryHistoryOffsetTool = new QueryHistoryOffsetTool();
+    private final FavoriteRuleTool favoriteRuleTool = new FavoriteRuleTool();
 
     public MetadataTool() {
         this(KylinConfig.getInstanceFromEnv());
@@ -114,7 +113,7 @@ public class MetadataTool extends ExecutableApplication {
 
     public static void backup(KylinConfig kylinConfig) throws IOException {
         HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
-        String[] args = new String[]{"-backup", "-compress", "-dir", HadoopUtil.getBackupFolder(kylinConfig)};
+        String[] args = new String[] { "-backup", "-compress", "-dir", HadoopUtil.getBackupFolder(kylinConfig) };
         val backupTool = new MetadataTool(kylinConfig);
         backupTool.execute(args);
     }
@@ -128,7 +127,7 @@ public class MetadataTool extends ExecutableApplication {
         if (afterTruncate) {
             tool.execute(new String[] { "-restore", "-dir", folder, "--after-truncate" });
         } else {
-            tool.execute(new String[] { "-restore", "-dir", folder});
+            tool.execute(new String[] { "-restore", "-dir", folder });
         }
     }
 
@@ -137,9 +136,10 @@ public class MetadataTool extends ExecutableApplication {
         if (afterTruncate) {
             tool.execute(new String[] { "-restore", "-dir", folder, "-project", project, "--after-truncate" });
         } else {
-            tool.execute(new String[] { "-restore", "-dir", folder, "-project", project});
+            tool.execute(new String[] { "-restore", "-dir", folder, "-project", project });
         }
     }
+
     public static void main(String[] args) {
         ToolMainWrapper.wrap(args, () -> {
             val config = KylinConfig.getInstanceFromEnv();
@@ -212,8 +212,7 @@ public class MetadataTool extends ExecutableApplication {
     private void backupMetadata(String project, String path, String folder, boolean compress, boolean excludeTableExd)
             throws Exception {
 
-        String backupPath = helper.backup(kylinConfig, project, path, folder, compress, excludeTableExd)
-                .getFirst();
+        String backupPath = helper.backup(kylinConfig, project, path, folder, compress, excludeTableExd).getFirst();
 
         if (StringUtils.isNotEmpty(project)) {
             jobInfoTool.backupToLocal(backupPath, project);

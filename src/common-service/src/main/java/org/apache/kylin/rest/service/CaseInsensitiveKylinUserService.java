@@ -21,9 +21,9 @@ package org.apache.kylin.rest.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.metadata.user.ManagedUser;
 import org.apache.kylin.rest.constant.Constant;
 
-import org.apache.kylin.metadata.user.ManagedUser;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

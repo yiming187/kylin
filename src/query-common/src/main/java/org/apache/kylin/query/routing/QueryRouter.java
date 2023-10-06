@@ -31,10 +31,10 @@ import org.apache.kylin.guava30.shaded.common.collect.Ordering;
 import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.project.NProjectManager;
-
-import lombok.Getter;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealization;
+
+import lombok.Getter;
 
 public class QueryRouter {
 

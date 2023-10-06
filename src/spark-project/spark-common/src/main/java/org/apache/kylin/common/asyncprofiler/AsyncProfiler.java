@@ -63,21 +63,21 @@ public class AsyncProfiler {
                 boolean isMuslLibc = AsyncArchUtil.isMuslLibc();
                 logger.info("Machine's archType: {}, isMuslLibc: {}", archType, isMuslLibc);
                 switch (archType) {
-                    case LINUX_ARM64:
-                        if (isMuslLibc) {
-                            libName = ASYNC_PROFILER_LIB_LINUX_MUSL_ARM64;
-                        } else {
-                            libName = ASYNC_PROFILER_LIB_LINUX_ARM64;
-                        }
-                        break;
-                    case LINUX_X64:
-                    default:
-                        if (isMuslLibc) {
-                            libName = ASYNC_PROFILER_LIB_LINUX_MUSL_X64;
-                        } else {
-                            libName = ASYNC_PROFILER_LIB_LINUX_X64;
-                        }
-                        break;
+                case LINUX_ARM64:
+                    if (isMuslLibc) {
+                        libName = ASYNC_PROFILER_LIB_LINUX_MUSL_ARM64;
+                    } else {
+                        libName = ASYNC_PROFILER_LIB_LINUX_ARM64;
+                    }
+                    break;
+                case LINUX_X64:
+                default:
+                    if (isMuslLibc) {
+                        libName = ASYNC_PROFILER_LIB_LINUX_MUSL_X64;
+                    } else {
+                        libName = ASYNC_PROFILER_LIB_LINUX_X64;
+                    }
+                    break;
                 }
 
                 // Adapting load paths based on Spark deployment patterns

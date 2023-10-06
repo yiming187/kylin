@@ -89,8 +89,8 @@ public class NSparkCubingStep extends NSparkExecutable {
         for (String segId : segmentIds) {
             val seg = dfMgr.getDataflow(dataflowId).getSegment(segId);
             for (LayoutEntity layout : indexPlan.getAllLayouts()) {
-                String path = "/" + NSparkCubingUtil.getStoragePathWithoutPrefix(project,
-                        dataflowId, segId, layout.getId());
+                String path = "/"
+                        + NSparkCubingUtil.getStoragePathWithoutPrefix(project, dataflowId, segId, layout.getId());
                 result.add(new Path(path).getParent().toString());
             }
         }
@@ -122,8 +122,8 @@ public class NSparkCubingStep extends NSparkExecutable {
         for (Map.Entry<String, List<StageBase>> entry : stagesMap.entrySet()) {
             String segmentId = entry.getKey();
             List<StageBase> stages = entry.getValue();
-            boolean hasWarning = stages.stream()
-                    .anyMatch(stage -> executableManager.getOutput(stage.getId(), segmentId).getState() == ExecutableState.WARNING);
+            boolean hasWarning = stages.stream().anyMatch(stage -> executableManager.getOutput(stage.getId(), segmentId)
+                    .getState() == ExecutableState.WARNING);
             if (hasWarning) {
                 return true;
             }

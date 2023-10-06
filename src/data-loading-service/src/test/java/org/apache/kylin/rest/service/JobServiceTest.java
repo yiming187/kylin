@@ -249,7 +249,8 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         manager.updateJobOutput(task.getId(), ExecutableState.RUNNING, null, null, null);
         manager.updateJobOutput(task.getId(), ExecutableState.SUCCEED, null, null, null);
 
-        ExecutableResponse response = ExecutableResponse.create(executable, ExecutableManager.toPO(executable, project));
+        ExecutableResponse response = ExecutableResponse.create(executable,
+                ExecutableManager.toPO(executable, project));
         Assert.assertEquals(0.99F, response.getStepRatio(), 0.001);
     }
 
@@ -263,7 +264,8 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         params.put(NBatchConstants.P_SELECTED_PARTITION_VALUE, "[\"1\",\"2\",\"3\"]");
         params.put(NBatchConstants.P_SELECTED_PARTITION_COL, "testCol");
         snapshotJob.setParams(params);
-        ExecutableResponse response = ExecutableResponse.create(snapshotJob, ExecutableManager.toPO(snapshotJob, project));
+        ExecutableResponse response = ExecutableResponse.create(snapshotJob,
+                ExecutableManager.toPO(snapshotJob, project));
 
         params.put(NBatchConstants.P_INCREMENTAL_BUILD, "false");
         params.put(NBatchConstants.P_SELECTED_PARTITION_COL, "testCol");
@@ -718,14 +720,14 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     private long getCreateTime(String name) {
         switch (name) {
-            case "1":
-                return 1560324101000L;
-            case "2":
-                return 1560324102000L;
-            case "3":
-                return 1560324103000L;
-            default:
-                return 0L;
+        case "1":
+            return 1560324101000L;
+        case "2":
+            return 1560324102000L;
+        case "3":
+            return 1560324103000L;
+        default:
+            return 0L;
         }
     }
 
@@ -791,7 +793,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
         val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val project = "default";
-//        MockSecondStorage.mock("default", new ArrayList<>(), this);
+        //        MockSecondStorage.mock("default", new ArrayList<>(), this);
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             indexPlanManager.updateIndexPlan(model, indexPlan -> {
@@ -799,9 +801,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
             });
             return null;
         }, project);
-//        SecondStorageUtil.initModelMetaData(project, model);
-//        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-//        Assert.assertTrue(SecondStorageUtil.isModelEnableWithoutCheckKylinInfo(project, model));
+        //        SecondStorageUtil.initModelMetaData(project, model);
+        //        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
+        //        Assert.assertTrue(SecondStorageUtil.isModelEnableWithoutCheckKylinInfo(project, model));
 
         val job3 = new DefaultExecutable();
         job3.setProject(getProject());
@@ -824,7 +826,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val modelMock = RandomUtil.randomUUIDStr();
         val project = "default";
-//        MockSecondStorage.mock("default", new ArrayList<>(), this);
+        //        MockSecondStorage.mock("default", new ArrayList<>(), this);
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             indexPlanManager.updateIndexPlan(model, indexPlan -> {
@@ -832,9 +834,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
             });
             return null;
         }, project);
-//        SecondStorageUtil.initModelMetaData(project, model);
-//        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-//        Assert.assertTrue(SecondStorageUtil.isModelEnableWithoutCheckKylinInfo(project, model));
+        //        SecondStorageUtil.initModelMetaData(project, model);
+        //        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
+        //        Assert.assertTrue(SecondStorageUtil.isModelEnableWithoutCheckKylinInfo(project, model));
 
         val manager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
         val job = new DefaultExecutable();

@@ -23,9 +23,9 @@ import static org.apache.kylin.common.exception.code.ErrorCodeSystem.MAINTENANCE
 
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.rest.response.MaintenanceModeResponse;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

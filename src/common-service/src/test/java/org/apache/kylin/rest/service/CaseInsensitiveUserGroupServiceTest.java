@@ -21,10 +21,10 @@ package org.apache.kylin.rest.service;
 import java.util.Arrays;
 import java.util.Set;
 
-import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.metadata.user.ManagedUser;
 import org.apache.kylin.metadata.user.NKylinUserManager;
+import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

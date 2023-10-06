@@ -37,6 +37,7 @@ import org.apache.kylin.common.persistence.transaction.AddCredentialToSparkBroad
 import org.apache.kylin.common.persistence.transaction.AuditLogBroadcastEventNotifier;
 import org.apache.kylin.common.persistence.transaction.BroadcastEventReadyNotifier;
 import org.apache.kylin.junit.annotation.MetadataInfo;
+import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.rest.cluster.ClusterManager;
 import org.apache.kylin.rest.cluster.DefaultClusterManager;
 import org.apache.kylin.rest.config.initialize.BroadcastListener;
@@ -62,7 +63,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import org.apache.kylin.metadata.epoch.EpochManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -128,7 +128,8 @@ class BroadcasterTest {
                 ObsConfig.S3.getType(), "aa", "bb", "cc", "");
         assert !notifier.needBroadcastSelf();
         broadcastListener.handle(notifier);
-        Assert.assertTrue(SparderEnv.getSparkSession().conf().contains(String.format(ObsConfig.S3.getRoleArnKey(), "aa")));
+        Assert.assertTrue(
+                SparderEnv.getSparkSession().conf().contains(String.format(ObsConfig.S3.getRoleArnKey(), "aa")));
     }
 
     @Test

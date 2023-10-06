@@ -61,6 +61,7 @@ import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.helper.RoutineToolHelper;
+import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.resourcegroup.KylinInstance;
 import org.apache.kylin.metadata.resourcegroup.RequestTypeEnum;
@@ -82,7 +83,6 @@ import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
-import org.apache.kylin.metadata.epoch.EpochManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -127,7 +127,6 @@ public class ScheduleService extends BasicService {
     private static final ThreadLocal<Future<?>> CURRENT_FUTURE = new ThreadLocal<>();
 
     private static final Map<Future<?>, Long> ASYNC_FUTURES = Maps.newConcurrentMap();
-
 
     @Scheduled(cron = "${kylin.metadata.ops-cron:0 0 0 * * *}")
     public void routineTask() throws Exception {

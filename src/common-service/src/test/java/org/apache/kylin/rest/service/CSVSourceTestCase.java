@@ -122,8 +122,7 @@ public class CSVSourceTestCase extends ServiceTestBase {
 
     protected void deleteJobByForce(AbstractExecutable executable) {
         JobContextUtil.withTxAndRetry(() -> {
-            val exManager =
-                    ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+            val exManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
             exManager.updateJobOutput(executable.getId(), ExecutableState.DISCARDED);
             exManager.deleteJob(executable.getId());
             return null;
