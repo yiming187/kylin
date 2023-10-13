@@ -23,13 +23,13 @@ CREATE TABLE IF NOT EXISTS KE_IDENTIFIED_job_info (
   job_type varchar(50) NOT NULL,
   job_status varchar(50) NOT NULL,
   project varchar(100) NOT NULL,
-  subject varchar(100) NOT NULL,
+  subject varchar(200) NOT NULL,
   model_id varchar(100),
   priority integer DEFAULT 3,
   mvcc bigint,
   job_content bytea NOT NULL,
-  create_time timestamptz(3) DEFAULT CURRENT_TIMESTAMP,
-  update_time timestamptz(3) DEFAULT CURRENT_TIMESTAMP,
+  create_time bigint,
+  update_time bigint,
   job_duration_millis bigint NOT NULL DEFAULT '0'
 );
 comment on column KE_IDENTIFIED_job_info.job_duration_millis is 'total duration milliseconds';

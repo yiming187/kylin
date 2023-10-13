@@ -93,7 +93,7 @@ public class JobFilterUtil {
         List<String> scheduleStateNames = scheduleStates.stream().map(executableState -> executableState.name())
                 .collect(Collectors.toList());
 
-        return new JobMapperFilter(scheduleStates, jobFilter.getJobNames(), queryStartTime,
+        return new JobMapperFilter(scheduleStates, jobFilter.getJobNames(), queryStartTime.getTime(),
                 Lists.newArrayList(subjects), null, jobId, null, jobFilter.getProject(), orderByField, orderType,
                 offset, limit, JobMybatisConfig.JOB_INFO_TABLE, null);
     }
