@@ -19,10 +19,13 @@
 package org.apache.kylin.query.relnode;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Stack;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
@@ -52,27 +55,39 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.guava30.shaded.common.base.Preconditions;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.NDataModel;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.query.schema.OLAPSchema;
-import org.apache.kylin.query.schema.OLAPTable;
+import org.apache.kylin.query.engine.KECalciteConfig;
+import org.apache.kylin.query.schema.OlapTable;
+import org.apache.kylin.query.util.ICutContextStrategy;
 
-/**
- */
-public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
 
-    protected OLAPTable olapTable;
-    protected String tableName;
-    protected int[] fields;
-    protected ColumnRowType columnRowType;
-    protected OLAPContext context;
-    protected KylinConfig kylinConfig;
+@Getter
+public class OlapTableScan extends TableScan implements EnumerableRel, OlapRel {
+
+    private OlapTable olapTable;
+    private String tableName;
+    private int[] fields;
+    private ColumnRowType columnRowType;
+    @Getter(AccessLevel.PRIVATE)
+    private KylinConfig kylinConfig;
+    @Setter
+    private OlapContext context;
+    @Setter
+    private Set<OlapContext> subContexts = Sets.newHashSet();
     private String alias;
     private String backupAlias;
+    /** Whether this TableScan has been visited in context implementor */
+    private boolean contextVisited = false;
 
-    public OLAPTableScan(RelOptCluster cluster, RelOptTable table, OLAPTable olapTable, int[] fields) {
+    public OlapTableScan(RelOptCluster cluster, RelOptTable table, OlapTable olapTable, int[] fields) {
         super(cluster, cluster.traitSetOf(CONVENTION), table);
         this.olapTable = olapTable;
         this.fields = fields;
@@ -87,45 +102,18 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
         return RelOptCluster.create(emptyPlanner, new RexBuilder(typeFactory));
     }
 
-    public OLAPTable getOlapTable() {
-        return olapTable;
-    }
-
-    public String getTableName() {
-        return tableName;
-    }
-
-    public int[] getFields() {
-        return fields;
-    }
-
-    public String getBackupAlias() {
-        return backupAlias;
-    }
-
-    @Override
-    public OLAPContext getContext() {
-        return context;
-    }
-
-    void overrideContext(OLAPContext context) {
-        this.context = context;
-    }
-
     @Override
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
         Preconditions.checkArgument(inputs.isEmpty());
-        return new OLAPTableScan(getCluster(), table, olapTable, fields);
+        return new OlapTableScan(getCluster(), table, olapTable, fields);
     }
 
     @Override
     public RelDataType deriveRowType() {
         final List<RelDataTypeField> fieldList = table.getRowType().getFieldList();
-        final RelDataTypeFactory.FieldInfoBuilder builder = getCluster().getTypeFactory().builder();
-        for (int field : fields) {
-            builder.add(fieldList.get(field));
-        }
-        return getCluster().getTypeFactory().createStructType(builder);
+        List<RelDataTypeField> list = Arrays.stream(this.fields) //
+                .mapToObj(fieldList::get).collect(Collectors.toList());
+        return getCluster().getTypeFactory().createStructType(list);
     }
 
     @Override
@@ -136,83 +124,77 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
     @Override
     public RelWriter explainTerms(RelWriter pw) {
 
-        return super.explainTerms(pw)
-                .item("ctx", context == null ? "" : String.valueOf(context.id) + "@" + context.realization)
+        return super.explainTerms(pw).item("ctx", displayCtxId(context)) //
                 .item("fields", Primitive.asList(fields));
     }
 
     @Override
-    public void implementOLAP(OLAPImplementor implementor) {
-        Preconditions.checkState(columnRowType == null, "OLAPTableScan MUST NOT be shared by more than one prent");
-
-        // create context in case of non-join
-        if (implementor.getContext() == null || !(implementor.getParentNode() instanceof OLAPJoinRel)
-                || implementor.isNewOLAPContextRequired()) {
-            implementor.allocateContext();
-        }
-
-        context = implementor.getContext();
-        context.allTableScans.add(this);
+    public void implementOlap(OlapImpl olapImpl) {
+        context.getAllTableScans().add(this);
         columnRowType = buildColumnRowType();
 
-        if (context.olapSchema == null) {
-            OLAPSchema schema = olapTable.getSchema();
-            context.olapSchema = schema;
+        if (context.getOlapSchema() == null) {
+            context.setOlapSchema(olapTable.getSchema());
         }
-
-        if (context.firstTableScan == null) {
-            context.firstTableScan = this;
+        if (context.getFirstTableScan() == null) {
+            context.setFirstTableScan(this);
         }
-
-        if (needCollectionColumns(implementor.getParentNodeStack())) {
-            // OLAPToEnumerableConverter on top of table scan, should be a select * from table
+        if (needCollectionColumns(olapImpl.getParentNodeStack())) {
+            // OlapToEnumerableConverter on top of table scan, should be a select * from table
             for (TblColRef tblColRef : columnRowType.getAllColumns()) {
-                if (!tblColRef.getName().startsWith("_KY_")) {
-                    context.allColumns.add(tblColRef);
+                // do not include
+                // 1. col with _KY_
+                // 2. CC col when exposeComputedColumn config is set to false
+                if (!tblColRef.getName().startsWith("_KY_") && !(tblColRef.getColumnDesc().isComputedColumn()
+                        && !KECalciteConfig.current().exposeComputedColumn())) {
+                    context.getAllColumns().add(tblColRef);
                 }
             }
         }
     }
 
     /**
-     * There are 3 special RelNode in parents stack, OLAPProjectRel, OLAPToEnumerableConverter
-     * and OLAPUnionRel. OLAPProjectRel will helps collect required columns but the other two
+     * There are 3 special RelNode in parents stack, OlapProjectRel, OlapToEnumerableConverter
+     * and OlapUnionRel. OlapProjectRel will helps collect required columns but the other two
      * don't. Go through the parent RelNodes from bottom to top, and the first-met special
      * RelNode determines the behavior.
-     *      * OLAPProjectRel -> skip column collection
-     *      * OLAPToEnumerableConverter and OLAPUnionRel -> require column collection
+     *      * OlapProjectRel -> skip column collection
+     *      * OlapToEnumerableConverter and OlapUnionRel -> require column collection
      */
-    protected boolean needCollectionColumns(Stack<RelNode> allParents) {
-        int index = allParents.size() - 1;
-
-        while (index >= 0) {
-            RelNode parent = allParents.get(index);
-            if (parent instanceof OLAPProjectRel) {
-                return false;
+    private boolean needCollectionColumns(Deque<RelNode> allParents) {
+        OlapRel topProjParent = null;
+        for (RelNode tempParent : allParents) {
+            if (tempParent instanceof OlapToEnumerableConverter) {
+                continue;
             }
-
-            if (parent instanceof OLAPToEnumerableConverter || parent instanceof OLAPUnionRel) {
-                return true;
-            }
-
-            OLAPRel olapParent = (OLAPRel) allParents.get(index);
-            if (olapParent.getContext() != null && olapParent.getContext() != this.context) {
-                // if the whole context has not projection, let table scan take care of itself
+            if (!(tempParent instanceof OlapRel)) {
                 break;
             }
-            index--;
+            OlapRel parent = (OlapRel) tempParent;
+            if (parent instanceof OlapSortRel) {
+                ((OlapSortRel) parent).setNeedPushToSubCtx(true);
+            }
+
+            if (topProjParent == null && parent instanceof OlapProjectRel
+                    && !((OlapProjectRel) parent).isMerelyPermutation()) {
+                topProjParent = parent;
+            }
+
+            if (parent instanceof OlapUnionRel || parent instanceof OlapMinusRel
+                    || parent instanceof OlapAggregateRel) {
+                topProjParent = null;
+            }
         }
 
-        return true;
+        if (topProjParent != null) {
+            ((OlapProjectRel) topProjParent).setNeedPushInfoToSubCtx(true);
+        }
+        return topProjParent == null;
     }
 
-    public String getAlias() {
-        return alias;
-    }
-
-    protected ColumnRowType buildColumnRowType() {
-        this.alias = ("T_" + context.allTableScans.size() + "_" + Integer.toHexString(System.identityHashCode(this)))
-                .toUpperCase(Locale.ROOT);
+    private ColumnRowType buildColumnRowType() {
+        this.alias = ("T_" + context.getAllTableScans().size() + "_"
+                + Integer.toHexString(System.identityHashCode(this))).toUpperCase(Locale.ROOT);
         TableRef tableRef = TblColRef.tableForUnknownModel(this.alias, olapTable.getSourceTable());
 
         List<TblColRef> columns = new ArrayList<>();
@@ -222,7 +204,8 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
         }
 
         if (columns.size() != rowType.getFieldCount()) {
-            throw new IllegalStateException("RowType=" + rowType.getFieldCount() + ", ColumnRowType=" + columns.size());
+            throw new IllegalStateException("RowType=" + rowType.getFieldCount() //
+                    + ", ColumnRowType=" + columns.size());
         }
         return new ColumnRowType(columns);
     }
@@ -267,14 +250,9 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
         String execFunction = context.genExecFunc(this, tableName);
         PhysType physType = PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), JavaRowFormat.ARRAY, false);
-        MethodCallExpression exprCall = Expressions.call(table.getExpression(OLAPTable.class), execFunction,
-                implementor.getRootExpression(), Expressions.constant(context.id));
+        MethodCallExpression exprCall = Expressions.call(table.getExpression(OlapTable.class), execFunction,
+                implementor.getRootExpression(), Expressions.constant(context.getId()));
         return implementor.result(physType, Blocks.toBlock(exprCall));
-    }
-
-    @Override
-    public ColumnRowType getColumnRowType() {
-        return columnRowType;
     }
 
     public void setColumnRowType(ColumnRowType columnRowType) {
@@ -282,15 +260,16 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
     }
 
     @Override
-    public void implementRewrite(RewriteImplementor implementor) {
-        Map<String, RelDataType> rewriteFields = this.context.rewriteFields;
-        for (Map.Entry<String, RelDataType> rewriteField : rewriteFields.entrySet()) {
-            String fieldName = rewriteField.getKey();
-            RelDataTypeField field = rowType.getField(fieldName, true, false);
-            if (field != null) {
-                RelDataType fieldType = field.getType();
-                rewriteField.setValue(fieldType);
-            }
+    public void implementRewrite(RewriteImpl rewriteImpl) {
+        if (context != null) {
+            this.context.getRewriteFields().entrySet().forEach(rewriteField -> {
+                String fieldName = rewriteField.getKey();
+                RelDataTypeField field = rowType.getField(fieldName, true, false);
+                if (field != null) {
+                    RelDataType fieldType = field.getType();
+                    rewriteField.setValue(fieldType);
+                }
+            });
         }
     }
 
@@ -306,8 +285,8 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
         return oldTraitSet;
     }
 
-    public OLAPTableScan cleanRelOptCluster() {
-        OLAPTableScan tableScan = new OLAPTableScan(emptyCluster(), this.table, this.olapTable, this.fields);
+    public OlapTableScan cleanRelOptCluster() {
+        OlapTableScan tableScan = new OlapTableScan(emptyCluster(), this.table, this.olapTable, this.fields);
         tableScan.getCluster().getPlanner().clear();
         tableScan.columnRowType = this.columnRowType;
         tableScan.olapTable = this.olapTable;
@@ -319,5 +298,28 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
         tableScan.id = this.id;
         tableScan.alias = this.alias;
         return tableScan;
+    }
+
+    @Override
+    public void implementCutContext(ICutContextStrategy.ContextCutImpl contextCutImpl) {
+        // do nothing
+    }
+
+    @Override
+    public boolean pushRelInfoToContext(OlapContext context) {
+        return context == this.context;
+    }
+
+    @Override
+    public void implementContext(ContextImpl contextImpl, ContextVisitorState state) {
+        contextVisited = true;
+
+        final TableDesc sourceTable = this.getOlapTable().getSourceTable();
+        state.merge(ContextVisitorState.of(false, true, sourceTable.isIncrementLoading()));
+
+        if (contextImpl.getFirstTableDesc() == null) {
+            contextImpl.setFirstTableDesc(sourceTable);
+        }
+        state.setHasFirstTable(contextImpl.getFirstTableDesc().equals(sourceTable));
     }
 }

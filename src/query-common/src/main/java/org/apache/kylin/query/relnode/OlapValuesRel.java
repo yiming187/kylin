@@ -20,6 +20,7 @@ package org.apache.kylin.query.relnode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableValues;
@@ -40,26 +41,25 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.query.util.ICutContextStrategy;
 
 import com.google.common.collect.ImmutableList;
 
-public class OLAPValuesRel extends Values implements OLAPRel {
-    protected OLAPContext context;
+import lombok.Getter;
+import lombok.Setter;
 
-    public OLAPValuesRel(RelOptCluster cluster, RelDataType rowType, ImmutableList<ImmutableList<RexLiteral>> tuples,
+@Setter
+@Getter
+public class OlapValuesRel extends Values implements OlapRel {
+
+    private OlapContext context;
+    private Set<OlapContext> subContexts = Sets.newHashSet();
+
+    public OlapValuesRel(RelOptCluster cluster, RelDataType rowType, ImmutableList<ImmutableList<RexLiteral>> tuples,
             RelTraitSet traitSet) {
         super(cluster, rowType, tuples, traitSet);
-    }
-
-    /** Creates an OLAPValuesRel. */
-    public static OLAPValuesRel create(RelOptCluster cluster, final RelDataType rowType,
-            final ImmutableList<ImmutableList<RexLiteral>> tuples) {
-        final RelMetadataQuery mq = cluster.getMetadataQuery();
-        final RelTraitSet traitSet = cluster.traitSetOf(CONVENTION)
-                .replaceIfs(RelCollationTraitDef.INSTANCE, () -> RelMdCollation.values(mq, rowType, tuples))
-                .replaceIf(RelDistributionTraitDef.INSTANCE, () -> RelMdDistribution.values(rowType, tuples));
-        return new OLAPValuesRel(cluster, rowType, tuples, traitSet);
     }
 
     @Override
@@ -68,15 +68,19 @@ public class OLAPValuesRel extends Values implements OLAPRel {
         return planner.getCostFactory().makeCost(relOptCost.getRows(), 0, 0);
     }
 
-    @Override
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        Preconditions.checkArgument(inputs.isEmpty());
-        return new OLAPValuesRel(getCluster(), rowType, tuples, replaceTraitSet(getCluster(), rowType, tuples));
+    public static OlapValuesRel create(RelOptCluster cluster, final RelDataType rowType,
+            final ImmutableList<ImmutableList<RexLiteral>> tuples) {
+        final RelMetadataQuery mq = cluster.getMetadataQuery();
+        final RelTraitSet traitSet = cluster.traitSetOf(CONVENTION)
+                .replaceIfs(RelCollationTraitDef.INSTANCE, () -> RelMdCollation.values(mq, rowType, tuples))
+                .replaceIf(RelDistributionTraitDef.INSTANCE, () -> RelMdDistribution.values(rowType, tuples));
+        return new OlapValuesRel(cluster, rowType, tuples, traitSet);
     }
 
     @Override
-    public OLAPContext getContext() {
-        return context;
+    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+        Preconditions.checkArgument(inputs.isEmpty());
+        return new OlapValuesRel(getCluster(), rowType, tuples, replaceTraitSet(getCluster(), rowType, tuples));
     }
 
     @Override
@@ -105,15 +109,8 @@ public class OLAPValuesRel extends Values implements OLAPRel {
     }
 
     @Override
-    public void implementOLAP(OLAPImplementor implementor) {
-        implementor.allocateContext();
-        this.context = implementor.getContext();
-
-    }
-
-    @Override
-    public void implementRewrite(RewriteImplementor rewriter) {
-        // for it not need to rewrite and  this class will be removed soon
+    public void implementRewrite(RewriteImpl rewriteImpl) {
+        // not need to rewrite
     }
 
     @Override
@@ -121,10 +118,31 @@ public class OLAPValuesRel extends Values implements OLAPRel {
         return EnumerableValues.create(getCluster(), getRowType(), getTuples());
     }
 
+    @Override
+    public boolean pushRelInfoToContext(OlapContext context) {
+        return true;
+    }
+
+    @Override
+    public void implementContext(ContextImpl olapContextImpl, ContextVisitorState state) {
+        state.merge(ContextVisitorState.of(false, false));
+        olapContextImpl.allocateContext(this, null);
+    }
+
+    @Override
+    public void implementCutContext(ICutContextStrategy.ContextCutImpl contextCutImpl) {
+        // empty
+    }
+
+    @Override
+    public void implementOlap(OlapImpl olapImpl) {
+        // no need to collect olapInfo
+    }
+
     public static RelTraitSet replaceTraitSet(RelOptCluster cluster, RelDataType rowType, //
             ImmutableList<ImmutableList<RexLiteral>> tuples) {
         final RelMetadataQuery mq = cluster.getMetadataQuery();
-        return cluster.traitSetOf(OLAPRel.CONVENTION)
+        return cluster.traitSetOf(OlapRel.CONVENTION)
                 .replaceIfs(RelCollationTraitDef.INSTANCE, () -> RelMdCollation.values(mq, rowType, tuples))
                 .replaceIf(RelDistributionTraitDef.INSTANCE, () -> RelMdDistribution.values(rowType, tuples));
     }

@@ -25,11 +25,11 @@ import org.apache.kylin.metadata.model.FunctionDesc;
 
 import lombok.Getter;
 
-public class OLAPContextProp extends OLAPContext {
+public class OlapContextProp extends OlapContext {
     @Getter
     private Map<FunctionDesc, FunctionDesc> reservedMap = Maps.newLinkedHashMap();
 
-    public OLAPContextProp(int seq) {
+    public OlapContextProp(int seq) {
         super(seq);
     }
 }

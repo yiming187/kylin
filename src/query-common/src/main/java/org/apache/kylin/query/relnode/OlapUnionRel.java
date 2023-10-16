@@ -20,6 +20,7 @@ package org.apache.kylin.query.relnode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
@@ -34,18 +35,28 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.guava30.shaded.common.base.Preconditions;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.query.util.ICutContextStrategy;
 
-/**
- */
-public class OLAPUnionRel extends Union implements OLAPRel {
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
 
-    final boolean localAll; // avoid same name in parent class
-    protected ColumnRowType columnRowType;
-    protected OLAPContext context;
+@Getter
+public class OlapUnionRel extends Union implements OlapRel {
 
-    public OLAPUnionRel(RelOptCluster cluster, RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
+    @Getter(AccessLevel.PRIVATE)
+    private final boolean localAll; // avoid same name in parent class
+    private ColumnRowType columnRowType;
+    private OlapContext context = null;
+    @Setter
+    private Set<OlapContext> subContexts = Sets.newHashSet();
+
+    public OlapUnionRel(RelOptCluster cluster, RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
         super(cluster, traitSet, inputs, all);
         Preconditions.checkArgument(getConvention() == CONVENTION);
         for (RelNode child : inputs) {
@@ -56,7 +67,7 @@ public class OLAPUnionRel extends Union implements OLAPRel {
 
     @Override
     public SetOp copy(RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
-        return new OLAPUnionRel(getCluster(), traitSet, inputs, all);
+        return new OlapUnionRel(getCluster(), traitSet, inputs, all);
     }
 
     @Override
@@ -66,32 +77,26 @@ public class OLAPUnionRel extends Union implements OLAPRel {
 
     @Override
     public RelWriter explainTerms(RelWriter pw) {
-        return super.explainTerms(pw)
-                .item("ctx", context == null ? "" : String.valueOf(context.id) + "@" + context.realization)
+        return super.explainTerms(pw).item("ctx", displayCtxId(context)) //
                 .itemIf("all", all, true);
     }
 
     @Override
-    public void implementOLAP(OLAPImplementor implementor) {
-        // Always create new OlapContext to combine columns from all children contexts.
-        implementor.allocateContext();
-        this.context = implementor.getContext();
+    public void implementOlap(OlapImpl olapImpl) {
         for (int i = 0, n = getInputs().size(); i < n; i++) {
-            implementor.fixSharedOlapTableScanAt(this, i);
-            implementor.visitChild(getInputs().get(i), this);
-            if (implementor.getContext() != this.context) {
-                implementor.freeContext();
-            }
+            olapImpl.visitChild(getInputs().get(i), this);
         }
-
         this.columnRowType = buildColumnRowType();
+        if (context != null && this == context.getTopNode() && !context.isHasAgg()) {
+            ContextUtil.amendAllColsIfNoAgg(this);
+        }
     }
 
     /**
      * Fake ColumnRowType for Union, all the columns are inner columns.
      */
-    protected ColumnRowType buildColumnRowType() {
-        ColumnRowType inputColumnRowType = ((OLAPRel) getInput(0)).getColumnRowType();
+    private ColumnRowType buildColumnRowType() {
+        ColumnRowType inputColumnRowType = ((OlapRel) getInput(0)).getColumnRowType();
         List<TblColRef> columns = new ArrayList<>();
         for (TblColRef tblColRef : inputColumnRowType.getAllColumns()) {
             columns.add(TblColRef.newInnerColumn(tblColRef.getName(), TblColRef.InnerDataTypeEnum.LITERAL));
@@ -101,21 +106,22 @@ public class OLAPUnionRel extends Union implements OLAPRel {
     }
 
     @Override
-    public void implementRewrite(RewriteImplementor implementor) {
+    public void implementRewrite(RewriteImpl rewriteImpl) {
         for (RelNode child : getInputs()) {
-            implementor.visitChild(this, child);
+            rewriteImpl.visitChild(this, child);
         }
 
-        this.rowType = this.deriveRowType();
-        this.columnRowType = buildColumnRowType();
+        if (context != null) {
+            this.rowType = this.deriveRowType();
+        }
     }
 
     @Override
     public EnumerableRel implementEnumerable(List<EnumerableRel> inputs) {
         ArrayList<RelNode> relInputs = new ArrayList<>(inputs.size());
         for (EnumerableRel input : inputs) {
-            if (input instanceof OLAPRel) {
-                ((OLAPRel) input).replaceTraitSet(EnumerableConvention.INSTANCE);
+            if (input instanceof OlapRel) {
+                ((OlapRel) input).replaceTraitSet(EnumerableConvention.INSTANCE);
             }
             relInputs.add(input);
         }
@@ -123,19 +129,9 @@ public class OLAPUnionRel extends Union implements OLAPRel {
     }
 
     @Override
-    public OLAPContext getContext() {
-        return context;
-    }
-
-    @Override
-    public ColumnRowType getColumnRowType() {
-        return columnRowType;
-    }
-
-    @Override
     public boolean hasSubQuery() {
         for (RelNode child : getInputs()) {
-            if (((OLAPRel) child).hasSubQuery()) {
+            if (((OlapRel) child).hasSubQuery()) {
                 return true;
             }
         }
@@ -147,5 +143,51 @@ public class OLAPUnionRel extends Union implements OLAPRel {
         RelTraitSet oldTraitSet = this.traitSet;
         this.traitSet = this.traitSet.replace(trait);
         return oldTraitSet;
+    }
+
+    @Override
+    public void implementCutContext(ICutContextStrategy.ContextCutImpl contextCutImpl) {
+        throw new KylinRuntimeException("Union rel should not be re-cut from outside");
+    }
+
+    /**
+     * Should not be called in Union
+     *
+     * @param context The context to be set.
+     */
+    @Override
+    public void setContext(OlapContext context) {
+        if (QueryContext.current().getQueryTagInfo().isConstantQuery()) {
+            return;
+        }
+        throw new KylinRuntimeException("Union should not be set context from outside");
+    }
+
+    @Override
+    public boolean pushRelInfoToContext(OlapContext context) {
+        return context == this.context;
+    }
+
+    @Override
+    public void implementContext(ContextImpl contextImpl, ContextVisitorState state) {
+        // Because all children should have their own context(s), no free table exists after visit.
+        ContextVisitorState accumulateState = ContextVisitorState.init();
+        for (int i = 0; i < getInputs().size(); i++) {
+            contextImpl.fixSharedOlapTableScanAt(this, i);
+            ContextVisitorState tempState = ContextVisitorState.init();
+            RelNode input = getInput(i);
+            contextImpl.visitChild(input, this, tempState);
+            if (tempState.hasFreeTable()) {
+                // any input containing free table should be assigned a context
+                contextImpl.allocateContext((OlapRel) input, this);
+            }
+            tempState.setHasFreeTable(false);
+            accumulateState.merge(tempState);
+        }
+        state.merge(accumulateState);
+
+        for (RelNode subRel : getInputs()) {
+            subContexts.addAll(ContextUtil.collectSubContext(subRel));
+        }
     }
 }

@@ -33,13 +33,18 @@ import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.util.ICutContextStrategy;
 
-public class KapMinusRel extends Minus implements KapRel {
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+public class OlapMinusRel extends Minus implements OlapRel {
 
     protected ColumnRowType columnRowType;
-    protected OLAPContext context;
-    private Set<OLAPContext> subContexts = Sets.newHashSet();
+    protected OlapContext context;
+    @Setter
+    private Set<OlapContext> subContexts = Sets.newHashSet();
 
-    public KapMinusRel(RelOptCluster cluster, RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
+    public OlapMinusRel(RelOptCluster cluster, RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
         super(cluster, traitSet, inputs, all);
         rowType = getRowType();
     }
@@ -50,32 +55,32 @@ public class KapMinusRel extends Minus implements KapRel {
     }
 
     @Override
-    public void implementCutContext(ICutContextStrategy.CutContextImplementor implementor) {
+    public void implementCutContext(ICutContextStrategy.ContextCutImpl contextCutImpl) {
         throw new RuntimeException("Minus rel should not be re-cut from outside");
     }
 
     @Override
     public SetOp copy(RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
-        return new KapMinusRel(getCluster(), traitSet, inputs, all);
+        return new OlapMinusRel(getCluster(), traitSet, inputs, all);
     }
 
     @Override
-    public boolean pushRelInfoToContext(OLAPContext context) {
+    public boolean pushRelInfoToContext(OlapContext context) {
         return context == this.context;
     }
 
     @Override
-    public void implementContext(OLAPContextImplementor olapContextImplementor, ContextVisitorState state) {
+    public void implementContext(ContextImpl contextImpl, ContextVisitorState state) {
         // Because all children should have their own context(s), no free table exists after visit.
         ContextVisitorState accumulateState = ContextVisitorState.init();
         for (int i = 0; i < getInputs().size(); i++) {
-            olapContextImplementor.fixSharedOlapTableScanAt(this, i);
+            contextImpl.fixSharedOlapTableScanAt(this, i);
             ContextVisitorState tempState = ContextVisitorState.init();
             RelNode input = getInput(i);
-            olapContextImplementor.visitChild(input, this, tempState);
+            contextImpl.visitChild(input, this, tempState);
             if (tempState.hasFreeTable()) {
                 // any input containing free table should be assigned a context
-                olapContextImplementor.allocateContext((KapRel) input, this);
+                contextImpl.allocateContext((OlapRel) input, this);
             }
             tempState.setHasFreeTable(false);
             accumulateState.merge(tempState);
@@ -83,12 +88,12 @@ public class KapMinusRel extends Minus implements KapRel {
         state.merge(accumulateState);
 
         for (RelNode subRel : getInputs()) {
-            subContexts.addAll(ContextUtil.collectSubContext((KapRel) subRel));
+            subContexts.addAll(ContextUtil.collectSubContext(subRel));
         }
     }
 
     protected ColumnRowType buildColumnRowType() {
-        ColumnRowType inputColumnRowType = ((OLAPRel) getInput(0)).getColumnRowType();
+        ColumnRowType inputColumnRowType = ((OlapRel) getInput(0)).getColumnRowType();
         List<TblColRef> columns = new ArrayList<>();
         for (TblColRef tblColRef : inputColumnRowType.getAllColumns()) {
             columns.add(TblColRef.newInnerColumn(tblColRef.getName(), TblColRef.InnerDataTypeEnum.LITERAL));
@@ -98,19 +103,20 @@ public class KapMinusRel extends Minus implements KapRel {
     }
 
     @Override
-    public void implementOLAP(OLAPImplementor olapContextImplementor) {
+    public void implementOlap(OlapImpl olapImpl) {
         for (int i = 0, n = getInputs().size(); i < n; i++) {
-            olapContextImplementor.visitChild(getInputs().get(i), this);
+            olapImpl.visitChild(getInputs().get(i), this);
         }
         this.columnRowType = buildColumnRowType();
-        if (context != null && this == context.getTopNode() && !context.isHasAgg())
-            KapContext.amendAllColsIfNoAgg(this);
+        if (context != null && this == context.getTopNode() && !context.isHasAgg()) {
+            ContextUtil.amendAllColsIfNoAgg(this);
+        }
     }
 
     @Override
-    public void implementRewrite(RewriteImplementor implementor) {
+    public void implementRewrite(RewriteImpl rewriteImpl) {
         for (RelNode child : getInputs()) {
-            implementor.visitChild(this, child);
+            rewriteImpl.visitChild(this, child);
         }
 
         if (context != null) {
@@ -119,34 +125,14 @@ public class KapMinusRel extends Minus implements KapRel {
     }
 
     @Override
-    public Set<OLAPContext> getSubContext() {
-        return subContexts;
-    }
-
-    @Override
-    public void setSubContexts(Set<OLAPContext> contexts) {
-        this.subContexts = contexts;
-    }
-
-    @Override
-    public OLAPContext getContext() {
-        return context;
-    }
-
-    @Override
-    public void setContext(OLAPContext context) {
+    public void setContext(OlapContext context) {
         throw new RuntimeException("Minus rel should not be set context from outside");
-    }
-
-    @Override
-    public ColumnRowType getColumnRowType() {
-        return columnRowType;
     }
 
     @Override
     public boolean hasSubQuery() {
         for (RelNode child : getInputs()) {
-            if (((OLAPRel) child).hasSubQuery()) {
+            if (((OlapRel) child).hasSubQuery()) {
                 return true;
             }
         }

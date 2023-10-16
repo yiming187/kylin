@@ -18,32 +18,46 @@
 
 package org.apache.kylin.query.relnode;
 
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.calcite.adapter.enumerable.EnumerableCalc;
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLikeOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -54,44 +68,196 @@ import org.apache.kylin.query.util.RexToTblColRefTranslator;
 import org.apache.kylin.query.util.RexUtils;
 import org.apache.kylin.util.FilterConditionExpander;
 
-public class KapFilterRel extends OLAPFilterRel implements KapRel {
-    private Set<OLAPContext> subContexts = Sets.newHashSet();
+import lombok.AccessLevel;
+import lombok.Getter;
 
+@Getter
+public class OlapFilterRel extends Filter implements OlapRel {
+
+    private static final Map<SqlKind, SqlKind> REVERSE_OP_MAP = Maps.newHashMap();
+
+    static {
+        REVERSE_OP_MAP.put(SqlKind.EQUALS, SqlKind.NOT_EQUALS);
+        REVERSE_OP_MAP.put(SqlKind.NOT_EQUALS, SqlKind.EQUALS);
+        REVERSE_OP_MAP.put(SqlKind.GREATER_THAN, SqlKind.LESS_THAN_OR_EQUAL);
+        REVERSE_OP_MAP.put(SqlKind.LESS_THAN_OR_EQUAL, SqlKind.GREATER_THAN);
+        REVERSE_OP_MAP.put(SqlKind.LESS_THAN, SqlKind.GREATER_THAN_OR_EQUAL);
+        REVERSE_OP_MAP.put(SqlKind.GREATER_THAN_OR_EQUAL, SqlKind.LESS_THAN);
+        REVERSE_OP_MAP.put(SqlKind.IS_NULL, SqlKind.IS_NOT_NULL);
+        REVERSE_OP_MAP.put(SqlKind.IS_NOT_NULL, SqlKind.IS_NULL);
+        REVERSE_OP_MAP.put(SqlKind.AND, SqlKind.OR);
+        REVERSE_OP_MAP.put(SqlKind.OR, SqlKind.AND);
+    }
+
+    private ColumnRowType columnRowType;
+    private OlapContext context;
+    private Set<OlapContext> subContexts = Sets.newHashSet();
+    @Getter(AccessLevel.PRIVATE)
     private boolean belongToPreAggContext = false;
 
-    public KapFilterRel(RelOptCluster cluster, RelTraitSet traits, RelNode child, RexNode condition) {
+    public OlapFilterRel(RelOptCluster cluster, RelTraitSet traits, RelNode child, RexNode condition) {
         super(cluster, traits, child, condition);
+        Preconditions.checkArgument(getConvention() == CONVENTION);
+        this.rowType = getRowType();
+    }
+
+    private ColumnRowType buildColumnRowType() {
+        OlapRel olapChild = (OlapRel) getInput();
+        return olapChild.getColumnRowType();
+    }
+
+    @Override
+    public EnumerableRel implementEnumerable(List<EnumerableRel> inputs) {
+        // keep it for having clause
+        RexBuilder rexBuilder = getCluster().getRexBuilder();
+        RelDataType inputRowType = getInput().getRowType();
+        RexProgramBuilder programBuilder = new RexProgramBuilder(inputRowType, rexBuilder);
+        programBuilder.addIdentity();
+        programBuilder.addCondition(this.condition);
+        RexProgram program = programBuilder.getProgram();
+
+        return new EnumerableCalc(getCluster(), getCluster().traitSetOf(EnumerableConvention.INSTANCE), sole(inputs),
+                program);
+    }
+
+    @Override
+    public boolean hasSubQuery() {
+        OlapRel olapChild = (OlapRel) getInput();
+        return olapChild.hasSubQuery();
+    }
+
+    @Override
+    public RelTraitSet replaceTraitSet(RelTrait trait) {
+        RelTraitSet oldTraitSet = this.traitSet;
+        this.traitSet = this.traitSet.replace(trait);
+        return oldTraitSet;
+    }
+
+    @Override
+    public RelWriter explainTerms(RelWriter pw) {
+        return super.explainTerms(pw).item("ctx", displayCtxId(context));
+    }
+
+    private static class FilterVisitor extends RexVisitorImpl<Void> {
+
+        final ColumnRowType inputRowType;
+        final Set<TblColRef> filterColumns;
+        final Deque<TblColRef.FilterColEnum> tmpLevels;
+        final Deque<Boolean> reverses;
+
+        public FilterVisitor(ColumnRowType inputRowType, Set<TblColRef> filterColumns) {
+            super(true);
+            this.inputRowType = inputRowType;
+            this.filterColumns = filterColumns;
+            this.tmpLevels = new ArrayDeque<>();
+            this.tmpLevels.offerLast(TblColRef.FilterColEnum.NONE);
+            this.reverses = new ArrayDeque<>();
+            this.reverses.offerLast(false);
+        }
+
+        @Override
+        public Void visitCall(RexCall call) {
+            SqlOperator op = call.getOperator();
+            SqlKind kind = op.getKind();
+            if (kind == SqlKind.CAST || kind == SqlKind.REINTERPRET) {
+                for (RexNode operand : call.operands) {
+                    operand.accept(this);
+                }
+                return null;
+            }
+            if (op.getKind() == SqlKind.NOT) {
+                reverses.offerLast(Boolean.FALSE.equals(reverses.peekLast()));
+            } else {
+                assert reverses.peekLast() != null;
+                if (reverses.peekLast().booleanValue()) {
+                    kind = REVERSE_OP_MAP.get(kind);
+                    reverses.offerLast(kind == SqlKind.AND || kind == SqlKind.OR);
+                } else {
+                    reverses.offerLast(false);
+                }
+            }
+            TblColRef.FilterColEnum tmpLevel;
+            if (kind == SqlKind.EQUALS) {
+                tmpLevel = TblColRef.FilterColEnum.EQUAL_FILTER;
+            } else if (kind == SqlKind.IS_NULL) {
+                tmpLevel = TblColRef.FilterColEnum.INFERIOR_EQUAL_FILTER;
+            } else if (isRangeFilter(kind)) {
+                tmpLevel = TblColRef.FilterColEnum.RANGE_FILTER;
+            } else if (kind == SqlKind.LIKE) {
+                tmpLevel = TblColRef.FilterColEnum.LIKE_FILTER;
+            } else {
+                tmpLevel = TblColRef.FilterColEnum.OTHER_FILTER;
+            }
+            tmpLevels.offerLast(tmpLevel);
+            call.operands.forEach(operand -> operand.accept(this));
+            tmpLevels.pollLast();
+            reverses.pollLast();
+            return null;
+        }
+
+        boolean isRangeFilter(SqlKind sqlKind) {
+            return sqlKind == SqlKind.NOT_EQUALS || sqlKind == SqlKind.GREATER_THAN || sqlKind == SqlKind.LESS_THAN
+                    || sqlKind == SqlKind.GREATER_THAN_OR_EQUAL || sqlKind == SqlKind.LESS_THAN_OR_EQUAL
+                    || sqlKind == SqlKind.IS_NOT_NULL;
+        }
+
+        @Override
+        public Void visitInputRef(RexInputRef inputRef) {
+            TblColRef column = inputRowType.getColumnByIndex(inputRef.getIndex());
+            TblColRef.FilterColEnum tmpLevel = tmpLevels.peekLast();
+            collect(column, tmpLevel);
+            return null;
+        }
+
+        private void collect(TblColRef column, TblColRef.FilterColEnum tmpLevel) {
+            if (!column.isInnerColumn()) {
+                filterColumns.add(column);
+                if (tmpLevel.getPriority() > column.getFilterLevel().getPriority()) {
+                    column.setFilterLevel(tmpLevel);
+                }
+                return;
+            }
+            if (column.isAggregationColumn()) {
+                return;
+            }
+            List<TblColRef> children = column.getOperands();
+            if (children == null) {
+                return;
+            }
+            for (TblColRef child : children) {
+                collect(child, tmpLevel);
+            }
+        }
     }
 
     @Override
     public Filter copy(RelTraitSet traitSet, RelNode input, RexNode condition) {
-        return new KapFilterRel(getCluster(), traitSet, input, condition);
+        return new OlapFilterRel(getCluster(), traitSet, input, condition);
     }
 
     @Override
-    public void implementCutContext(ICutContextStrategy.CutContextImplementor implementor) {
+    public void implementCutContext(ICutContextStrategy.ContextCutImpl contextCutImpl) {
         this.context = null;
         this.columnRowType = null;
         this.belongToPreAggContext = false;
-        implementor.visitChild(getInput());
+        contextCutImpl.visitChild(getInput());
     }
 
     @Override
     public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
-        RelOptCost c = super.computeSelfCost(planner, mq);
-        return c;
+        return super.computeSelfCost(planner, mq).multiplyBy(.05);
     }
 
     @Override
-    public void setContext(OLAPContext context) {
+    public void setContext(OlapContext context) {
         this.context = context;
-        ((KapRel) getInput()).setContext(context);
-        subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.getInput()));
+        ((OlapRel) getInput()).setContext(context);
+        subContexts.addAll(ContextUtil.collectSubContext(this.getInput()));
     }
 
     @Override
-    public boolean pushRelInfoToContext(OLAPContext context) {
-        if (this.context == null && ((KapRel) getInput()).pushRelInfoToContext(context)) {
+    public boolean pushRelInfoToContext(OlapContext context) {
+        if (this.context == null && ((OlapRel) getInput()).pushRelInfoToContext(context)) {
             this.context = context;
             this.belongToPreAggContext = true;
             return true;
@@ -101,42 +267,42 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
     }
 
     @Override
-    public void implementContext(OLAPContextImplementor olapContextImplementor, ContextVisitorState state) {
-        olapContextImplementor.fixSharedOlapTableScan(this);
+    public void implementContext(ContextImpl contextImpl, ContextVisitorState state) {
+        contextImpl.fixSharedOlapTableScan(this);
         ContextVisitorState tempState = ContextVisitorState.init();
-        olapContextImplementor.visitChild(getInput(), this, tempState);
+        contextImpl.visitChild(getInput(), this, tempState);
         state.merge(ContextVisitorState.of(true, false)).merge(tempState);
-        subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.getInput()));
+        subContexts.addAll(ContextUtil.collectSubContext(this.getInput()));
     }
 
     @Override
-    public void implementOLAP(OLAPImplementor olapContextImplementor) {
-        olapContextImplementor.visitChild(getInput(), this);
+    public void implementOlap(OlapImpl olapImpl) {
+        olapImpl.visitChild(getInput(), this);
         if (RexUtils.countOperatorCall(condition, SqlLikeOperator.class) > 0) {
             QueryContext.current().getQueryTagInfo().setHasLike(true);
         }
         this.columnRowType = buildColumnRowType();
         if (context != null) {
             // only translate where clause and don't translate having clause
-            if (!context.afterAggregate) {
+            if (!context.isAfterAggregate()) {
                 updateContextFilter();
             } else {
-                context.afterHavingClauseFilter = true;
+                context.setAfterHavingClauseFilter(true);
             }
-            if (this == context.getTopNode() && !context.isHasAgg())
-                KapContext.amendAllColsIfNoAgg(this);
+            if (this == context.getTopNode() && !context.isHasAgg()) {
+                ContextUtil.amendAllColsIfNoAgg(this);
+            }
         } else {
             pushDownColsInfo(subContexts);
         }
     }
 
-    private boolean isHeterogeneousSegmentOrMultiPartEnabled(OLAPContext context) {
-        if (context.olapSchema == null) {
+    private boolean isHeterogeneousSegmentOrMultiPartEnabled(OlapContext context) {
+        if (context.getOlapSchema() == null) {
             return false;
         }
-        String projectName = context.olapSchema.getProjectName();
-        KylinConfig kylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(projectName)
-                .getConfig();
+        String projectName = context.getOlapSchema().getProjectName();
+        KylinConfig kylinConfig = NProjectManager.getProjectConfig(projectName);
         return kylinConfig.isHeterogeneousSegmentEnabled() || kylinConfig.isMultiPartitionEnabled();
     }
 
@@ -145,15 +311,15 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
         return kylinConfig.isJoinMatchOptimizationEnabled();
     }
 
-    private void collectNotNullTableWithFilterCondition(OLAPContext context) {
-        if (context == null || CollectionUtils.isEmpty(context.allTableScans)) {
+    private void collectNotNullTableWithFilterCondition(OlapContext context) {
+        if (context == null || CollectionUtils.isEmpty(context.getAllTableScans())) {
             return;
         }
 
         RexBuilder rexBuilder = new RexBuilder(new JavaTypeFactoryImpl(new KylinRelDataTypeSystem()));
         // Convert to Disjunctive Normal Form(DNF), i.e., only root node's op could be OR
         RexNode newDnf = RexUtil.toDnf(rexBuilder, condition);
-        Set<TableRef> leftOrInnerTables = context.allTableScans.stream().map(OLAPTableScan::getTableRef)
+        Set<TableRef> leftOrInnerTables = context.getAllTableScans().stream().map(OlapTableScan::getTableRef)
                 .collect(Collectors.toSet());
         Set<TableRef> orNotNullTables = Sets.newHashSet();
         MatchWithFilterVisitor visitor = new MatchWithFilterVisitor(this.columnRowType, orNotNullTables);
@@ -185,8 +351,8 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
         }
         for (TblColRef tblColRef : filterColumns) {
             if (!tblColRef.isInnerColumn() && context.belongToContextTables(tblColRef)) {
-                context.allColumns.add(tblColRef);
-                context.filterColumns.add(tblColRef);
+                context.getAllColumns().add(tblColRef);
+                context.getFilterColumns().add(tblColRef);
             }
         }
         // collect inner col condition
@@ -219,7 +385,7 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
             } else {
                 TblColRef colRef;
                 try {
-                    colRef = RexToTblColRefTranslator.translateRexNode(rexCall, ((OLAPRel) input).getColumnRowType());
+                    colRef = RexToTblColRefTranslator.translateRexNode(rexCall, ((OlapRel) input).getColumnRowType());
                 } catch (IllegalStateException e) {
                     // if translation failed (encountered unrecognized rex node), simply return
                     return;
@@ -233,55 +399,50 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
     }
 
     @Override
-    public void implementRewrite(RewriteImplementor implementor) {
-        implementor.visitChild(this, getInput());
-
+    public void implementRewrite(RewriteImpl rewriteImpl) {
+        rewriteImpl.visitChild(this, getInput());
         if (context != null) {
             this.rowType = this.deriveRowType();
             this.columnRowType = buildColumnRowType();
         }
     }
 
-    private void pushDownColsInfo(Set<OLAPContext> subContexts) {
-        for (OLAPContext context : subContexts) {
+    private void pushDownColsInfo(Set<OlapContext> subContexts) {
+        for (OlapContext subCtx : subContexts) {
             if (this.condition == null)
                 return;
             Set<TblColRef> filterColumns = Sets.newHashSet();
             FilterVisitor visitor = new FilterVisitor(this.columnRowType, filterColumns);
             this.condition.accept(visitor);
-            if (isHeterogeneousSegmentOrMultiPartEnabled(context)) {
-                context.getExpandedFilterConditions()
-                        .addAll(new FilterConditionExpander(context, this).convert(this.condition));
+            if (isHeterogeneousSegmentOrMultiPartEnabled(subCtx)) {
+                subCtx.getExpandedFilterConditions()
+                        .addAll(new FilterConditionExpander(subCtx, this).convert(this.condition));
             }
             if (isJoinMatchOptimizationEnabled()) {
-                collectNotNullTableWithFilterCondition(context);
+                collectNotNullTableWithFilterCondition(subCtx);
             }
             // optimize the filter, the optimization has to be segment-irrelevant
             for (TblColRef tblColRef : filterColumns) {
-                if (!tblColRef.isInnerColumn() && context.belongToContextTables(tblColRef)) {
-                    context.allColumns.add(tblColRef);
-                    context.filterColumns.add(tblColRef);
-                    if (belongToPreAggContext)
-                        context.getGroupByColumns().add(tblColRef);
+                if (!tblColRef.isInnerColumn() && subCtx.belongToContextTables(tblColRef)) {
+                    subCtx.getAllColumns().add(tblColRef);
+                    subCtx.getFilterColumns().add(tblColRef);
+                    if (belongToPreAggContext) {
+                        subCtx.getGroupByColumns().add(tblColRef);
+                    }
                 }
             }
         }
     }
 
     @Override
-    public Set<OLAPContext> getSubContext() {
-        return subContexts;
-    }
-
-    @Override
-    public void setSubContexts(Set<OLAPContext> contexts) {
+    public void setSubContexts(Set<OlapContext> contexts) {
         this.subContexts = contexts;
     }
 
-    private class MatchWithFilterVisitor extends RexVisitorImpl<RexNode> {
+    private static class MatchWithFilterVisitor extends RexVisitorImpl<RexNode> {
 
-        private ColumnRowType columnRowType;
-        private Set<TableRef> notNullTables;
+        private final ColumnRowType columnRowType;
+        private final Set<TableRef> notNullTables;
 
         protected MatchWithFilterVisitor(ColumnRowType columnRowType, Set<TableRef> notNullTables) {
             super(true);
@@ -299,7 +460,7 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
 
             // only support `is not distinct from` as not null condition
             // i.e., CASE(IS NULL(DEFAULT.TEST_MEASURE.NAME2), false, =(DEFAULT.TEST_MEASURE.NAME2, '123'))
-            // TODO: support `CASE WHEN`
+            // Need to support `CASE WHEN` ?
             if (SqlStdOperatorTable.CASE.equals(call.getOperator())) {
                 List<RexNode> rexNodes = call.getOperands();
                 boolean isOpNull = SqlStdOperatorTable.IS_NULL.equals(((RexCall) rexNodes.get(0)).getOperator());

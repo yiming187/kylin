@@ -30,28 +30,23 @@ import org.apache.kylin.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.model.TableDesc;
 
-/**
- * all schema info is in KapOLAPSchema, not used anymore
- * @deprecated
- */
-@Deprecated
-public class OLAPSchema extends AbstractSchema {
-
-    //    private static final Logger logger = LoggerFactory.getLogger(OLAPSchema.class);
+public class OlapSchema extends AbstractSchema {
 
     private KylinConfig config;
-    private String projectName;
-    private String schemaName;
-    private List<TableDesc> tables;
-    private Map<String, List<NDataModel>> modelsMap;
+    private final String projectName;
+    private final String schemaName;
+    private final List<TableDesc> tables;
+    private final Map<String, List<NDataModel>> modelsMap;
     private String starSchemaUrl;
     private String starSchemaUser;
     private String starSchemaPassword;
 
-    public OLAPSchema(String project, String schemaName, List<TableDesc> tables) {
+    public OlapSchema(String project, String schemaName, List<TableDesc> tables,
+            Map<String, List<NDataModel>> modelsMap) {
         this.projectName = project;
         this.schemaName = schemaName;
         this.tables = tables;
+        this.modelsMap = modelsMap;
         init();
     }
 
@@ -64,27 +59,25 @@ public class OLAPSchema extends AbstractSchema {
 
     /**
      * It is intended to skip caching, because underlying project/tables might change.
-     *
-     * @return
      */
     @Override
     public Map<String, Table> getTableMap() {
-        return buildTableMap();
+        return createTableMap();
     }
 
-    private Map<String, Table> buildTableMap() {
+    public boolean hasTables() {
+        return tables != null && !tables.isEmpty();
+    }
+
+    private Map<String, Table> createTableMap() {
         Map<String, Table> olapTables = new HashMap<>();
 
         for (TableDesc tableDesc : tables) {
-            if (tableDesc.getDatabase().equals(schemaName)) {
-                final String tableName = tableDesc.getName();
-                //safe to use tableDesc.getUuid() here, it is in a DB context now
-                final OLAPTable table = new OLAPTable(this, tableDesc, modelsMap);
-                olapTables.put(tableName, table);
-                //logger.debug("Project " + projectName + " exposes table " + tableName);
-            }
+            // safe to use tableDesc.getUuid() here, it is in a DB context now
+            final String tableName = tableDesc.getName();
+            final OlapTable table = new OlapTable(this, tableDesc, modelsMap);
+            olapTables.put(tableName, table);
         }
-
         return olapTables;
     }
 
@@ -124,5 +117,4 @@ public class OLAPSchema extends AbstractSchema {
     public String getProjectName() {
         return this.projectName;
     }
-
 }

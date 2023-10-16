@@ -18,78 +18,227 @@
 
 package org.apache.kylin.query.relnode;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.apache.calcite.adapter.enumerable.EnumerableCalc;
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.sql.fun.SqlCaseOperator;
+import org.apache.calcite.tools.RelUtils;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.query.schema.OLAPTable;
+import org.apache.kylin.query.schema.OlapTable;
 import org.apache.kylin.query.util.ICutContextStrategy;
+import org.apache.kylin.query.util.RexToTblColRefTranslator;
 
+import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.Setter;
-import lombok.val;
 
-public class KapProjectRel extends OLAPProjectRel implements KapRel {
-    List<RexNode> exps;
+@Getter
+public class OlapProjectRel extends Project implements OlapRel {
+
+    private List<RexNode> rewriteProjects;
+    private OlapContext context;
+    private Set<OlapContext> subContexts = Sets.newHashSet();
+    @Getter(AccessLevel.PRIVATE)
+    private boolean rewriting;
+    private ColumnRowType columnRowType;
+    @Getter(AccessLevel.PRIVATE)
+    private boolean afterAggregate;
+
+    /** project additionally added by OlapJoinPushThroughJoinRule */
+    private boolean isMerelyPermutation = false;
+    @Getter(AccessLevel.PRIVATE)
+    private int caseCount = 0;
+    @Getter(AccessLevel.PRIVATE)
     private boolean beforeTopPreCalcJoin = false;
-    private Set<OLAPContext> subContexts = Sets.newHashSet();
     @Setter
     private boolean needPushInfoToSubCtx = false;
 
-    public KapProjectRel(RelOptCluster cluster, RelTraitSet traitSet, RelNode child, List<RexNode> exps,
+    public OlapProjectRel(RelOptCluster cluster, RelTraitSet traitSet, RelNode child, List<RexNode> exps,
             RelDataType rowType) {
         super(cluster, traitSet, child, exps, rowType);
-        this.exps = exps;
+        Preconditions.checkArgument(getConvention() == CONVENTION);
+        this.rewriteProjects = exps;
+        this.rowType = getRowType();
+        for (RexNode exp : exps) {
+            caseCount += RelUtils.countOperatorCall(SqlCaseOperator.INSTANCE, exp);
+        }
     }
 
     @Override
-    public void implementCutContext(ICutContextStrategy.CutContextImplementor implementor) {
+    public List<RexNode> getChildExps() {
+        return rewriteProjects;
+    }
+
+    @Override
+    public List<RexNode> getProjects() {
+        return rewriteProjects;
+    }
+
+    private ColumnRowType buildColumnRowType() {
+        List<TblColRef> columns = Lists.newArrayList();
+        List<Set<TblColRef>> sourceColumns = Lists.newArrayList();
+        OlapRel olapChild = (OlapRel) getInput();
+        ColumnRowType inputColumnRowType = olapChild.getColumnRowType();
+        Map<RexNode, TblColRef> nodeAndTblColMap = new HashMap<>();
+        for (int i = 0; i < this.rewriteProjects.size(); i++) {
+            RexNode rex = this.rewriteProjects.get(i);
+            RelDataTypeField columnField = this.rowType.getFieldList().get(i);
+            String fieldName = columnField.getName();
+            Set<TblColRef> sourceCollector = Sets.newHashSet();
+            TblColRef column = translateRexNode(rex, inputColumnRowType, fieldName, sourceCollector, nodeAndTblColMap);
+            if (column == null) {
+                throw new IllegalStateException("No TblColRef found in " + rex);
+            }
+            columns.add(column);
+            sourceColumns.add(sourceCollector);
+        }
+        return new ColumnRowType(columns, sourceColumns);
+    }
+
+    TblColRef translateRexNode(RexNode rexNode, ColumnRowType inputColumnRowType, String fieldName,
+            Set<TblColRef> sourceCollector, Map<RexNode, TblColRef> nodeAndTblColMap) {
+        if (!this.afterAggregate) {
+            return RexToTblColRefTranslator.translateRexNode(rexNode, inputColumnRowType, fieldName, sourceCollector,
+                    nodeAndTblColMap);
+        } else {
+            return RexToTblColRefTranslator.translateRexNode(rexNode, inputColumnRowType, fieldName, nodeAndTblColMap);
+        }
+    }
+
+    @Override
+    public EnumerableRel implementEnumerable(List<EnumerableRel> inputs) {
+        if (getInput() instanceof OlapFilterRel) {
+            // merge project & filter
+            OlapFilterRel filter = (OlapFilterRel) getInput();
+            RelNode inputOfFilter = inputs.get(0).getInput(0);
+            RexProgram program = RexProgram.create(inputOfFilter.getRowType(), this.rewriteProjects,
+                    filter.getCondition(), this.rowType, getCluster().getRexBuilder());
+            return new EnumerableCalc(getCluster(), getCluster().traitSetOf(EnumerableConvention.INSTANCE), //
+                    inputOfFilter, program);
+        } else {
+            // keep project for table scan
+            EnumerableRel input = sole(inputs);
+            RexProgram program = RexProgram.create(input.getRowType(), this.rewriteProjects, null, this.rowType,
+                    getCluster().getRexBuilder());
+            return new EnumerableCalc(getCluster(), getCluster().traitSetOf(EnumerableConvention.INSTANCE), //
+                    input, program);
+        }
+    }
+
+    @Override
+    public boolean hasSubQuery() {
+        OlapRel olapChild = (OlapRel) getInput();
+        return olapChild.hasSubQuery();
+    }
+
+    @Override
+    public RelTraitSet replaceTraitSet(RelTrait trait) {
+        RelTraitSet oldTraitSet = this.traitSet;
+        this.traitSet = this.traitSet.replace(trait);
+        return oldTraitSet;
+    }
+
+    @Override
+    public RelWriter explainTerms(RelWriter pw) {
+        pw.input("input", getInput());
+        if (pw.nest()) {
+            pw.item("fields", rowType.getFieldNames());
+            pw.item("exprs", rewriteProjects);
+        } else {
+            for (Ord<RelDataTypeField> field : Ord.zip(rowType.getFieldList())) {
+                String fieldName = field.e.getName();
+                if (fieldName == null) {
+                    fieldName = "field#" + field.i;
+                }
+                pw.item(fieldName, rewriteProjects.get(field.i));
+            }
+        }
+
+        if (context != null) {
+            pw.item("ctx", displayCtxId(context));
+            if (context.getGroupByColumns() != null && context.getReturnTupleInfo() != null
+                    && context.getReturnTupleInfo().getColumnMap() != null) {
+                List<Integer> colIds = context.getGroupByColumns().stream()
+                        .map(colRef -> context.getReturnTupleInfo().getColumnMap().get(colRef)) //
+                        .collect(Collectors.toList());
+                pw.item("groupByColumns", colIds);
+            }
+        } else {
+            pw.item("ctx", "");
+        }
+        return pw;
+    }
+
+    @Override
+    public void implementCutContext(ICutContextStrategy.ContextCutImpl contextCutImpl) {
         this.context = null;
         this.columnRowType = null;
-        implementor.visitChild(getInput());
+        contextCutImpl.visitChild(getInput());
     }
 
+    /**
+     * Since the project under aggregate maybe reduce expressions by AggregateProjectReduceRule,
+     * consider the count of expressions into cost, the reduced project will be used.
+     * <p>
+     * Made RexOver much more expensive, so we can transform into {@link OlapWindowRel}
+     * by rules in {@link org.apache.calcite.rel.rules.ProjectToWindowRule}
+     */
     @Override
     public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
-        return super.computeSelfCost(planner, mq);
+        boolean hasRexOver = RexOver.containsOver(getProjects(), null);
+        RelOptCost relOptCost = super.computeSelfCost(planner, mq).multiplyBy(.05)
+                .multiplyBy(getProjects().size() * (hasRexOver ? 50.0 : 1.0))
+                .plus(planner.getCostFactory().makeCost(0.1 * caseCount, 0, 0));
+        return planner.getCostFactory().makeCost(relOptCost.getRows(), 0, 0);
     }
 
     @Override
     public Project copy(RelTraitSet traitSet, RelNode child, List<RexNode> exps, RelDataType rowType) {
-        return new KapProjectRel(getCluster(), traitSet, child, exps, rowType);
+        return new OlapProjectRel(getCluster(), traitSet, child, exps, rowType);
     }
 
     @Override
-    public void setContext(OLAPContext context) {
+    public void setContext(OlapContext context) {
         this.context = context;
-        ((KapRel) getInput()).setContext(context);
-        subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.getInput()));
+        ((OlapRel) getInput()).setContext(context);
+        subContexts.addAll(ContextUtil.collectSubContext(this.getInput()));
     }
 
     @Override
-    public boolean pushRelInfoToContext(OLAPContext context) {
-        if (this.context == null && ((KapRel) getInput()).pushRelInfoToContext(context)) {
+    public boolean pushRelInfoToContext(OlapContext context) {
+        if (this.context == null && ((OlapRel) getInput()).pushRelInfoToContext(context)) {
             this.context = context;
             return true;
         }
@@ -97,14 +246,14 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
     }
 
     @Override
-    public void implementContext(OLAPContextImplementor olapContextImplementor, ContextVisitorState state) {
-        olapContextImplementor.fixSharedOlapTableScan(this);
+    public void implementContext(ContextImpl contextImpl, ContextVisitorState state) {
+        contextImpl.fixSharedOlapTableScan(this);
         ContextVisitorState tempState = ContextVisitorState.init();
-        olapContextImplementor.visitChild(getInput(), this, tempState);
-        subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.getInput()));
+        contextImpl.visitChild(getInput(), this, tempState);
+        subContexts.addAll(ContextUtil.collectSubContext(this.getInput()));
         if (context == null && subContexts.size() == 1
                 && this.getInput() == Lists.newArrayList(this.subContexts).get(0).getTopNode()
-                && !(this.getInput() instanceof KapWindowRel)) {
+                && !(this.getInput() instanceof OlapWindowRel)) {
             this.context = Lists.newArrayList(this.subContexts).get(0);
             this.context.setTopNode(this);
         }
@@ -112,54 +261,53 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
     }
 
     @Override
-    public void implementOLAP(OLAPImplementor implementor) {
-        if (this.getPermutation() != null && !isTopProject(implementor.getParentNodeStack()))
+    public void implementOlap(OlapImpl olapImpl) {
+        if (this.getPermutation() != null && !isTopProject(olapImpl.getParentNodeStack()))
             isMerelyPermutation = true;
-        // @beforeTopPreCalcJoin refer to this rel is under a preCalcJoin Rel and need not be rewrite. eg.
+        // @beforeTopPreCalcJoin refer to this rel is under a preCalcJoin Rel and need not be rewritten. e.g.
         //        JOIN
         //       /    \
         //     Proj   TableScan
         //    /
         //  TableScan
         this.beforeTopPreCalcJoin = context != null && context.isHasPreCalcJoin();
-        implementor.visitChild(getInput(), this);
+        olapImpl.visitChild(getInput(), this);
 
         this.columnRowType = buildColumnRowType();
         if (context != null) {
-            this.hasJoin = context.isHasJoin();
-            this.afterAggregate = context.afterAggregate;
-            if (this == context.getTopNode() && !context.isHasAgg())
-                KapContext.amendAllColsIfNoAgg(this);
+            this.afterAggregate = context.isAfterAggregate();
+            if (this == context.getTopNode() && !context.isHasAgg()) {
+                ContextUtil.amendAllColsIfNoAgg(this);
+            }
         } else if (this.needPushInfoToSubCtx) {
             updateSubContexts(subContexts);
         }
     }
 
-    private boolean isTopProject(Stack<RelNode> parentNodeStack) {
-        val tmpStack = (Stack<RelNode>) parentNodeStack.clone();
-        while (!tmpStack.empty()) {
-            val parentNode = tmpStack.pop();
-            if (parentNode instanceof OLAPToEnumerableConverter)
+    private boolean isTopProject(Deque<RelNode> parentNodeStack) {
+        Deque<RelNode> tmpStack = new ArrayDeque<>(parentNodeStack);
+        while (!tmpStack.isEmpty()) {
+            RelNode parentNode = tmpStack.pollFirst();
+            if (parentNode instanceof OlapToEnumerableConverter) {
                 return true;
-
-            if (parentNode instanceof OLAPProjectRel)
+            }
+            if (parentNode instanceof OlapProjectRel) {
                 return false;
+            }
         }
-
         return false;
     }
 
     @Override
-    public void implementRewrite(RewriteImplementor implementor) {
-        implementor.visitChild(this, getInput());
+    public void implementRewrite(RewriteImpl rewriteImpl) {
+        rewriteImpl.visitChild(this, getInput());
         if (this.context == null) {
             return;
         }
         this.rewriting = true;
 
-        // project before join or is just after OLAPToEnumerableConverter
-        if (!RewriteImplementor.needRewrite(this.context) || this.afterAggregate
-                || !(this.context.hasPrecalculatedFields())
+        // project before join or is just after OlapToEnumerableConverter
+        if (!RewriteImpl.needRewrite(this.context) || this.afterAggregate || !(this.context.hasPrecalculatedFields())
                 || (this.getContext().isHasJoin() && this.beforeTopPreCalcJoin)) {
             this.columnRowType = this.buildColumnRowType();
             this.rewriteProjects();
@@ -172,20 +320,18 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
 
         // rebuild row type
         if (!newFieldList.isEmpty() && needReplaceCCFieldList.isEmpty()) {
-            RelDataTypeFactory.FieldInfoBuilder fieldInfo = getCluster().getTypeFactory().builder();
-            fieldInfo.addAll(this.rowType.getFieldList());
-            fieldInfo.addAll(newFieldList);
-            this.rowType = getCluster().getTypeFactory().createStructType(fieldInfo);
+            List<RelDataTypeField> filedList = Stream.of(rowType.getFieldList(), newFieldList) //
+                    .flatMap(List::stream).collect(Collectors.toList());
+            this.rowType = getCluster().getTypeFactory().createStructType(filedList);
         } else if (!newFieldList.isEmpty()) {
-            RelDataTypeFactory.FieldInfoBuilder fieldInfo = getCluster().getTypeFactory().builder();
-            List<RelDataTypeField> originfields = Lists.newArrayList(this.rowType.getFieldList());
+            List<RelDataTypeField> originFields = Lists.newArrayList(this.rowType.getFieldList());
             for (Map.Entry<Integer, RelDataTypeField> integerRelDataTypeFieldEntry : needReplaceCCFieldList
                     .entrySet()) {
-                originfields.set(integerRelDataTypeFieldEntry.getKey(), integerRelDataTypeFieldEntry.getValue());
+                originFields.set(integerRelDataTypeFieldEntry.getKey(), integerRelDataTypeFieldEntry.getValue());
             }
-            fieldInfo.addAll(originfields);
-            fieldInfo.addAll(newFieldList);
-            this.rowType = getCluster().getTypeFactory().createStructType(fieldInfo);
+            List<RelDataTypeField> fieldList = Stream.of(originFields, newFieldList) //
+                    .flatMap(List::stream).collect(Collectors.toList());
+            this.rowType = getCluster().getTypeFactory().createStructType(fieldList);
         }
 
         // rebuild columns
@@ -195,7 +341,7 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
     }
 
     private void rewriteProjects() {
-        OLAPRel olapChild = (OLAPRel) getInput();
+        OlapRel olapChild = (OlapRel) getInput();
         ColumnRowType inputColumnRowType = olapChild.getColumnRowType();
         List<TblColRef> allColumns = inputColumnRowType.getAllColumns();
         List<TblColRef> ccColRefList = allColumns.stream() //
@@ -227,7 +373,7 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
             if (column == null)
                 throw new IllegalStateException("No TblColRef found in " + rex);
             TblColRef existColRef = map.get(column.toString());
-            if (existColRef != null && getContext().allColumns.contains(existColRef)) {
+            if (existColRef != null && getContext().getAllColumns().contains(existColRef)) {
                 column = existColRef;
                 List<RelDataTypeField> inputFieldList = getInput().getRowType().getFieldList();
                 RelDataTypeField inputField = inputFieldList.get(columnToIdMap.get(column));
@@ -241,7 +387,7 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
         this.rewriteProjects = newRewriteProjList;
     }
 
-    private void updateSubContexts(Set<OLAPContext> subContexts) {
+    private void updateSubContexts(Set<OlapContext> subContexts) {
         if (isMerelyPermutation || this.rewriting || this.afterAggregate)
             return;
 
@@ -251,19 +397,14 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
     }
 
     @Override
-    public Set<OLAPContext> getSubContext() {
-        return subContexts;
-    }
-
-    @Override
-    public void setSubContexts(Set<OLAPContext> contexts) {
+    public void setSubContexts(Set<OlapContext> contexts) {
         this.subContexts = contexts;
     }
 
     private Map<Integer, RelDataTypeField> replaceCcFiledWithOriginInnerCol(List<RelDataTypeField> newFieldList) {
         Map<Integer, RelDataTypeField> needReplaceCCFieldList = Maps.newHashMap();
         Map<Integer, RexNode> posInTupleToCcCol = Maps.newHashMap();
-        ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
+        ColumnRowType inputColumnRowType = ((OlapRel) getInput()).getColumnRowType();
         int paramIndex = this.rowType.getFieldList().size();
         for (Map.Entry<TblColRef, TblColRef> originExprToCcCol : this.context.getGroupCCColRewriteMapping()
                 .entrySet()) {
@@ -273,7 +414,7 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
                 continue;
             }
 
-            RelDataType ccFieldType = OLAPTable.createSqlType(getCluster().getTypeFactory(),
+            RelDataType ccFieldType = OlapTable.createSqlType(getCluster().getTypeFactory(),
                     originExprToCcCol.getValue().getType(), true);
             int originExprIndex = findInnerColPosInPrjRelRowType(originExprToCcCol.getKey(), this);
             if (originExprIndex < 0) {
@@ -308,7 +449,7 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
         List<RelDataTypeField> newFieldList = Lists.newLinkedList();
         List<RexNode> newExpList = Lists.newArrayList();
         List<RelDataTypeField> inputFieldList = getInput().getRowType().getFieldList();
-        ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
+        ColumnRowType inputColumnRowType = ((OlapRel) getInput()).getColumnRowType();
 
         // rebuild origin column
         List<TblColRef> allColumns = this.columnRowType.getAllColumns();
@@ -334,7 +475,7 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
 
         // rebuild pre-calculate column
         int paramIndex = this.rowType.getFieldList().size();
-        for (Map.Entry<String, RelDataType> rewriteField : this.context.rewriteFields.entrySet()) {
+        for (Map.Entry<String, RelDataType> rewriteField : this.context.getRewriteFields().entrySet()) {
             String rewriteFieldName = rewriteField.getKey();
             int rowIndex = this.columnRowType.getIndexByNameAndByContext(this.context, rewriteFieldName);
             if (rowIndex >= 0) {
@@ -357,7 +498,7 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
         return newFieldList;
     }
 
-    private int findInnerColPosInPrjRelRowType(TblColRef colRef, KapProjectRel rel) {
+    private int findInnerColPosInPrjRelRowType(TblColRef colRef, OlapProjectRel rel) {
         for (int i = 0; i < rel.getColumnRowType().getAllColumns().size(); i++) {
             if (colRef.equals(rel.getColumnRowType().getColumnByIndex(i))) {
                 return i;

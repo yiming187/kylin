@@ -68,8 +68,8 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.util.ComputedColumnUtil;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.query.QueryExtension;
-import org.apache.kylin.query.enumerator.OLAPQuery;
-import org.apache.kylin.query.relnode.OLAPTableScan;
+import org.apache.kylin.query.enumerator.OlapQuery;
+import org.apache.kylin.query.relnode.OlapTableScan;
 import org.apache.kylin.rest.constant.Constant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,12 +78,12 @@ import lombok.val;
 
 /**
  */
-public class OLAPTable extends AbstractQueryableTable implements TranslatableTable {
+public class OlapTable extends AbstractQueryableTable implements TranslatableTable {
 
-    protected static final Logger logger = LoggerFactory.getLogger(OLAPTable.class);
+    protected static final Logger logger = LoggerFactory.getLogger(OlapTable.class);
 
-    private static Map<String, SqlTypeName> SQLTYPE_MAPPING = new HashMap<>();
-    private static Map<String, SqlTypeName> REGEX_SQLTYPE_MAPPING = new HashMap<>();
+    private static final Map<String, SqlTypeName> SQLTYPE_MAPPING = new HashMap<>();
+    private static final Map<String, SqlTypeName> REGEX_SQLTYPE_MAPPING = new HashMap<>();
 
     static {
         SQLTYPE_MAPPING.put("char", SqlTypeName.CHAR);
@@ -106,13 +106,13 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
         REGEX_SQLTYPE_MAPPING.put("array\\<.*\\>", SqlTypeName.ARRAY);
     }
 
-    private final OLAPSchema olapSchema;
+    private final OlapSchema olapSchema;
     private final TableDesc sourceTable;
     protected RelDataType rowType;
     private List<ColumnDesc> sourceColumns;
     private Map<String, List<NDataModel>> modelsMap;
 
-    public OLAPTable(OLAPSchema schema, TableDesc tableDesc, Map<String, List<NDataModel>> modelsMap) {
+    public OlapTable(OlapSchema schema, TableDesc tableDesc, Map<String, List<NDataModel>> modelsMap) {
         super(Object[].class);
         this.olapSchema = schema;
         this.sourceTable = tableDesc;
@@ -123,7 +123,8 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
     public static RelDataType createSqlType(RelDataTypeFactory typeFactory, DataType dataType, boolean isNullable) {
         SqlTypeName sqlTypeName = SQLTYPE_MAPPING.get(dataType.getName());
         if (sqlTypeName == null) {
-            for (String reg : REGEX_SQLTYPE_MAPPING.keySet()) {
+            for (Map.Entry<String, SqlTypeName> entry : REGEX_SQLTYPE_MAPPING.entrySet()) {
+                String reg = entry.getKey();
                 Pattern pattern = Pattern.compile(reg);
                 if (pattern.matcher(dataType.getName()).matches()) {
                     sqlTypeName = REGEX_SQLTYPE_MAPPING.get(reg);
@@ -140,7 +141,7 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
 
         RelDataType result;
         if (sqlTypeName == SqlTypeName.ARRAY) {
-            String innerTypeName = dataType.getName().split("<|>")[1];
+            String innerTypeName = StringUtils.split(dataType.getName(), "<|>")[1];
             result = typeFactory.createArrayType(createSqlType(typeFactory, DataType.getType(innerTypeName), false),
                     -1);
         } else if (precision >= 0 && scale >= 0)
@@ -160,7 +161,7 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
         return result;
     }
 
-    public OLAPSchema getSchema() {
+    public OlapSchema getSchema() {
         return this.olapSchema;
     }
 
@@ -285,14 +286,10 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
 
     private boolean isACLDisabledOrAdmin() {
         QueryContext.AclInfo aclInfo = QueryContext.current().getAclInfo();
-        if (!olapSchema.getConfig().isAclTCREnabled()
-                || Objects.nonNull(aclInfo) && (CollectionUtils.isNotEmpty(aclInfo.getGroups())
-                        && aclInfo.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals))
-                || Objects.nonNull(aclInfo) && aclInfo.isHasAdminPermission()) {
-            return true;
-        }
-
-        return false;
+        return !olapSchema.getConfig().isAclTCREnabled()
+                || (Objects.nonNull(aclInfo) && (CollectionUtils.isNotEmpty(aclInfo.getGroups())
+                        && aclInfo.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals)))
+                || Objects.nonNull(aclInfo) && aclInfo.isHasAdminPermission();
     }
 
     private boolean isColumnAuthorized(Set<String> ccSourceCols) {
@@ -307,7 +304,7 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
     public RelNode toRel(ToRelContext context, RelOptTable relOptTable) {
         int fieldCount = relOptTable.getRowType().getFieldCount();
         int[] fields = identityList(fieldCount);
-        return new OLAPTableScan(context.getCluster(), relOptTable, this, fields);
+        return new OlapTableScan(context.getCluster(), relOptTable, this, fields);
     }
 
     protected int[] identityList(int n) {
@@ -323,7 +320,7 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
         return new AbstractTableQueryable<T>(queryProvider, schema, this, tableName) {
             @SuppressWarnings("unchecked")
             public Enumerator<T> enumerator() {
-                final OLAPQuery query = new OLAPQuery(OLAPQuery.EnumeratorTypeEnum.OLAP, 0);
+                final OlapQuery query = new OlapQuery(OlapQuery.EnumeratorTypeEnum.OLAP, 0);
                 return (Enumerator<T>) query.enumerator();
             }
         };
@@ -337,22 +334,22 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
 
     @Override
     public String toString() {
-        return "OLAPTable {" + getTableName() + "}";
+        return "OlapTable {" + getTableName() + "}";
     }
 
-    public Enumerable<Object[]> executeOLAPQuery(DataContext optiqContext, int ctxSeq) {
-        return new OLAPQuery(optiqContext, OLAPQuery.EnumeratorTypeEnum.OLAP, ctxSeq);
+    public Enumerable<Object[]> executeOlapQuery(DataContext optiqContext, int ctxSeq) {
+        return new OlapQuery(optiqContext, OlapQuery.EnumeratorTypeEnum.OLAP, ctxSeq);
     }
 
     public Enumerable<Object[]> executeHiveQuery(DataContext optiqContext, int ctxSeq) {
-        return new OLAPQuery(optiqContext, OLAPQuery.EnumeratorTypeEnum.HIVE, ctxSeq);
+        return new OlapQuery(optiqContext, OlapQuery.EnumeratorTypeEnum.HIVE, ctxSeq);
     }
 
     public Enumerable<Object[]> executeSimpleAggregationQuery(DataContext optiqContext, int ctxSeq) {
-        return new OLAPQuery(optiqContext, OLAPQuery.EnumeratorTypeEnum.SIMPLE_AGGREGATION, ctxSeq);
+        return new OlapQuery(optiqContext, OlapQuery.EnumeratorTypeEnum.SIMPLE_AGGREGATION, ctxSeq);
     }
 
     public Enumerable<Object[]> executeMetadataQuery(DataContext optiqContext, int ctxSeq) {
-        return new OLAPQuery(optiqContext, OLAPQuery.EnumeratorTypeEnum.METADATA, ctxSeq);
+        return new OlapQuery(optiqContext, OlapQuery.EnumeratorTypeEnum.METADATA, ctxSeq);
     }
 }

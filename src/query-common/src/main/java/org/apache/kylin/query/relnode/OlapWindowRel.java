@@ -19,7 +19,10 @@
 package org.apache.kylin.query.relnode;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
@@ -37,16 +40,23 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.kylin.guava30.shaded.common.base.Preconditions;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.query.util.ICutContextStrategy;
+import org.apache.kylin.query.util.RexUtils;
 
-/**
- */
-public class OLAPWindowRel extends Window implements OLAPRel {
-    protected ColumnRowType columnRowType;
-    protected OLAPContext context;
+import lombok.Getter;
+import lombok.Setter;
 
-    public OLAPWindowRel(RelOptCluster cluster, RelTraitSet traitSet, RelNode input, List<RexLiteral> constants,
-            RelDataType rowType, List<Group> groups) {
+@Getter
+public class OlapWindowRel extends Window implements OlapRel {
+    private ColumnRowType columnRowType;
+    private OlapContext context;
+    @Setter
+    private Set<OlapContext> subContexts = Sets.newHashSet();
+
+    public OlapWindowRel(RelOptCluster cluster, RelTraitSet traitSet, RelNode input, List<RexLiteral> constants,
+            RelDataType rowType, List<Window.Group> groups) {
         super(cluster, traitSet, input, constants, rowType, groups);
         Preconditions.checkArgument(getConvention() == CONVENTION);
         Preconditions.checkArgument(getConvention() == input.getConvention());
@@ -54,8 +64,7 @@ public class OLAPWindowRel extends Window implements OLAPRel {
 
     @Override
     public Window copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        assert inputs.size() == 1;
-        return new OLAPWindowRel(getCluster(), traitSet, inputs.get(0), constants, rowType, groups);
+        return new OlapWindowRel(getCluster(), traitSet, inputs.get(0), constants, rowType, groups);
     }
 
     @Override
@@ -65,25 +74,27 @@ public class OLAPWindowRel extends Window implements OLAPRel {
 
     @Override
     public RelWriter explainTerms(RelWriter pw) {
-
-        return super.explainTerms(pw)
-                .item("ctx", context == null ? "" : String.valueOf(context.id) + "@" + context.realization)//
+        return super.explainTerms(pw).item("ctx", displayCtxId(context)) //
                 .itemIf("constants", constants, !constants.isEmpty()) //
                 .itemIf("groups", groups, !groups.isEmpty());
     }
 
     @Override
-    public void implementOLAP(OLAPImplementor implementor) {
-        implementor.fixSharedOlapTableScan(this);
-        implementor.visitChild(getInput(), this);
+    public void implementOlap(OlapImpl olapImpl) {
+        olapImpl.visitChild(getInput(), this);
 
         this.columnRowType = buildColumnRowType();
-        this.context = implementor.getContext();
-        this.context.hasWindow = true;
+        if (context != null) {
+            this.context.setHasWindow(true);
+            if (this == context.getTopNode() && !context.isHasAgg())
+                ContextUtil.amendAllColsIfNoAgg(this);
+        } else {
+            ContextUtil.updateSubContexts(getGroupingColumns(), subContexts);
+        }
     }
 
     protected ColumnRowType buildColumnRowType() {
-        OLAPRel olapChild = (OLAPRel) getInput(0);
+        OlapRel olapChild = (OlapRel) getInput(0);
         ColumnRowType inputColumnRowType = olapChild.getColumnRowType();
 
         List<TblColRef> columns = new ArrayList<>();
@@ -102,17 +113,17 @@ public class OLAPWindowRel extends Window implements OLAPRel {
     }
 
     @Override
-    public void implementRewrite(RewriteImplementor implementor) {
+    public void implementRewrite(RewriteImpl rewriteImpl) {
         for (RelNode child : getInputs()) {
-            implementor.visitChild(this, child);
+            rewriteImpl.visitChild(this, child);
         }
     }
 
     @Override
     public EnumerableRel implementEnumerable(List<EnumerableRel> inputs) {
         for (EnumerableRel input : inputs) {
-            if (input instanceof OLAPRel) {
-                ((OLAPRel) input).replaceTraitSet(EnumerableConvention.INSTANCE);
+            if (input instanceof OlapRel) {
+                ((OlapRel) input).replaceTraitSet(EnumerableConvention.INSTANCE);
             }
         }
         return EnumerableWindowBridge.createEnumerableWindow(getCluster(),
@@ -120,19 +131,9 @@ public class OLAPWindowRel extends Window implements OLAPRel {
     }
 
     @Override
-    public OLAPContext getContext() {
-        return context;
-    }
-
-    @Override
-    public ColumnRowType getColumnRowType() {
-        return columnRowType;
-    }
-
-    @Override
     public boolean hasSubQuery() {
         for (RelNode child : getInputs()) {
-            if (((OLAPRel) child).hasSubQuery()) {
+            if (((OlapRel) child).hasSubQuery()) {
                 return true;
             }
         }
@@ -144,5 +145,55 @@ public class OLAPWindowRel extends Window implements OLAPRel {
         RelTraitSet oldTraitSet = this.traitSet;
         this.traitSet = this.traitSet.replace(trait);
         return oldTraitSet;
+    }
+
+    @Override
+    public void implementContext(ContextImpl contextImpl, ContextVisitorState state) {
+        contextImpl.fixSharedOlapTableScan(this);
+        ContextVisitorState tempState = ContextVisitorState.init();
+        contextImpl.visitChild(getInput(), this, tempState);
+
+        // window rel need a separate context
+        if (tempState.hasFreeTable()) {
+            contextImpl.allocateContext(this, this);
+            tempState.setHasFreeTable(false);
+        }
+
+        state.merge(tempState);
+        subContexts.addAll(ContextUtil.collectSubContext(this.getInput()));
+    }
+
+    @Override
+    public void implementCutContext(ICutContextStrategy.ContextCutImpl contextCutImpl) {
+        this.context = null;
+        contextCutImpl.visitChild(getInput());
+    }
+
+    @Override
+    public void setContext(OlapContext context) {
+        this.context = context;
+        ((OlapRel) getInput()).setContext(context);
+        subContexts.addAll(ContextUtil.collectSubContext(this.getInput()));
+    }
+
+    @Override
+    public boolean pushRelInfoToContext(OlapContext context) {
+        return true;
+    }
+
+    public Collection<TblColRef> getGroupingColumns() {
+        ColumnRowType inputColumnRowType = ((OlapRel) getInput()).getColumnRowType();
+        Set<TblColRef> tblColRefs = new HashSet<>();
+        for (Window.Group group : groups) {
+            group.keys.forEach(grpKey -> tblColRefs.addAll(inputColumnRowType.getSourceColumnsByIndex(grpKey)));
+            group.orderKeys.getFieldCollations()
+                    .forEach(f -> tblColRefs.addAll(inputColumnRowType.getSourceColumnsByIndex(f.getFieldIndex())));
+            group.aggCalls.stream().flatMap(call -> RexUtils.getAllInputRefs(call).stream())
+                    .filter(inRef -> inRef.getIndex() < inputColumnRowType.size())
+                    // if idx >= input column cnt, it is referencing to come constants
+                    .flatMap(inRef -> inputColumnRowType.getSourceColumnsByIndex(inRef.getIndex()).stream())
+                    .forEach(tblColRefs::add);
+        }
+        return tblColRefs;
     }
 }

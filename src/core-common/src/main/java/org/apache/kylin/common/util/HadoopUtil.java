@@ -37,7 +37,7 @@ import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
@@ -163,6 +163,10 @@ public class HadoopUtil {
 
     public static FileSystem getWritingClusterFileSystem() {
         return getFileSystem(KylinConfig.readSystemKylinConfig().getWritingClusterWorkingDir());
+    }
+
+    public static FileSystem getWriteClusterFileSystem() {
+        return getFileSystem(KylinConfig.readSystemKylinConfig().getWriteClusterWorkingDir());
     }
 
     public static FileSystem getWorkingFileSystem(Configuration conf) {

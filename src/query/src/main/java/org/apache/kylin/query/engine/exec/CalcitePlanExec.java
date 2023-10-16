@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.query.engine.exec.calcite;
+package org.apache.kylin.query.engine.exec;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -37,14 +37,13 @@ import org.apache.calcite.runtime.Bindable;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.util.DateFormat;
-import org.apache.kylin.query.engine.exec.QueryPlanExec;
 import org.apache.kylin.query.engine.meta.MutableDataContext;
 
 /**
  * implement and execute a physical plan with Calcite
  * this exec is only used for constants queries
  */
-public class CalciteQueryPlanExec implements QueryPlanExec {
+public class CalcitePlanExec implements QueryPlanExec {
 
     @Override
     public List<List<String>> execute(RelNode rel, MutableDataContext dataContext) {

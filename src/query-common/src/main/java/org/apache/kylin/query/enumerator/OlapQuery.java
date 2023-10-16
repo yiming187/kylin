@@ -23,38 +23,39 @@ import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.kylin.common.debug.BackdoorToggles;
-import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.relnode.ContextUtil;
+import org.apache.kylin.query.relnode.OlapContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  */
-public class OLAPQuery extends AbstractEnumerable<Object[]> implements Enumerable<Object[]> {
+public class OlapQuery extends AbstractEnumerable<Object[]> implements Enumerable<Object[]> {
 
-    private static final Logger logger = LoggerFactory.getLogger(OLAPQuery.class);
+    private static final Logger logger = LoggerFactory.getLogger(OlapQuery.class);
     private final DataContext optiqContext;
     private final EnumeratorTypeEnum type;
     private final int contextId;
 
-    public OLAPQuery(DataContext optiqContext, EnumeratorTypeEnum type, int ctxId) {
+    public OlapQuery(DataContext optiqContext, EnumeratorTypeEnum type, int ctxId) {
         this.optiqContext = optiqContext;
         this.type = type;
         this.contextId = ctxId;
     }
 
-    public OLAPQuery(EnumeratorTypeEnum type, int ctxSeq) {
+    public OlapQuery(EnumeratorTypeEnum type, int ctxSeq) {
         this(null, type, ctxSeq);
     }
 
     public Enumerator<Object[]> enumerator() {
         if (BackdoorToggles.getPrepareOnly())
             return new EmptyEnumerator();
-        OLAPContext olapContext = OLAPContext.getThreadLocalContextById(contextId);
+        OlapContext olapContext = ContextUtil.getThreadLocalContextById(contextId);
         switch (type) {
         case SIMPLE_AGGREGATION:
             return new SingleRowEnumerator();
         case OLAP:
-            return new OLAPEnumerator(olapContext, optiqContext);
+            return new OlapEnumerator(olapContext, optiqContext);
         case HIVE:
             return new HiveEnumerator(olapContext);
         case METADATA:
@@ -81,11 +82,12 @@ public class OLAPQuery extends AbstractEnumerable<Object[]> implements Enumerabl
 
         @Override
         public void close() {
+            // do nothing
         }
 
         @Override
         public Object[] current() {
-            return null;
+            return new Object[0];
         }
 
         @Override
@@ -95,6 +97,7 @@ public class OLAPQuery extends AbstractEnumerable<Object[]> implements Enumerabl
 
         @Override
         public void reset() {
+            // do nothing
         }
     }
 

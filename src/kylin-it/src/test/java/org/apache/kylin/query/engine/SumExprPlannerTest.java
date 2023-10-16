@@ -194,7 +194,7 @@ public class SumExprPlannerTest extends CalciteRuleTestBase {
                         KapAggProjectMergeRule.AGG_PROJECT_FILTER_JOIN,
                         KapAggProjectTransposeRule.AGG_PROJECT_FILTER_JOIN, KapAggProjectTransposeRule.AGG_PROJECT_JOIN,
                         KapAggFilterTransposeRule.AGG_FILTER_JOIN, KapAggJoinTransposeRule.INSTANCE_JOIN_RIGHT_AGG,
-                        KapCountDistinctJoinRule.INSTANCE_COUNT_DISTINCT_JOIN_ONESIDEAGG, KapAggregateRule.INSTANCE,
+                        KapCountDistinctJoinRule.COUNT_DISTINCT_JOIN_ONE_SIDE_AGG, KapAggregateRule.INSTANCE,
                         KapJoinRule.INSTANCE, KapProjectRule.INSTANCE));
     }
 
@@ -229,7 +229,7 @@ public class SumExprPlannerTest extends CalciteRuleTestBase {
                         KapAggProjectMergeRule.AGG_PROJECT_FILTER_JOIN,
                         KapAggProjectTransposeRule.AGG_PROJECT_FILTER_JOIN, KapAggProjectTransposeRule.AGG_PROJECT_JOIN,
                         KapAggFilterTransposeRule.AGG_FILTER_JOIN, KapAggJoinTransposeRule.INSTANCE_JOIN_RIGHT_AGG,
-                        KapCountDistinctJoinRule.INSTANCE_COUNT_DISTINCT_JOIN_ONESIDEAGG));
+                        KapCountDistinctJoinRule.COUNT_DISTINCT_JOIN_ONE_SIDE_AGG));
     }
 
     @Test
@@ -252,6 +252,6 @@ public class SumExprPlannerTest extends CalciteRuleTestBase {
                         KapAggProjectMergeRule.AGG_PROJECT_FILTER_JOIN,
                         KapAggProjectTransposeRule.AGG_PROJECT_FILTER_JOIN, KapAggProjectTransposeRule.AGG_PROJECT_JOIN,
                         KapAggFilterTransposeRule.AGG_FILTER_JOIN, KapAggJoinTransposeRule.INSTANCE_JOIN_RIGHT_AGG,
-                        KapCountDistinctJoinRule.INSTANCE_COUNT_DISTINCT_JOIN_ONESIDEAGG));
+                        KapCountDistinctJoinRule.COUNT_DISTINCT_JOIN_ONE_SIDE_AGG));
     }
 }

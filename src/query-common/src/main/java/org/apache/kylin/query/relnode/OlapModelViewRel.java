@@ -37,71 +37,69 @@ import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.exception.QueryErrorCode;
 import org.apache.kylin.query.util.ICutContextStrategy;
 
+import lombok.Getter;
+
 /**
  * placeholder for model view
  */
-public class KapModelViewRel extends SingleRel implements KapRel, EnumerableRel {
+public class OlapModelViewRel extends SingleRel implements OlapRel, EnumerableRel {
 
     private final String modelAlias;
-    private OLAPContext context;
+    @Getter
+    private OlapContext context;
 
-    public KapModelViewRel(RelOptCluster cluster, RelTraitSet traits, RelNode input, String modelAlias) {
+    public OlapModelViewRel(RelOptCluster cluster, RelTraitSet traits, RelNode input, String modelAlias) {
         super(cluster, traits, input);
         this.modelAlias = modelAlias;
     }
 
     @Override
-    public void implementContext(OLAPContextImplementor olapContextImplementor, ContextVisitorState state) {
-        ((KapRel) getInput(0)).implementContext(olapContextImplementor, state);
+    public void implementContext(ContextImpl contextImpl, ContextVisitorState state) {
+        ((OlapRel) getInput(0)).implementContext(contextImpl, state);
         state.setHasModelView(true);
     }
 
     @Override
-    public void implementOLAP(OLAPImplementor implementor) {
-        ((KapRel) getInput(0)).implementOLAP(implementor);
+    public void implementOlap(OlapImpl olapImpl) {
+        ((OlapRel) getInput(0)).implementOlap(olapImpl);
         this.context.setModelAlias(modelAlias);
     }
 
     @Override
-    public void implementRewrite(RewriteImplementor rewriter) {
-        ((KapRel) getInput(0)).implementRewrite(rewriter);
+    public void implementRewrite(RewriteImpl rewriteImpl) {
+        ((OlapRel) getInput(0)).implementRewrite(rewriteImpl);
         rowType = deriveRowType();
     }
 
     @Override
-    public boolean pushRelInfoToContext(OLAPContext context) {
-        return ((KapRel) getInput(0)).pushRelInfoToContext(context);
+    public boolean pushRelInfoToContext(OlapContext context) {
+        return ((OlapRel) getInput(0)).pushRelInfoToContext(context);
     }
 
     @Override
-    public Set<OLAPContext> getSubContext() {
-        return ((KapRel) getInput(0)).getSubContext();
+    public Set<OlapContext> getSubContexts() {
+        return ((OlapRel) getInput(0)).getSubContexts();
     }
 
     @Override
-    public void setSubContexts(Set<OLAPContext> contexts) {
-        ((KapRel) getInput(0)).setSubContexts(contexts);
+    public void setSubContexts(Set<OlapContext> contexts) {
+        ((OlapRel) getInput(0)).setSubContexts(contexts);
     }
 
     @Override
-    public OLAPContext getContext() {
-        return context;
-    }
-
-    @Override
-    public void setContext(OLAPContext context) {
+    public void setContext(OlapContext context) {
         this.context = context;
-        ((KapRel) getInput(0)).setContext(context);
+        ((OlapRel) getInput(0)).setContext(context);
     }
 
     @Override
     public ColumnRowType getColumnRowType() {
-        return ((KapRel) getInput(0)).getColumnRowType();
+        return ((OlapRel) getInput(0)).getColumnRowType();
     }
 
     @Override
     public boolean hasSubQuery() {
-        return ((KapRel) getInput(0)).hasSubQuery();
+        return ((OlapRel) getInput(0)).hasSubQuery();
     }
 
     @Override
@@ -119,7 +117,7 @@ public class KapModelViewRel extends SingleRel implements KapRel, EnumerableRel 
 
     @Override
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        return new KapModelViewRel(getCluster(), traitSet, inputs.get(0), modelAlias);
+        return new OlapModelViewRel(getCluster(), traitSet, inputs.get(0), modelAlias);
     }
 
     @Override
@@ -133,9 +131,9 @@ public class KapModelViewRel extends SingleRel implements KapRel, EnumerableRel 
     }
 
     @Override
-    public void implementCutContext(ICutContextStrategy.CutContextImplementor implementor) {
+    public void implementCutContext(ICutContextStrategy.ContextCutImpl contextCutImpl) {
         throw new KylinException(QueryErrorCode.UNSUPPORTED_OPERATION,
-                "KapStarTableRel should not be re-cut from outside");
+                "OlapStarTableRel should not be re-cut from outside");
     }
 
     @Override
@@ -148,7 +146,7 @@ public class KapModelViewRel extends SingleRel implements KapRel, EnumerableRel 
     public RelWriter explainTerms(RelWriter pw) {
         pw.input("input", getInput());
         pw.item("model", modelAlias);
-        pw.item("ctx", context == null ? "" : context.id + "@" + context.realization);
+        pw.item("ctx", displayCtxId(context));
         return pw;
     }
 }

@@ -15,37 +15,51 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.kylin.query.relnode;
 
 import java.util.List;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
+import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.ConverterImpl;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 
-/**
- * If you're renaming this class, please keep it ending with OLAPToEnumerableConverter
- * see org.apache.calcite.plan.OLAPRelMdRowCount#shouldIntercept(org.apache.calcite.rel.RelNode)
- */
-// TODO remove the converter
-public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter implements EnumerableRel {
+import lombok.extern.slf4j.Slf4j;
 
-    public KapOLAPToEnumerableConverter(RelOptCluster cluster, RelTraitSet traits, RelNode input) {
-        super(cluster, traits, input);
+@Slf4j
+public class OlapToEnumerableConverter extends ConverterImpl implements EnumerableRel {
+
+    @Override
+    public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+        // huge cost to ensure OlapToEnumerableConverter only appears once in rel tree
+        return super.computeSelfCost(planner, mq).multiplyBy(0.05);
+    }
+
+    public OlapToEnumerableConverter(RelOptCluster cluster, RelTraitSet traits, RelNode input) {
+        super(cluster, ConventionTraitDef.INSTANCE, traits, input);
     }
 
     @Override
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        return new KapOLAPToEnumerableConverter(getCluster(), traitSet, AbstractRelNode.sole(inputs));
+        return new OlapToEnumerableConverter(getCluster(), traitSet, AbstractRelNode.sole(inputs));
     }
 
+    /**
+     * The implement of CalciteQueryExec (compared with the current SparderQueryExec), 
+     * pay less attention.
+     */
     @Override
     public Result implement(EnumerableRelImplementor enumImplementor, Prefer pref) {
-        OLAPRel.JavaImplementor impl = new OLAPRel.JavaImplementor(enumImplementor);
-        EnumerableRel inputAsEnum = impl.createEnumerable((OLAPRel) getInput());
+        OlapRel.JavaImplementor impl = new OlapRel.JavaImplementor(enumImplementor);
+        EnumerableRel inputAsEnum = impl.createEnumerable((OlapRel) getInput());
         this.replaceInput(0, inputAsEnum);
         return impl.visitChild(this, 0, inputAsEnum, pref);
     }

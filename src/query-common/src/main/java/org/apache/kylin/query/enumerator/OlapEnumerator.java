@@ -25,24 +25,22 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.metadata.tuple.ITuple;
 import org.apache.kylin.metadata.tuple.ITupleIterator;
-import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.relnode.OlapContext;
 import org.apache.kylin.storage.IStorageQuery;
 import org.apache.kylin.storage.StorageFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- */
-public class OLAPEnumerator implements Enumerator<Object[]> {
+public class OlapEnumerator implements Enumerator<Object[]> {
 
-    private static final Logger logger = LoggerFactory.getLogger(OLAPEnumerator.class);
+    private static final Logger logger = LoggerFactory.getLogger(OlapEnumerator.class);
 
-    private final OLAPContext olapContext;
+    private final OlapContext olapContext;
     private final DataContext optiqContext;
     private Object[] current;
     private ITupleIterator cursor;
 
-    public OLAPEnumerator(OLAPContext olapContext, DataContext optiqContext) {
+    public OlapEnumerator(OlapContext olapContext, DataContext optiqContext) {
         this.olapContext = olapContext;
         this.optiqContext = optiqContext;
         this.cursor = null;
@@ -102,13 +100,13 @@ public class OLAPEnumerator implements Enumerator<Object[]> {
 
     private ITupleIterator queryStorage() {
         logger.debug("query storage...");
-        // bind dynamic variables and update filter info in OLAPContext
+        // bind dynamic variables and update filter info in OlapContext
         SQLDigest sqlDigest = olapContext.getSQLDigest();
 
         // query storage engine
-        IStorageQuery storageEngine = StorageFactory.createQuery(olapContext.realization);
-        ITupleIterator iterator = storageEngine.search(olapContext.storageContext, sqlDigest,
-                olapContext.returnTupleInfo);
+        IStorageQuery storageEngine = StorageFactory.createQuery(olapContext.getRealization());
+        ITupleIterator iterator = storageEngine.search(olapContext.getStorageContext(), sqlDigest,
+                olapContext.getReturnTupleInfo());
         if (logger.isDebugEnabled()) {
             logger.debug("return TupleIterator...");
         }

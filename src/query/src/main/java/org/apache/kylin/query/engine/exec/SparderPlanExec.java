@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.query.engine.exec.sparder;
+package org.apache.kylin.query.engine.exec;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -38,16 +38,12 @@ import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.metadata.cube.cuboid.NLayoutCandidate;
 import org.apache.kylin.metadata.cube.model.IndexEntity;
 import org.apache.kylin.metadata.project.NProjectManager;
-import org.apache.kylin.query.engine.exec.ExecuteResult;
-import org.apache.kylin.query.engine.exec.QueryPlanExec;
-import org.apache.kylin.query.engine.exec.calcite.CalciteQueryPlanExec;
+import org.apache.kylin.query.engine.exec.sparder.QueryEngine;
 import org.apache.kylin.query.engine.meta.MutableDataContext;
 import org.apache.kylin.query.engine.meta.SimpleDataContext;
 import org.apache.kylin.query.relnode.ContextUtil;
-import org.apache.kylin.query.relnode.KapContext;
-import org.apache.kylin.query.relnode.KapRel;
-import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.query.relnode.OLAPRel;
+import org.apache.kylin.query.relnode.OlapContext;
+import org.apache.kylin.query.relnode.OlapRel;
 import org.apache.kylin.query.runtime.SparkEngine;
 import org.apache.kylin.query.util.QueryContextCutter;
 import org.apache.spark.SparkException;
@@ -59,7 +55,7 @@ import lombok.extern.slf4j.Slf4j;
  * implement and execute a physical plan with Sparder
  */
 @Slf4j
-public class SparderQueryPlanExec implements QueryPlanExec {
+public class SparderPlanExec implements QueryPlanExec {
 
     @Override
     public List<List<String>> execute(RelNode rel, MutableDataContext dataContext) {
@@ -86,19 +82,20 @@ public class SparderQueryPlanExec implements QueryPlanExec {
         }
 
         val contexts = ContextUtil.listContexts();
-        for (OLAPContext context : contexts) {
+        for (OlapContext context : contexts) {
             if (hasEmptyRealization(context)) {
-                return new CalciteQueryPlanExec().executeToIterable(rel, dataContext);
+                return new CalcitePlanExec().executeToIterable(rel, dataContext);
             }
         }
 
         // skip if no segment is selected
         // check contentQuery and runConstantQueryLocally for UT cases to make sure SparderEnv.getDF is not null
-        // TODO refactor IT tests and remove this runConstantQueryLocally checking
-        if (!(dataContext instanceof SimpleDataContext) || !(((SimpleDataContext) dataContext)).isContentQuery()
+        // refactor IT tests and remove this runConstantQueryLocally checking ???
+        if (!(dataContext instanceof SimpleDataContext) || !((SimpleDataContext) dataContext).isContentQuery()
                 || KapConfig.wrap(((SimpleDataContext) dataContext).getKylinConfig()).runConstantQueryLocally()) {
-            for (OLAPContext context : contexts) {
-                if (context.olapSchema != null && context.storageContext.isEmptyLayout() && !context.isHasAgg()) {
+            for (OlapContext context : contexts) {
+                if (context.getOlapSchema() != null && context.getStorageContext().isEmptyLayout()
+                        && !context.isHasAgg()) {
                     QueryContext.fillEmptyResultSetMetrics();
                     return new ExecuteResult(Lists.newArrayList(), 0);
                 }
@@ -127,8 +124,8 @@ public class SparderQueryPlanExec implements QueryPlanExec {
                 && !QueryContext.current().getSecondStorageUsageMap().isEmpty();
     }
 
-    private static boolean hasEmptyRealization(OLAPContext context) {
-        return context.realization == null && context.isConstantQueryWithAggregations();
+    private static boolean hasEmptyRealization(OlapContext context) {
+        return context.getRealization() == null && context.isConstantQueryWithAggregations();
     }
 
     protected ExecuteResult internalCompute(QueryEngine queryEngine, DataContext dataContext, RelNode rel) {
@@ -168,8 +165,8 @@ public class SparderQueryPlanExec implements QueryPlanExec {
      */
     private void rewrite(RelNode rel) {
         // rewrite query if necessary
-        OLAPRel.RewriteImplementor rewriteImplementor = new OLAPRel.RewriteImplementor();
-        rewriteImplementor.visitChild(rel, rel.getInput(0));
+        OlapRel.RewriteImpl rewriteImpl = new OlapRel.RewriteImpl();
+        rewriteImpl.visitChild(rel, rel.getInput(0));
         QueryContext.current().setCalcitePlan(rel.copy(rel.getTraitSet(), rel.getInputs()));
         ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER REWRITE", rel, log);
 
@@ -179,14 +176,14 @@ public class SparderQueryPlanExec implements QueryPlanExec {
 
         QueryContext.current().getMetrics().setExactlyMatch(exactlyMatch);
 
-        KapContext.setKapRel((KapRel) rel.getInput(0));
-        KapContext.setRowType(rel.getRowType());
+        ContextUtil.setOlapRel((OlapRel) rel.getInput(0));
+        ContextUtil.setRowType(rel.getRowType());
 
         QueryContext.current().record("end_rewrite");
     }
 
-    private boolean isAggImperfectMatch(OLAPContext ctx) {
-        NLayoutCandidate candidate = ctx.storageContext.getCandidate();
+    private boolean isAggImperfectMatch(OlapContext ctx) {
+        NLayoutCandidate candidate = ctx.getStorageContext().getCandidate();
         if (candidate == null) {
             return false;
         }
@@ -202,10 +199,10 @@ public class SparderQueryPlanExec implements QueryPlanExec {
             QueryContext.current().setLastFailed(true);
             QueryContext.current().setRetrySecondStorage(false);
             if (forcedToTieredStorage == ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN && !forceTableIndex) {
-                /** pushDown */
+                /* pushDown */
                 ExceptionUtils.rethrow(e);
             } else if (forcedToTieredStorage == ForceToTieredStorage.CH_FAIL_TO_RETURN) {
-                /** return error */
+                /* return error */
                 throw new KylinException(QueryErrorCode.FORCED_TO_TIEREDSTORAGE_RETURN_ERROR,
                         MsgPicker.getMsg().getForcedToTieredstorageReturnError());
             } else if (forcedToTieredStorage == ForceToTieredStorage.CH_FAIL_TO_PUSH_DOWN) {
