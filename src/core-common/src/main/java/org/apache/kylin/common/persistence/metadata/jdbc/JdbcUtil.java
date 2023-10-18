@@ -29,7 +29,7 @@ import java.util.Properties;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
-import org.apache.hadoop.util.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.exception.KylinException;
@@ -55,15 +55,17 @@ public class JdbcUtil {
 
     private static final ThreadLocal txThreadLocal = new ThreadLocal();
 
-    public static <T> T withTxAndRetry(DataSourceTransactionManager transactionManager, Callback<T> consumer){
+    public static <T> T withTxAndRetry(DataSourceTransactionManager transactionManager, Callback<T> consumer) {
         return withTxAndRetry(transactionManager, consumer, TransactionDefinition.ISOLATION_REPEATABLE_READ, 3);
     }
 
-    public static <T> T withTxAndRetry(DataSourceTransactionManager transactionManager, Callback<T> consumer, int retryLimit){
-        return withTxAndRetry(transactionManager, consumer, TransactionDefinition.ISOLATION_REPEATABLE_READ, retryLimit);
+    public static <T> T withTxAndRetry(DataSourceTransactionManager transactionManager, Callback<T> consumer,
+            int retryLimit) {
+        return withTxAndRetry(transactionManager, consumer, TransactionDefinition.ISOLATION_REPEATABLE_READ,
+                retryLimit);
     }
 
-    public static boolean isInExistingTx(){
+    public static boolean isInExistingTx() {
         return txThreadLocal.get() != null;
     }
 

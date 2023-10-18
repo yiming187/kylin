@@ -117,6 +117,8 @@ public class JobContextUtil {
         if (config.isUTEnv()) {
             config.setProperty("kylin.job.master-poll-interval-second", "1");
             config.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+            config.setProperty("kylin.job.slave-lock-renew-sec", "5");
+            config.setProperty("kylin.job.slave-lock-renew-ratio", "0.4");
         }
         if (null == jobContext) {
             jobContext = new JobContext();
@@ -324,7 +326,7 @@ public class JobContextUtil {
     }
 
     public static <T> T withTxAndRetry(JdbcUtil.Callback<T> consumer) {
-        return withTxAndRetry(consumer, 3);
+        return withTxAndRetry(consumer, KylinConfig.getInstanceFromEnv().getMaxTransactionRetry());
     }
 
     @SneakyThrows
