@@ -25,6 +25,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.regex.Matcher;
@@ -57,7 +59,8 @@ public class LogInitializer {
                 String maxFileSize = properties.getProperty("MaxFileSize");
 
                 tmp = File.createTempFile("KylinJDBCDRiver", "xml");
-                try (PrintStream out = new PrintStream(tmp)) {
+                try (PrintStream out = new PrintStream(Files.newOutputStream(tmp.toPath()), false,
+                        Charset.defaultCharset().name())) {
                     out.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
                     out.println("<Configuration>");
                     out.println("  <Appenders>");
@@ -102,8 +105,8 @@ public class LogInitializer {
         try (Scanner in = new Scanner(new FileReader(myFile))) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             while (in.hasNext()) {
-                out.write(in.nextLine().replace("\\", "\\\\").getBytes());
-                out.write("\n".getBytes());
+                out.write(in.nextLine().replace("\\", "\\\\").getBytes(Charset.defaultCharset()));
+                out.write("\n".getBytes(Charset.defaultCharset()));
             }
             return new ByteArrayInputStream(out.toByteArray());
         }

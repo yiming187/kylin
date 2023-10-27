@@ -18,7 +18,7 @@
 
 package org.apache.kylin.engine.spark.job.stage.build
 
-import org.apache.commons.lang.StringUtils
+import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.engine.spark.application.SparkApplication
 import org.apache.kylin.engine.spark.job.stage.StageExec
 import org.apache.kylin.engine.spark.job.{KylinBuildEnv, SegmentBuildJob, SegmentJob}

@@ -96,7 +96,7 @@ public enum JobStepType {
             BUILD_DICT.createStage(parent, config);
             GENERATE_FLAT_TABLE.createStage(parent, config);
             String enablePlanner = parent.getParam(NBatchConstants.P_JOB_ENABLE_PLANNER);
-            if (enablePlanner != null && Boolean.valueOf(enablePlanner)) {
+            if (enablePlanner != null && Boolean.parseBoolean(enablePlanner)) {
                 COST_BASED_PLANNER.createStage(parent, config);
             }
             GATHER_FLAT_TABLE_STATS.createStage(parent, config);
@@ -152,8 +152,8 @@ public enum JobStepType {
             if (!(parent instanceof DefaultExecutableOnModel)) {
                 throw new IllegalArgumentException();
             }
-            ((DefaultExecutableOnModel) parent).setHandler(
-                    ExecutableHandlerFactory.createExecutableHandler((DefaultExecutableOnModel) parent));
+            ((DefaultExecutableOnModel) parent)
+                    .setHandler(ExecutableHandlerFactory.createExecutableHandler((DefaultExecutableOnModel) parent));
             return new NSparkUpdateMetadataStep();
         }
 

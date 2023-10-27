@@ -465,14 +465,14 @@ public class NSparkCubingJob extends DefaultExecutableOnModel {
                     // Add the parameter `P_JOB_ENABLE_PLANNER` which is used to decide whether to use the  cube planner
                     job.setParam(NBatchConstants.P_JOB_ENABLE_PLANNER, Boolean.TRUE.toString());
                 } else {
-                    throw new KylinException(JobErrorCode.COST_BASED_PLANNER_ERROR, String.format(Locale.ROOT,
+                    throw new KylinException(JobErrorCode.COST_BASED_PLANNER_ERROR,
                             "There are running job for this model when submit the build job with cost based planner, "
-                                    + "please wait for other jobs to finish or cancel them"));
+                                    + "please wait for other jobs to finish or cancel them");
                 }
             } else {
                 throw new KylinException(JobErrorCode.COST_BASED_PLANNER_ERROR,
-                        String.format(Locale.ROOT, "The number of segments to be built or refreshed must be 1, "
-                                + "This is the first time to submit build job with enable cost based planner"));
+                        "The number of segments to be built or refreshed must be 1, "
+                                + "This is the first time to submit build job with enable cost based planner");
             }
         }
     }
@@ -486,6 +486,6 @@ public class NSparkCubingJob extends DefaultExecutableOnModel {
 
     private static boolean canEnablePlannerJob(JobTypeEnum jobType) {
         // just support: INC_BUILD and INDEX_REFRESH to recommend/prune index
-        return JobTypeEnum.INC_BUILD.equals(jobType) || JobTypeEnum.INDEX_REFRESH.equals(jobType);
+        return JobTypeEnum.INC_BUILD == jobType || JobTypeEnum.INDEX_REFRESH == jobType;
     }
 }

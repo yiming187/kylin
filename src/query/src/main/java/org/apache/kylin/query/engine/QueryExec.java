@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -544,8 +545,8 @@ public class QueryExec {
             diagnosticInfo.append(SEP).append("3. OLAPContext(s) and matched model(s) :");
             if (ContextUtil.getThreadLocalContexts() != null) {
                 String olapMatchInfo = ContextUtil.getNativeRealizations().stream()
-                        .map(r -> String.format(" Ctx=%d, \tMatched=%s, \tIndexType=%s, \tLayoutId=%d", r.getCxtId(),
-                                r.getModelAlias(), r.getIndexType(), r.getLayoutId()))
+                        .map(r -> String.format(Locale.ROOT, " Ctx=%d, \tMatched=%s, \tIndexType=%s, \tLayoutId=%d",
+                                r.getCxtId(), r.getModelAlias(), r.getIndexType(), r.getLayoutId()))
                         .collect(Collectors.joining(SEP));
                 if (olapMatchInfo.length() >= 10) {
                     diagnosticInfo.append(SEP).append(olapMatchInfo).append(SEP);

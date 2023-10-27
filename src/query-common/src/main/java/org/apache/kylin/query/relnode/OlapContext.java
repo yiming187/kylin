@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -380,7 +381,7 @@ public class OlapContext {
         Set<String> allTables = allTableScans.stream().map(OlapTableScan::getTableName).collect(Collectors.toSet());
         if (!allTables.isEmpty() && firstTableScan != null) {
             allTables.remove(firstTableScan.getTableName());
-            return String.format(olapContextFormat, firstTableScan.getTableName(),
+            return String.format(Locale.ROOT, olapContextFormat, firstTableScan.getTableName(),
                     Strings.join(allTables.stream().map(c -> "\"" + c + "\"").iterator(), ','),
                     Strings.join(
                             groupByColumns.stream().map(c -> "\"" + c.getColumnWithTableAndSchema() + "\"").iterator(),

@@ -27,6 +27,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.UnsupportedAddressTypeException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -85,7 +86,7 @@ public abstract class TCPMemcachedNodeImpl extends SpyObject implements Memcache
             throw new IllegalArgumentException("No SocketChannel");
         }
         if (bufSize <= 0) {
-            String msg = String.format("Invalid buffer size: %d", bufSize);
+            String msg = String.format(Locale.ROOT, "Invalid buffer size: %d", bufSize);
             throw new IllegalArgumentException(msg);
         }
         if (rq == null) {

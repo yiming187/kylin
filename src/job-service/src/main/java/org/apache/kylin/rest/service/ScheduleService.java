@@ -221,8 +221,7 @@ public class ScheduleService extends BasicService {
                 .filter(instance -> instance.getInstance().equals(concurrentServer))
                 .map(KylinInstance::getResourceGroupId).findFirst().orElse(null);
         val buildResourceGroups = allResourceGroups.getResourceGroupMappingInfoList().stream()
-                .filter(resourceGroupMappingInfo -> resourceGroupMappingInfo.getRequestType()
-                        .equals(RequestTypeEnum.BUILD))
+                .filter(resourceGroupMappingInfo -> resourceGroupMappingInfo.getRequestType() == RequestTypeEnum.BUILD)
                 .map(ResourceGroupMappingInfo::getResourceGroupId)
                 .filter(groupId -> !StringUtils.equals(groupId, concurrentServerResourceGroupId))
                 .collect(Collectors.toList());

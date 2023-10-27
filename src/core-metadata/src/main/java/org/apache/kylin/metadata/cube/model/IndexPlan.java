@@ -1238,7 +1238,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         }
 
         public boolean remove(LayoutEntity layout, boolean isAgg, boolean needAddBlackList,
-                              boolean needUpdateApprovedRecs) {
+                boolean needUpdateApprovedRecs) {
             IndexEntity.IndexIdentifier identifier = createIndexIdentifier(layout, isAgg);
             if (allIndexesMap.containsKey(identifier) && allIndexesMap.get(identifier).getLayouts().contains(layout)) {
                 IndexEntity indexEntity = allIndexesMap.get(identifier);
@@ -1248,7 +1248,8 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
                 }
 
                 if (layoutInIndexPlan.isManual()) {
-                    return removeManualPlan(layout, isAgg, needAddBlackList, needUpdateApprovedRecs, indexEntity, layoutInIndexPlan);
+                    return removeManualPlan(layout, isAgg, needAddBlackList, needUpdateApprovedRecs, indexEntity,
+                            layoutInIndexPlan);
                 }
                 indexEntity.getLayouts().remove(layoutInIndexPlan);
                 whiteIndexesMap.values().stream()
@@ -1266,15 +1267,14 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         }
 
         private boolean removeManualPlan(LayoutEntity layout, boolean isAgg, boolean needAddBlackList,
-                                         boolean needUpdateApprovedRecs, IndexEntity indexEntity,
-                                         LayoutEntity layoutInIndexPlan) {
+                boolean needUpdateApprovedRecs, IndexEntity indexEntity, LayoutEntity layoutInIndexPlan) {
             if (isAgg && needAddBlackList) {
                 // For similar strategy only works on AggIndex, we need add this to black list.
                 indexPlan.addRuleBasedBlackList(Lists.newArrayList(layout.getId()));
                 if (layoutInIndexPlan.isAuto()) {
                     indexEntity.getLayouts().remove(layoutInIndexPlan);
-                    whiteIndexesMap.values().stream().filter(
-                            indexEntityInIndexPlan -> indexEntityInIndexPlan.getId() == indexEntity.getId())
+                    whiteIndexesMap.values().stream()
+                            .filter(indexEntityInIndexPlan -> indexEntityInIndexPlan.getId() == indexEntity.getId())
                             .findFirst().ifPresent(indexEntityInIndexPlan -> indexEntityInIndexPlan.getLayouts()
                                     .remove(layoutInIndexPlan));
                 }

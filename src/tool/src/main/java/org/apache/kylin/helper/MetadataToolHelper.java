@@ -609,9 +609,9 @@ public class MetadataToolHelper extends CancelableTask {
         ResourceStore resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
         var res = resourceStore.listResources(target);
         if (res == null) {
-            System.out.printf("%s is not exist%n", target);
+            System.out.printf(Locale.ROOT, "%s is not exist%n", target);
         } else {
-            System.out.println("" + res);
+            System.out.println(res);
         }
         return res;
     }

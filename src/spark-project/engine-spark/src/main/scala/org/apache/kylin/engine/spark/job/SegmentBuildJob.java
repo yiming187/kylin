@@ -74,7 +74,7 @@ public class SegmentBuildJob extends SegmentJob {
     protected final void extraInit() {
         super.extraInit();
         String enablePlanner = getParam(NBatchConstants.P_JOB_ENABLE_PLANNER);
-        if (enablePlanner != null && Boolean.valueOf(enablePlanner)) {
+        if (enablePlanner != null && Boolean.parseBoolean(enablePlanner)) {
             usePlanner = true;
         }
     }
@@ -135,8 +135,8 @@ public class SegmentBuildJob extends SegmentJob {
     }
 
     protected void build() throws IOException {
-        Stream<NDataSegment> segmentStream = config.isSegmentParallelBuildEnabled()
-                ? readOnlySegments.parallelStream() : readOnlySegments.stream();
+        Stream<NDataSegment> segmentStream = config.isSegmentParallelBuildEnabled() ? readOnlySegments.parallelStream()
+                : readOnlySegments.stream();
         segmentStream.forEach(seg -> {
             try (KylinConfig.SetAndUnsetThreadLocalConfig autoCloseConfig = KylinConfig
                     .setAndUnsetThreadLocalConfig(config)) {

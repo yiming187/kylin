@@ -18,6 +18,8 @@
 
 package org.apache.kylin.engine.spark.job
 
+import java.util.Locale
+
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.engine.spark.NSparkCubingEngine
 import org.apache.kylin.engine.spark.builder.CreateFlatTable
@@ -122,7 +124,7 @@ class TableAnalysisJob(tableDesc: TableDesc,
 
   def checkColumns(tableDesc: TableDesc, ds: Dataset[Row]): Boolean = {
     logInfo(s"Check columns for table ${tableDesc.getIdentity}")
-    val sourceColumnSet: Set[String] = ds.columns.map(col => col.toUpperCase).toSet
+    val sourceColumnSet: Set[String] = ds.columns.map(col => col.toUpperCase(Locale.ROOT)).toSet
     val nonExistColumns: mutable.Set[String] = mutable.Set()
     for (col <- tableDesc.getColumns) {
       if (!col.isComputedColumn && !sourceColumnSet.contains(col.getName)) {

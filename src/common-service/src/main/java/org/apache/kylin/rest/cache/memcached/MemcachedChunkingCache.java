@@ -21,6 +21,7 @@ package org.apache.kylin.rest.cache.memcached;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -201,8 +202,8 @@ public class MemcachedChunkingCache extends MemcachedCache implements KeyHookLoo
         if (nSplit > 1) {
             for (int i = 0; i < nSplit; i++) {
                 if (logger.isDebugEnabled() || config.isEnableDebugLog()) {
-                    logger.debug(
-                            String.format("Chunk[ %d ] bytes size before encoding  = %d", i, splitValueB[i].length));
+                    logger.debug(String.format(Locale.ROOT, "Chunk[ %d ] bytes size before encoding  = %d", i,
+                            splitValueB[i].length));
                 }
                 super.putBinary(keyHook.getChunkskey()[i], splitValueB[i], expiration);
             }
