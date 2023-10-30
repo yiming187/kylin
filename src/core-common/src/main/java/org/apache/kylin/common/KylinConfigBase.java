@@ -1265,7 +1265,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public Integer getSchedulerPollIntervalSecond() {
-        return Integer.parseInt(getOptional("kylin.job.scheduler.poll-interval-second", "30"));
+        return Integer.parseInt(getOptional("kylin.job.scheduler.poll-interval-second", "10"));
     }
 
     public boolean isFlatTableJoinWithoutLookup() {
@@ -2349,7 +2349,7 @@ public abstract class KylinConfigBase implements Serializable {
     // ============================================================================
 
     private boolean isMicroService() {
-        return Boolean.parseBoolean(this.getOptional("kylin.micro.service", TRUE));
+        return Boolean.parseBoolean(this.getOptional("kylin.micro.service", FALSE));
     }
 
     public String getServerMode() {
@@ -3956,11 +3956,11 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public long getJobSchedulerMasterPollIntervalSec() {
-        return Long.parseLong(this.getOptional("kylin.job.master-poll-interval-second", "30"));
+        return Long.parseLong(this.getOptional("kylin.job.master-poll-interval-second", "10"));
     }
 
     public int getJobSchedulerMasterPollBatchSize() {
-        return Integer.parseInt(this.getOptional("kylin.job.master-pull-batch-size", "10"));
+        return Integer.parseInt(this.getOptional("kylin.job.master-pull-batch-size", "30"));
     }
 
     public long getJobSchedulerJobRenewalSec() {
@@ -3972,7 +3972,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public int getJobSchedulerSlavePollBatchSize() {
-        return Integer.parseInt(this.getOptional("kylin.job.slave-pull-batch-size", "5"));
+        return Integer.parseInt(this.getOptional("kylin.job.slave-pull-batch-size", "20"));
     }
 
     public int getParallelJobCountThreshold() {

@@ -21,10 +21,7 @@ import java.sql.SQLException
 import java.util.TimeZone
 
 import org.apache.kylin.common._
-import org.apache.commons.io.IOUtils
-import org.apache.commons.lang3.StringUtils
-import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.common.persistence.{JsonSerializer, RootPersistentEntity}
+import org.apache.kylin.common.util.TimeZoneUtils
 import org.apache.kylin.engine.spark.utils.LogEx
 import org.apache.kylin.metadata.realization.NoRealizationFoundException
 import org.apache.kylin.query.QueryFetcher
@@ -67,6 +64,7 @@ class TestModelViewQuery
     overwriteSystemProp("calcite.keep-in-clause", "true")
     overwriteSystemProp("kylin.dictionary.null-encoding-opt-threshold", "1")
     overwriteSystemProp("kylin.web.timezone", "GMT+8")
+    TimeZoneUtils.setDefaultTimeZone(KylinConfig.getInstanceFromEnv)
     overwriteSystemProp("kylin.query.pushdown.runner-class-name", "")
     overwriteSystemProp("kylin.query.pushdown-enabled", "false")
     overwriteSystemProp("kylin.snapshot.parallel-build-enabled", "true")

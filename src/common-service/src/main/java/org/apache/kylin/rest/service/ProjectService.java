@@ -96,6 +96,7 @@ import org.apache.kylin.metadata.cube.storage.ProjectStorageInfoCollector;
 import org.apache.kylin.metadata.cube.storage.StorageInfoEnum;
 import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.metadata.favorite.FavoriteRuleManager;
+import org.apache.kylin.metadata.favorite.QueryHistoryIdOffsetManager;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
@@ -650,7 +651,7 @@ public class ProjectService extends BasicService {
         response.setJdbcSourceDriver(config.getJdbcDriver());
 
         response.setOverrideKylinProps(projectInstance.getOverrideKylinProps());
-        
+
         Pair<String, String> infos = KylinVersion.getGitCommitInfo();
         response.setGitCommit(infos.getFirst());
         response.setPackageVersion(KylinVersion.getCurrentVersion().toString());
@@ -968,8 +969,14 @@ public class ProjectService extends BasicService {
 
         NProjectManager prjManager = getManager(NProjectManager.class);
         prjManager.forceDropProject(project);
+        UnitOfWork.get().doAfterUpdate(() -> deleteProjectRelatedMeta(project));
         UnitOfWork.get().doAfterUnit(() -> new ProjectDropListener().onDelete(project, clusterManager, headers));
         EventBusFactory.getInstance().postAsync(new SourceUsageUpdateNotifier());
+    }
+
+    private void deleteProjectRelatedMeta(String project) {
+        // delete query history id offset
+        QueryHistoryIdOffsetManager.getInstance(project).delete();
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")

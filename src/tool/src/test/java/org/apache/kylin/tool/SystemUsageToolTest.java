@@ -51,18 +51,18 @@ public class SystemUsageToolTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() throws Exception {
+        JobContextUtil.cleanUp();
         createTestMetadata();
         queryHistoryDAO = RDBMSQueryHistoryDAO.getInstance();
 
-        JobContextUtil.cleanUp();
         JobContextUtil.getJobInfoDao(getTestConfig());
     }
 
     @After
     public void teardown() {
         queryHistoryDAO.deleteAllQueryHistory();
-        cleanupTestMetadata();
         JobContextUtil.cleanUp();
+        cleanupTestMetadata();
     }
 
     @Test

@@ -32,6 +32,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.constant.LogConstant;
 import org.apache.kylin.common.logging.SetLogCategory;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ThreadUtils;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
@@ -53,6 +54,7 @@ import org.apache.kylin.job.runners.JobCheckUtil;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.job.util.JobInfoUtil;
 import org.apache.kylin.metadata.cube.utils.StreamingUtils;
+import org.apache.kylin.metadata.epoch.EpochManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -157,7 +159,7 @@ public class JdbcJobScheduler implements JobScheduler {
         }
 
         if (Objects.nonNull(executorPool)) {
-            executorPool.shutdownNow();
+            ExecutorServiceUtil.shutdownGracefully(executorPool, 60);
         }
     }
 
@@ -165,7 +167,7 @@ public class JdbcJobScheduler implements JobScheduler {
         // init master lock
         try {
             if (jobContext.getJobLockMapper().selectByJobId(JobScheduler.MASTER_SCHEDULER) == null) {
-                jobContext.getJobLockMapper().insertSelective(new JobLock(JobScheduler.MASTER_SCHEDULER, 0));
+                jobContext.getJobLockMapper().insertSelective(new JobLock(JobScheduler.MASTER_SCHEDULER, "_global", 0));
             }
         } catch (Exception e) {
             logger.error("Try insert 'master_scheduler' failed.", e);
@@ -218,7 +220,7 @@ public class JdbcJobScheduler implements JobScheduler {
                     JobLock lock = jobContext.getJobLockMapper().selectByJobId(jobId);
                     JobInfo jobInfo = jobContext.getJobInfoMapper().selectByJobId(jobId);
                     if (lock == null && jobContext.getJobLockMapper()
-                            .insertSelective(new JobLock(jobId, jobInfo.getPriority())) == 0) {
+                            .insertSelective(new JobLock(jobId, jobInfo.getProject(), jobInfo.getPriority())) == 0) {
                         logger.error("Create job lock for [{}] failed!", jobId);
                         return null;
                     }
@@ -276,7 +278,8 @@ public class JdbcJobScheduler implements JobScheduler {
             if (exeFreeSlots < batchSize) {
                 batchSize = exeFreeSlots;
             }
-            List<String> jobIdList = findNonLockIdListInOrder(batchSize);
+            List<String> projects = EpochManager.getInstance().listProjectWithPermissionForScheduler();
+            List<String> jobIdList = findNonLockIdListInOrder(batchSize, projects);
 
             if (CollectionUtils.isEmpty(jobIdList)) {
                 return;
@@ -313,8 +316,9 @@ public class JdbcJobScheduler implements JobScheduler {
         }
     }
 
-    public List<String> findNonLockIdListInOrder(int batchSize) {
-        List<PriorityFistRandomOrderJob> jobIdList = jobContext.getJobLockMapper().findNonLockIdList(batchSize);
+    public List<String> findNonLockIdListInOrder(int batchSize, List<String> projects) {
+        List<PriorityFistRandomOrderJob> jobIdList = jobContext.getJobLockMapper().findNonLockIdList(batchSize,
+                projects);
         // Shuffle jobs avoiding jobLock conflict.
         // At the same time, we should ensure the overall order.
         if (hasRunningJob()) {

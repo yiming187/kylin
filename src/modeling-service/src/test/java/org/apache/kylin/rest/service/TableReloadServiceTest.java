@@ -158,8 +158,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         }
         EventBusFactory.getInstance().unregister(modelBrokenListener);
         EventBusFactory.getInstance().restart();
-        super.cleanup();
         JobContextUtil.cleanUp();
+        super.cleanup();
     }
 
     @Test
