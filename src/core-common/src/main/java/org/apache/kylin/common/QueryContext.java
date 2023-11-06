@@ -152,7 +152,6 @@ public class QueryContext implements Closeable {
     @Setter
     private boolean enhancedAggPushDown;
 
-
     /**
      * For debug purpose, will show RelNode
      * when dryRun is enabled
@@ -168,6 +167,14 @@ public class QueryContext implements Closeable {
      */
     @Getter
     private boolean dryRun = false;
+
+    @Getter
+    @Setter
+    private boolean ifBigQuery = false;
+
+    @Getter
+    @Setter
+    private boolean isBigQuery = false;
 
     private QueryContext() {
         // use QueryContext.current() instead
