@@ -1162,6 +1162,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.job.max-concurrent-jobs", "20"));
     }
 
+    public int getNodeMaxConcurrentJobLimit() {
+        return Integer.parseInt(getOptional("kylin.job.node-max-concurrent-jobs", "30"));
+    }
+
     public int getMaxStreamingConcurrentJobLimit() {
         return Integer.parseInt(getOptional("kylin.streaming.job.max-concurrent-jobs", "10"));
     }
@@ -3977,11 +3981,6 @@ public abstract class KylinConfigBase implements Serializable {
     public int getJobSchedulerSlavePollBatchSize() {
         return Integer.parseInt(this.getOptional("kylin.job.slave-pull-batch-size", "20"));
     }
-
-    public int getParallelJobCountThreshold() {
-        return Integer.parseInt(this.getOptional("kylin.job.parallel-job-size", "20"));
-    }
-
     public int getJobLockClientRenewalMaxThreads() {
         return Integer.parseInt(this.getOptional("kylin.job.lock-client-renewal-threads", "3"));
     }

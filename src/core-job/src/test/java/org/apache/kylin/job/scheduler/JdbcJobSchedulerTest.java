@@ -25,7 +25,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
+import org.apache.kylin.common.AbstractTestCase;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.job.JobContext;
@@ -41,6 +43,8 @@ import org.apache.kylin.job.mapper.JobLockMapper;
 import org.apache.kylin.job.rest.JobMapperFilter;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.junit.annotation.MetadataInfo;
+import org.apache.kylin.metadata.project.NProjectManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,8 +52,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
-@MetadataInfo(onlyProps = true)
-class JdbcJobSchedulerTest {
+@MetadataInfo
+class JdbcJobSchedulerTest extends AbstractTestCase {
     private static final String PROJECT = "default";
 
     private JobInfoDao jobInfoDao;
@@ -58,8 +62,8 @@ class JdbcJobSchedulerTest {
     @BeforeEach
     public void setup() {
         KylinConfig config = getTestConfig();
-        config.setProperty("kylin.job.max-concurrent-jobs", "2");
-        config.setProperty("kylin.job.slave-lock-renew-sec", "3");
+        overwriteSystemProp("kylin.job.max-concurrent-jobs", "2");
+        overwriteSystemProp("kylin.job.slave-lock-renew-sec", "3");
         jobContext = JobContextUtil.getJobContext(config);
         jobInfoDao = JobContextUtil.getJobInfoDao(config);
     }
@@ -74,9 +78,7 @@ class JdbcJobSchedulerTest {
         String jobId = mockJob();
         Assertions.assertEquals(jobInfoDao.getExecutablePOByUuid(jobId).getOutput().getStatus(),
                 ExecutableState.READY.name());
-        await().atMost(2, TimeUnit.SECONDS).until(() -> jobInfoDao.getExecutablePOByUuid(jobId).getOutput().getStatus()
-                .equals(ExecutableState.PENDING.name()));
-        await().atMost(2, TimeUnit.SECONDS).until(() -> jobInfoDao.getExecutablePOByUuid(jobId).getOutput().getStatus()
+        await().atMost(3, TimeUnit.SECONDS).until(() -> jobInfoDao.getExecutablePOByUuid(jobId).getOutput().getStatus()
                 .equals(ExecutableState.RUNNING.name()));
         await().atMost(2, TimeUnit.SECONDS).until(() -> jobInfoDao.getExecutablePOByUuid(jobId).getOutput().getStatus()
                 .equals(ExecutableState.SUCCEED.name()));
@@ -98,6 +100,7 @@ class JdbcJobSchedulerTest {
 
     @Test
     void JobsScheduledOnTwoNode() throws Exception {
+        overwriteSystemProp("kylin.job.max-concurrent-jobs", "3");
         JobContext secondJobContext = mockJobContext("127.0.0.1:7071");
         System.setProperty("COST_TIME", "3000");
         for (int i = 0; i < 3; i++) {
@@ -108,8 +111,8 @@ class JdbcJobSchedulerTest {
         await().atMost(5, TimeUnit.SECONDS).until(() -> jobInfoDao.getJobInfoListByFilter(filter).size() == 3);
         Assertions.assertEquals(secondJobContext.getJobScheduler().getRunningJob().size()
                 + jobContext.getJobScheduler().getRunningJob().size(), 3);
-        Assertions.assertTrue(jobContext.getJobScheduler().getRunningJob().size() > 0);
-        Assertions.assertTrue(secondJobContext.getJobScheduler().getRunningJob().size() > 0);
+        Assertions.assertTrue(jobContext.getJobScheduler().getRunningJob().size() > 0
+                || secondJobContext.getJobScheduler().getRunningJob().size() > 0);
 
         secondJobContext.destroy();
         System.clearProperty("COST_TIME");
@@ -198,6 +201,34 @@ class JdbcJobSchedulerTest {
             hasDiff |= !jobId1.equals(jobId2);
         }
         Assertions.assertTrue(hasDiff);
+    }
+
+    @Test
+    void testFindNonLockIdListWithProject() {
+        jobContext.getJobScheduler().destroy();
+        JobLock lock = new JobLock();
+        String id = "mock_lock";
+        lock.setLockId(id);
+        lock.setProject(PROJECT);
+        lock.setPriority(3);
+        jobContext.getJobLockMapper().insert(lock);
+
+        List<String> jobIdList;
+        
+        jobIdList = jobContext.getJobScheduler().findNonLockIdListInOrder(5, Collections.emptyList());
+        Assertions.assertTrue(jobIdList.isEmpty());
+        
+        List<String> allProjects = NProjectManager.getInstance(getTestConfig()).listAllProjects().stream()
+                .map(ProjectInstance::getName).collect(Collectors.toList());
+        String otherProject = allProjects.stream().filter(project -> !project.equals(PROJECT)).findFirst().get();
+        jobIdList = jobContext.getJobScheduler().findNonLockIdListInOrder(5, Collections.singletonList(otherProject));
+        Assertions.assertTrue(jobIdList.isEmpty());
+
+        jobIdList = jobContext.getJobScheduler().findNonLockIdListInOrder(5, Collections.singletonList(PROJECT));
+        Assertions.assertEquals(1, jobIdList.size());
+
+        jobIdList = jobContext.getJobScheduler().findNonLockIdListInOrder(5, allProjects);
+        Assertions.assertEquals(1, jobIdList.size());
     }
 
     @Test

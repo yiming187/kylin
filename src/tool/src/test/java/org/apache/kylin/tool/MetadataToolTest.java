@@ -107,6 +107,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() {
         createTestMetadata();
+        JobContextUtil.cleanUp();
         JobContextUtil.getJobContext(getTestConfig());
     }
 
@@ -118,8 +119,8 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         } catch (Exception e) {
             logger.warn("drop all objects error.", e);
         }
-        cleanupTestMetadata();
         JobContextUtil.cleanUp();
+        cleanupTestMetadata();
     }
 
     private MetadataTool tool(String path) {

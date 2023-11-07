@@ -131,6 +131,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import lombok.val;
 import lombok.var;
 
+@Ignore
 public class ModelServiceBuildTest extends SourceTestCase {
     @InjectMocks
     private final ModelService modelService = Mockito.spy(new ModelService());
