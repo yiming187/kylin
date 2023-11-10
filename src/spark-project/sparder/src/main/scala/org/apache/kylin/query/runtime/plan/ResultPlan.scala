@@ -26,6 +26,7 @@ import java.{lang, util}
 import org.apache.calcite.rel.`type`.{RelDataType, RelDataTypeField}
 import org.apache.commons.io.IOUtils
 import org.apache.hadoop.fs.Path
+import org.apache.kylin.common.exception.code.ErrorCodeServer
 import org.apache.kylin.common.exception.{BigQueryException, NewQueryRefuseException}
 import org.apache.kylin.common.util.{HadoopUtil, RandomUtil}
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
@@ -343,7 +344,10 @@ object ResultPlan extends LogEx {
         normalizeSchema(df).write.option("timestampFormat", dateTimeFormat).option("encoding", encode)
           .option("charset", "utf-8").mode(SaveMode.Append).parquet(path)
     }
-    AsyncQueryUtil.createSuccessFlag(QueryContext.current().getProject, QueryContext.current().getQueryId)
+    val successFileContent = if (QueryContext.current().isOutOfSegmentRange) {
+      new AsyncQueryUtil.SuccessFileContent(ErrorCodeServer.ASYNC_QUERY_OUT_OF_DATA_RANGE.getErrorCode.getCode)
+    } else null
+    AsyncQueryUtil.createSuccessFlagWithContent(QueryContext.current().getProject, QueryContext.current().getQueryId, successFileContent)
     if (kapConfig.isQuerySparkJobTraceEnabled) {
       jobTrace.jobFinished()
     }

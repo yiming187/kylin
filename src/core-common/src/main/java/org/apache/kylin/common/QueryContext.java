@@ -176,6 +176,10 @@ public class QueryContext implements Closeable {
     @Setter
     private boolean isBigQuery = false;
 
+    @Getter
+    @Setter
+    private boolean outOfSegmentRange = false;
+
     private QueryContext() {
         // use QueryContext.current() instead
         queryId = RandomUtil.randomUUIDStr();
