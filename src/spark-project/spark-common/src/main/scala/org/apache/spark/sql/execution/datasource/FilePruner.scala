@@ -304,6 +304,7 @@ class FilePruner(val session: SparkSession,
       layoutRows
     }).sum
     setShufflePartitions(totalFileSize, sourceRows, session)
+    setFilesMaxPartitionBytes(totalFileSize, sourceRows, session)
     if (selected.isEmpty) {
       val value = Seq.empty[PartitionDirectory]
       cached.put((partitionFilters, dataFilters, derivedFilters), (value, sourceRows))
@@ -439,16 +440,16 @@ class FilePruner(val session: SparkSession,
     filters.map(filter => convertCastFilter(filter))
       .flatMap(f => {
         DataSourceStrategy.translateFilter(f, true) match {
-          case v @ Some(_) => v
+          case v@Some(_) => v
           case None =>
             // special cases which are forced pushed down by Kylin
             f match {
-              case expressions.In(e @ expressions.Cast(a: Attribute, _, _, _), list)
+              case expressions.In(e@expressions.Cast(a: Attribute, _, _, _), list)
                 if list.forall(_.isInstanceOf[Literal]) =>
                 val hSet = list.map(_.eval(EmptyRow))
                 val toScala = CatalystTypeConverters.createToScalaConverter(e.dataType)
                 Some(In(a.name, hSet.toArray.map(toScala)))
-              case expressions.InSet(e @ expressions.Cast(a: Attribute, _, _, _), set) =>
+              case expressions.InSet(e@expressions.Cast(a: Attribute, _, _, _), set) =>
                 val toScala = CatalystTypeConverters.createToScalaConverter(e.dataType)
                 Some(In(a.name, set.toArray.map(toScala)))
               case _ => None
