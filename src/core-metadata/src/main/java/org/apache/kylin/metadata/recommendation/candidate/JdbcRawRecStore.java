@@ -84,7 +84,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class JdbcRawRecStore {
 
-    public static final String RECOMMENDATION_CANDIDATE = "_rec_candidate";
+    public static final String RECOMMENDATION_CANDIDATE = "_rec_candidate_v2";
     private static final int NON_EXIST_MODEL_SEMANTIC_VERSION = Integer.MIN_VALUE;
     private static final int LAG_SEMANTIC_VERSION = 1;
     private static final List<RawRecItem.RawRecState> FINAL_STATE = Arrays.asList(RawRecItem.RawRecState.APPLIED,
@@ -447,12 +447,20 @@ public class JdbcRawRecStore {
             val baseId = manager.getMaxId() + 100;
 
             Map<Integer, Integer> idChangedMap = new HashMap<>();
+            Map<String, RawRecItem> layoutRecommendations = new HashMap<>();
+            Map<String, List<String>> md5ToUuid = new HashMap<>();
 
             val index = new AtomicInteger(0);
 
             List<RawRecItem> tmpRawRecItems = rawRecItems.stream().map(rawRecItem -> {
                 rawRecItem.setProject(project);
-                rawRecItem.setModelID(modelId);
+                if (!modelId.equals(rawRecItem.getModelID())) {
+                    rawRecItem.setModelID(modelId);
+                    String content = RawRecUtil.getContent(rawRecItem);
+                    String md5 = RawRecUtil.computeMD5(content);
+                    Pair<String, RawRecItem> recItemPair = RawRecUtil.getRawRecItemFromMap(md5, content, md5ToUuid, layoutRecommendations);
+                    rawRecItem.setUniqueFlag(recItemPair.getFirst());
+                }
 
                 String uniqueFlag = rawRecItem.getUniqueFlag();
                 RawRecItem originalRawRecItem = manager.getRawRecItemByUniqueFlag(rawRecItem.getProject(),
