@@ -89,6 +89,7 @@ public class HackSelectStarWithColumnACL implements IQueryTransformer, IPushDown
             throw new KylinRuntimeException("Failed to parse invalid SQL: " + sql);
         }
 
+        // Make sure the position of the resolved's sqlNode in the sql is from left to right
         SelectStarAuthVisitor replacer = new SelectStarAuthVisitor(project, defaultSchema, aclLocal);
         sqlNode.accept(replacer);
         Map<SqlNode, String> resolved = replacer.getResolved();
@@ -134,6 +135,8 @@ public class HackSelectStarWithColumnACL implements IQueryTransformer, IPushDown
                     SqlWithItem item = (SqlWithItem) node;
                     item.query.accept(this);
                     namesOfWithItems.add(item.name.toString());
+                } else if (node instanceof SqlCall) {
+                    node.accept(this);
                 }
             }
             return null;
@@ -143,17 +146,12 @@ public class HackSelectStarWithColumnACL implements IQueryTransformer, IPushDown
         public SqlNode visit(SqlCall call) {
             if (call instanceof SqlSelect) {
                 SqlSelect select = (SqlSelect) call;
+                select.getSelectList().accept(this);
                 markCall(select.getFrom());
             }
             if (call instanceof SqlBasicCall) {
-                if (isCallWithAlias(call)) {
-                    markCall(call);
-                } else {
-                    SqlBasicCall basicCall = (SqlBasicCall) call;
-                    for (SqlNode node : basicCall.getOperands()) {
-                        markCall(node);
-                    }
-                }
+                SqlBasicCall basicCall = (SqlBasicCall) call;
+                Arrays.stream(basicCall.getOperands()).filter(Objects::nonNull).forEach(node -> node.accept(this));
             }
 
             if (call instanceof SqlJoin) {
@@ -172,7 +170,9 @@ public class HackSelectStarWithColumnACL implements IQueryTransformer, IPushDown
         }
 
         private void markCall(SqlNode operand) {
-            if (operand instanceof SqlIdentifier) {
+            if (Objects.isNull(operand)) {
+                return;
+            } else if (operand instanceof SqlIdentifier) {
                 String replaced = markTableIdentifier((SqlIdentifier) operand, null);
                 resolved.put(operand, replaced);
                 return;
@@ -209,17 +209,17 @@ public class HackSelectStarWithColumnACL implements IQueryTransformer, IPushDown
             if (tableDesc == null) {
                 throw new KylinRuntimeException("Failed to parse table: " + operand);
             }
-
+            String subQueryAlias = alias == null ? StringHelper.doubleQuote(table)
+                    : StringHelper.doubleQuote(alias.toString());
             String tableIdentity = tableDesc.getDoubleQuoteIdentity();
-            if (tableToReplacedSubQuery.containsKey(tableIdentity)) {
-                return tableToReplacedSubQuery.get(tableIdentity);
+            String tableToReplacedSubQueryKey = tableIdentity + subQueryAlias;
+            if (tableToReplacedSubQuery.containsKey(tableToReplacedSubQueryKey)) {
+                return tableToReplacedSubQuery.get(tableToReplacedSubQueryKey);
             } else {
                 List<String> authorizedCols = getAuthorizedCols(tableDesc);
-                String subQueryAlias = alias == null ? StringHelper.doubleQuote(table)
-                        : StringHelper.doubleQuote(alias.toString());
                 String replacedSubQuery = "( select " + String.join(", ", authorizedCols) //
                         + " from " + tableIdentity + ") as " + subQueryAlias;
-                tableToReplacedSubQuery.put(tableIdentity, replacedSubQuery);
+                tableToReplacedSubQuery.put(tableToReplacedSubQueryKey, replacedSubQuery);
                 return replacedSubQuery;
             }
         }
