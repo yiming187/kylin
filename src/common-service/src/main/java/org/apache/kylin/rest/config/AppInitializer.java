@@ -142,7 +142,7 @@ public class AppInitializer {
             if (isJob || isDataLoading) {
                 // register scheduler listener
                 EventBusFactory.getInstance().register(new JobSchedulerListener(), false);
-                if (kylinConfig.streamingEnabled())
+                if (kylinConfig.getStreamingEnabledConfig())
                     streamingJobStatsStore = new JdbcStreamingJobStatsStore(kylinConfig);
                 // register scheduler listener
                 EventBusFactory.getInstance().register(new StreamingJobListener(), true);
@@ -151,7 +151,6 @@ public class AppInitializer {
                 EventBusFactory.getInstance().register(new ModelBrokenListener(), false);
                 EventBusFactory.getInstance().register(epochChangedListener, false);
             }
-            EventBusFactory.getInstance().register(new ProcessStatusListener(), true);
 
             SparkJobFactoryUtils.initJobFactory();
             TransactionDeadLockHandler.getInstance().start();
@@ -194,7 +193,7 @@ public class AppInitializer {
                 QueryFiltersCollector.initScheduler();
             }
         }
-        EventBusFactory.getInstance().register(new ProcessStatusListener(), true);
+        EventBusFactory.getInstance().register(ProcessStatusListener.getInstance(), true);
         // register for clean cache when delete
         EventListenerRegistry.getInstance(kylinConfig).register(new CacheCleanListener(), "cacheInManager");
 
@@ -202,7 +201,7 @@ public class AppInitializer {
 
         if (kylinConfig.isAllowNonAsciiCharInUrl()) {
             // Note: DefaultHttpFirewall vs StrictHttpFirewall
-            // In order to allow Chinese chars on URL like "/{cubeName}/segments", 
+            // In order to allow Chinese chars on URL like "/{cubeName}/segments",
             // we have to use DefaultHttpFirewall.
             // If later we have to use StrictHttpFirewall,
             // then StrictHttpFirewall.rejectNonPrintableAsciiCharactersInFieldName()
