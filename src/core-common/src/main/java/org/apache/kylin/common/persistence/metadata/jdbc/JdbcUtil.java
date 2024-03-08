@@ -151,10 +151,18 @@ public class JdbcUtil {
     }
 
     public static boolean isTableExists(Connection conn, String table) throws SQLException {
-        return isAnyTableExists(conn, table, table.toUpperCase(Locale.ROOT), table.toLowerCase(Locale.ROOT));
+        return isAnyTableExists(conn, true, table, table.toUpperCase(Locale.ROOT), table.toLowerCase(Locale.ROOT));
     }
 
-    private static boolean isAnyTableExists(Connection conn, String... tables) throws SQLException {
+    // Historical debt, use this new method if you need to manually manage connection.
+    public static boolean isTableExists(Connection conn, String table, boolean autoReleaseConnection)
+            throws SQLException {
+        return isAnyTableExists(conn, autoReleaseConnection, table, table.toUpperCase(Locale.ROOT),
+                table.toLowerCase(Locale.ROOT));
+    }
+
+    private static boolean isAnyTableExists(Connection conn, boolean autoReleaseConnection, String... tables)
+            throws SQLException {
         try {
             for (String table : tables) {
                 val resultSet = conn.getMetaData().getTables(conn.getCatalog(), null, table, null);
@@ -165,7 +173,7 @@ public class JdbcUtil {
         } catch (Exception e) {
             logger.error("Fail to know if table {} exists", tables, e);
         } finally {
-            if (!conn.isClosed()) {
+            if (!conn.isClosed() && autoReleaseConnection) {
                 conn.close();
             }
         }
@@ -198,11 +206,28 @@ public class JdbcUtil {
 
     }
 
+    /**
+     * This method automatically closes the connection;
+     * if you need to manage the connection manually, call the method below with the autoReleaseConnection parameter
+     * @param conn
+     * @param table
+     * @param index
+     * @return
+     * @throws SQLException
+     */
     public static boolean isIndexExists(Connection conn, String table, String index) throws SQLException {
-        return isIndexExists(conn, index, table, table.toUpperCase(Locale.ROOT), table.toLowerCase(Locale.ROOT));
+        return isIndexExists(conn, index, true, table, table.toUpperCase(Locale.ROOT), table.toLowerCase(Locale.ROOT));
     }
 
-    private static boolean isIndexExists(Connection conn, String index, String... tables) throws SQLException {
+    // Historical debt, use this new method if you need to manually manage connection.
+    public static boolean isIndexExists(Connection conn, String table, String index, boolean autoReleaseConnection)
+            throws SQLException {
+        return isIndexExists(conn, index, autoReleaseConnection, table, table.toUpperCase(Locale.ROOT),
+                table.toLowerCase(Locale.ROOT));
+    }
+
+    private static boolean isIndexExists(Connection conn, String index, boolean autoReleaseConnection, String... tables)
+            throws SQLException {
         try {
             for (String table : tables) {
                 val resultSet = conn.getMetaData().getIndexInfo(null, null, table, false, false);
@@ -216,7 +241,7 @@ public class JdbcUtil {
         } catch (Exception e) {
             logger.error("Fail to know if table {} index {} exists", tables, index, e);
         } finally {
-            if (!conn.isClosed())
+            if (!conn.isClosed() && autoReleaseConnection)
                 conn.close();
         }
         return false;
