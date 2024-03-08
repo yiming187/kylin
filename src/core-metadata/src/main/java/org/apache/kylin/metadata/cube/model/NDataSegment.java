@@ -145,6 +145,10 @@ public class NDataSegment implements ISegment, Serializable {
 
     private transient volatile LayoutInfo layoutInfo;
 
+    @Getter
+    @Setter
+    private Map<String, String> extraBuildOptions = Maps.newHashMap();
+
     // only for deserialization
     public NDataSegment() {
     }
@@ -668,12 +672,19 @@ public class NDataSegment implements ISegment, Serializable {
     }
 
     public boolean isDictReady() {
-        return isDictReady;
+        boolean forceBuild = Boolean.
+                parseBoolean(extraBuildOptions.getOrDefault("job.retry.segment.force-build-dict", "false"));
+        return isDictReady && !forceBuild;
     }
 
     public void setDictReady(boolean dictReady) {
         isDictReady = dictReady;
     }
+
+    public boolean buildedDictColShouldRebuild() {
+        return Boolean.parseBoolean(extraBuildOptions.getOrDefault("job.retry.segment.force-build-dict", "false"));
+    }
+
 
     public boolean isFlatTableReady() {
         return isFlatTableReady;
