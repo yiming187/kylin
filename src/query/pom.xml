@@ -63,6 +63,10 @@
             <artifactId>calcite-linq4j</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.immutables</groupId>
+            <artifactId>value-annotations</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
         </dependency>

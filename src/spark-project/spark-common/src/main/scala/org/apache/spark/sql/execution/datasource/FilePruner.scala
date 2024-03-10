@@ -38,7 +38,7 @@ import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeSet, Empty
 import org.apache.spark.sql.catalyst.{CatalystTypeConverters, InternalRow, expressions}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources._
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{BooleanType, StructType}
 import org.apache.spark.sql.{AnalysisException, SparkSession}
 import org.apache.spark.util.collection.BitSet
 
@@ -534,6 +534,8 @@ class FilePruner(val session: SparkSession,
           getExpressionShards(right, shardColumnName, numShards)
       case attr: expressions.AttributeReference =>
         getShardSetFromValue(attr, true)
+      case a: Attribute if a.dataType == BooleanType && a.name == shardColumnName =>
+        getShardSetFromValue(a, true)
       case _ =>
         val matchedShards = new BitSet(numShards)
         matchedShards.setUntil(numShards)
