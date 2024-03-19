@@ -129,6 +129,8 @@ public abstract class KylinConfigBase implements Serializable {
     public static final String KYLIN_JDBC_SHARE_STATE_URL = "kylin.jdbc.share.state.url";
     public static final String KYLIN_METADATA_DISTRIBUTED_LOCK_JDBC_URL = "kylin.metadata.distributed-lock.jdbc.url";
 
+    public static final String LEGACY_ALLOW_NEGATIVE_SCALE_OF_DECIMAL_ENABLED = "kylin.storage.columnar.spark-conf.spark.sql.legacy.allowNegativeScaleOfDecimal";
+
     private static final String METRICS = "_metrics/";
 
     public static final String SERVER_NAME_STRING = "spring.application.name";
@@ -1351,6 +1353,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     /**
      * was for route to hive, not used any more
+     *
      * @deprecated KYLIN-2195 re-format KylinConfigBase
      */
     @Deprecated
@@ -1360,6 +1363,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     /**
      * was for route to hive, not used any more
+     *
      * @deprecated KYLIN-2195 re-format KylinConfigBase
      */
     @Deprecated
@@ -1369,6 +1373,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     /**
      * was for route to hive, not used any more
+     *
      * @deprecated KYLIN-2195 re-format KylinConfigBase
      */
     @Deprecated
@@ -3823,6 +3828,17 @@ public abstract class KylinConfigBase implements Serializable {
 
     public long[] getMetricsJobSlaMinutes() {
         return getOptionalLongArray("kylin.metrics.job.sla.minutes", new String[] { "30", "60", "300" });
+    }
+
+    public boolean decimalOperationsAllowPrecisionLoss() {
+        // spark parameter `spark.sql.decimalOperations.allowPrecisionLoss` default default is true
+        return Boolean.parseBoolean(
+                getOptional("kylin.storage.columnar.spark-conf.spark.sql.decimalOperations.allowPrecisionLoss", TRUE));
+    }
+
+    public boolean allowNegativeScaleOfDecimalEnabled() {
+        // spark parameter `spark.sql.legacy.allowNegativeScaleOfDecimal` default default is false
+        return Boolean.parseBoolean(getOptional(LEGACY_ALLOW_NEGATIVE_SCALE_OF_DECIMAL_ENABLED, FALSE));
     }
 
     public boolean isSpark3ExecutorPrometheusEnabled() {
