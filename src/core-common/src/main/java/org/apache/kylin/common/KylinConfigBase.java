@@ -4197,6 +4197,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.source.ddl.logical-view.enabled", FALSE));
     }
 
+    public String getDDLCheckToSkip() {
+        return getOptional("kylin.source.ddl.check-skip", "");
+    }
+
     public boolean isDDLHiveEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.source.ddl.hive.enabled", FALSE));
     }
