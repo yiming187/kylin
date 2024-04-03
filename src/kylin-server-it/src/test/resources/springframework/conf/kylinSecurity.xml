@@ -45,6 +45,11 @@
         <constructor-arg ref="aclService"/>
         <constructor-arg ref="aclPermissionFactory"/>
     </bean>
+    <bean id="concurrencyFilter"
+          class="org.springframework.security.web.session.ConcurrentSessionFilter">
+        <constructor-arg name="sessionRegistry" ref="sessionRegistry"/>
+        <constructor-arg name="sessionInformationExpiredStrategy" ref="kylinSessionInformationExpiredStrategy"/>
+    </bean>
 
     <bean id="aclAuthorizationStrategy"
           class="org.springframework.security.acls.domain.AclAuthorizationStrategyImpl">
@@ -246,7 +251,7 @@
                 <scr:frame-options policy="SAMEORIGIN"/>
             </scr:headers>
             <scr:csrf disabled="true"/>
-            <scr:custom-filter before="BASIC_AUTH_FILTER" ref="fillEmptyAuthorizationFilter" />
+            <scr:custom-filter before="BASIC_AUTH_FILTER" ref="fillEmptyAuthorizationFilter"/>
             <scr:http-basic entry-point-ref="nUnauthorisedEntryPoint"/>
             <scr:intercept-url pattern="/api/streaming_jobs/spark" access="permitAll"/>
             <scr:intercept-url pattern="/api/streaming_jobs/stats" access="permitAll"/>

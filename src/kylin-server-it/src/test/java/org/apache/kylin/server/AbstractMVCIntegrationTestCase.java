@@ -28,12 +28,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.mockito.Mock;
+import org.mockito.Spy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
@@ -49,14 +51,18 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 @EnableWebMvc
 @WithMockUser(username = "ADMIN", roles = "ADMIN")
 @AutoConfigureMockMvc
-@TestPropertySource(properties = {"spring.cloud.nacos.discovery.enabled = false"})
+@TestPropertySource(properties = { "spring.cloud.nacos.discovery.enabled = false" })
 @ActiveProfiles({ "testing", "test" })
 public abstract class AbstractMVCIntegrationTestCase extends NLocalFileMetadataTestCase {
 
-    protected Logger logger = LoggerFactory.getLogger(getClass());
-
     @Autowired
     private WebApplicationContext wac;
+
+    @Mock
+    private SessionRegistry sessionRegistry;
+
+    @Spy
+    private FindByIndexNameSessionRepository sessionRepository;
 
     @Autowired
     protected MockMvc mockMvc;
