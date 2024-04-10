@@ -30,6 +30,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.fileseg.FileSegments;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
@@ -72,7 +75,6 @@ import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -304,8 +306,19 @@ public class OLAPContext {
         realization.setCxtId(ctx.id);
         realization.setSecondStorage(
                 QueryContext.current().getSecondStorageUsageMap().getOrDefault(realization.getLayoutId(), false));
-        realization.setRecommendSecondStorage(
-                recommendSecondStorage(ctx.realization.getProject(), modelId, realizationType));
+        realization.setRecommendSecondStorage(recommendSecondStorage(ctx.realization.getProject(), modelId, realizationType));
+
+        // lastDataLoadTime & isLoadingData
+        if (ctx.realization instanceof NDataflow) {
+            NDataflow df = (NDataflow) ctx.realization;
+            if (df.getModel().isFilePartitioned()) {
+                boolean isLoadingData = df.getSegments().stream().anyMatch(seg -> seg.getStatus() == SegmentStatusEnum.NEW);
+                realization.setLoadingData(isLoadingData);
+                realization.setBuildingIndex(FileSegments.guessIsBuildingIndex(df));
+                realization.setLastDataRefreshTime(df.getLastDataRefreshTime());
+            }
+        }
+
         return realization;
     }
 

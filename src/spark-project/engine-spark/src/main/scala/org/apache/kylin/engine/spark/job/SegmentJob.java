@@ -64,7 +64,7 @@ public abstract class SegmentJob extends SparkApplication {
 
     protected String dataflowId;
     // In order to support the cost based planner, `readOnlyLayouts` can be changed
-    private Set<LayoutEntity> readOnlyLayouts;
+    protected Set<LayoutEntity> readOnlyLayouts;
     protected Set<NDataSegment> readOnlySegments;
 
     // Resource detection results output path

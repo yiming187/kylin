@@ -1266,7 +1266,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
                 if (layoutInIndexPlan.isAuto()) {
                     indexEntity.getLayouts().remove(layoutInIndexPlan);
                     whiteIndexesMap.values().stream().filter(
-                                    indexEntityInIndexPlan -> indexEntityInIndexPlan.getId() == indexEntity.getId())
+                            indexEntityInIndexPlan -> indexEntityInIndexPlan.getId() == indexEntity.getId())
                             .findFirst().ifPresent(indexEntityInIndexPlan -> indexEntityInIndexPlan.getLayouts()
                                     .remove(layoutInIndexPlan));
                 }

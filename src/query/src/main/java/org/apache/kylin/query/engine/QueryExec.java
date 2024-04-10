@@ -46,12 +46,14 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.cache.kylin.KylinCacheFileSystem;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.ReadFsSwitch;
 import org.apache.kylin.common.exception.DryRunSucceedException;
+import org.apache.kylin.fileseg.FileSegments;
 import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -175,6 +177,10 @@ public class QueryExec {
                 QueryContext.current().setDryRun(true);
             }
             beforeQuery();
+
+            // process cache hint like -- select * from xxx /*+ ACCEPT_CACHE_TIME(158176387682000) */
+            sql = processAcceptCacheTimeInSql(sql);
+
             QueryContext.currentTrace().startSpan(QueryTrace.SQL_PARSE_AND_OPTIMIZE);
             RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
             queryContext.record("end_convert_to_relnode");
@@ -338,6 +344,8 @@ public class QueryExec {
     private void afterQuery() {
         Prepare.CatalogReader.THREAD_LOCAL.remove();
         KECalciteConfig.THREAD_LOCAL.remove();
+        FileSegments.clearFileSegFilterLocally();
+        clearAcceptCacheTimeLocally();
     }
 
     public void setContextVar(String name, Object val) {
@@ -520,11 +528,11 @@ public class QueryExec {
         String diagnosticStr = "";
         String plan = " not exists";
         boolean dryRun = QueryContext.current().isDryRun();
-        if(e instanceof DryRunSucceedException){
-            DryRunSucceedException d = (DryRunSucceedException)e;
+        if (e instanceof DryRunSucceedException) {
+            DryRunSucceedException d = (DryRunSucceedException) e;
             plan = d.plan();
         }
-        if(dryRun) {
+        if (dryRun) {
             StringBuilder diagnosticInfo = new StringBuilder(System.getProperty("line.separator"));
             diagnosticInfo.append("<-------------------- Dry Run Info -------------------->");
 
@@ -540,7 +548,7 @@ public class QueryExec {
 
             diagnosticInfo.append(SEP)
                     .append("3. OLAPContext(s) and matched model(s) :");
-            if(OLAPContext.getThreadLocalContexts() != null) {
+            if (OLAPContext.getThreadLocalContexts() != null) {
                 String olapMatchInfo =
                         OLAPContext.getNativeRealizations().stream()
                                 .map(r -> String.format(" Ctx=%d, \tMatched=%s, \tIndexType=%s, \tLayoutId=%d",
@@ -555,7 +563,7 @@ public class QueryExec {
                 for (OLAPContext ctx : OLAPContext.getThreadLocalContexts()) {
                     diagnosticInfo.append(SEP);
                     diagnosticInfo.append(" Ctx=").append(ctx.id);
-                    if(ctx.realization == null) {
+                    if (ctx.realization == null) {
                         diagnosticInfo.append(" is not matched by any model/snapshot, expected ")
                                 .append(ctx.tipsForUser());
                     } else {
@@ -586,6 +594,19 @@ public class QueryExec {
             return new SQLException(diagnosticStr, e);
         } else {
             return new SQLException("Error while executing SQL \"" + sql + "\": " + msg, e);
+        }
+    }
+
+    private String processAcceptCacheTimeInSql(String sql) {
+        if (kylinConfig.isKylinLocalCacheEnabled() && kylinConfig.isKylinFileStatusCacheEnabled()) {
+            return KylinCacheFileSystem.processAcceptCacheTimeInSql(sql);
+        }
+        return sql;
+    }
+
+    private void clearAcceptCacheTimeLocally() {
+        if (kylinConfig.isKylinLocalCacheEnabled() && kylinConfig.isKylinFileStatusCacheEnabled()) {
+            KylinCacheFileSystem.clearAcceptCacheTimeLocally();
         }
     }
 

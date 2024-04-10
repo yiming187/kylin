@@ -18,16 +18,24 @@
 package org.apache.kylin.cache.kylin;
 
 import org.apache.kylin.cache.fs.AbstractCacheFileSystem;
+import org.apache.kylin.cache.fs.ManagerOfCacheFileStatus;
 
 public class OnlyForTestCacheFileSystem extends AbstractCacheFileSystem {
 
-
-
     /**
-     * Check whether needs to cache data on the current executor
+     * Check whether it needs to cache data on the current executor
      */
     @Override
-    public boolean isUseLocalCacheForTargetExecs() {
+    protected boolean isUseLocalCacheForCurrentExecutor() {
         return true;
+    }
+
+    @Override
+    protected long getAcceptCacheTime() {
+        return 0;
+    }
+
+    public ManagerOfCacheFileStatus getStatusCache() {
+        return mStatusCache;
     }
 }

@@ -59,7 +59,7 @@ public class QueryContextCutter {
     }
 
     /**
-     * For each query parse tree, the following steps are used for generating OlapContexts 
+     * For each query parse tree, the following steps are used for generating OlapContexts
      * and matching the precomputed indexes.
      * <p> 1. The larger the OlapContext for the first cut, the better;</p>
      * <p> 2. Traverse the RelNode operator tree to collect all attributes for each split OlapContext;</p>
