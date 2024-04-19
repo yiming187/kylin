@@ -54,7 +54,7 @@ public class KylinPasswordResetCLITest extends LogOutputTestCase {
     public void setup() {
         createTestMetadata();
         getTestConfig().setMetadataUrl(
-                "testKylinPasswordResetCLITest@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+                "testKylinPasswordResetCLITest@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1;MODE=MySQL,username=sa,password=");
     }
 
     @After

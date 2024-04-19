@@ -18,16 +18,22 @@
 
 package org.apache.kylin.rest.config.initialize;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import static org.apache.kylin.common.exception.code.ErrorCodeCommon.NON_KE_EXCEPTION;
 
-import io.micrometer.core.instrument.DistributionSummary;
-import io.micrometer.core.instrument.MeterRegistry;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Base64;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.net.ssl.SSLContext;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
@@ -65,8 +71,6 @@ import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.guava30.shaded.common.eventbus.Subscribe;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.manager.SegmentAutoMergeUtil;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
@@ -75,24 +79,21 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TimeRange;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.rest.constant.SnapshotStatus;
+import org.apache.kylin.rest.feign.MetadataInvoker;
 import org.apache.kylin.rest.response.SegmentPartitionResponse;
 import org.apache.kylin.rest.util.SpringContext;
 import org.springframework.stereotype.Component;
 
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.Base64;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import static org.apache.kylin.common.exception.code.ErrorCodeCommon.NON_KE_EXCEPTION;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.SneakyThrows;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
@@ -140,13 +141,15 @@ public class JobSyncListener {
     @Subscribe
     public void onJobIsReady(JobReadyNotifier notifier) {
         jobReadyNotified = true;
-        NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
+        //TODO schedule job immediately
+        // NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
     }
 
     @Subscribe
     public void onJobFinished(JobFinishedNotifier notifier) {
         try {
-            NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
+            //TODO schedule job immediately
+            // NDefaultScheduler.getInstance(notifier.getProject()).fetchJobsImmediately();
             postJobInfo(extractJobInfo(notifier));
         } finally {
             updateMetrics(notifier);
@@ -157,7 +160,7 @@ public class JobSyncListener {
     public void onBuildJobFinished(JobFinishedNotifier notifier) {
         try {
             if (notifier.getJobClass().equals(NSparkCubingJob.class.getName()) && notifier.isSucceed()) {
-                SegmentAutoMergeUtil.autoMergeSegments(notifier.getProject(), notifier.getSubject(),
+                MetadataInvoker.getInstance().checkAndAutoMergeSegments(notifier.getProject(), notifier.getSubject(),
                         notifier.getOwner());
             }
         } catch (Exception e) {

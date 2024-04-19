@@ -18,7 +18,13 @@
 
 package org.apache.kylin.rest.service;
 
-import lombok.extern.slf4j.Slf4j;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.response.MetricsResponse;
 import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;
@@ -42,12 +48,7 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.util.List;
-import java.util.Locale;
-import java.util.TimeZone;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class DashboardServiceTest extends SourceTestCase{
@@ -121,7 +122,6 @@ public class DashboardServiceTest extends SourceTestCase{
         ReflectionTestUtils.setField(modelBuildService, "segmentHelper", segmentHelper);
         ReflectionTestUtils.setField(modelBuildService, "aclEvaluate", aclEvaluate);
         modelService.setSemanticUpdater(semanticService);
-        modelService.setSegmentHelper(segmentHelper);
 
         ReflectionTestUtils.setField(jobService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(jobService, "projectService", projectService);

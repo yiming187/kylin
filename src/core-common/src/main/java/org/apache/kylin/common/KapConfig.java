@@ -228,7 +228,7 @@ public class KapConfig {
     }
 
     /**
-     * Smart modeling
+     *  Smart modeling
      */
     public String getSmartModelingConf(String conf) {
         return config.getOptional("kylin.smart.conf." + conf, null);

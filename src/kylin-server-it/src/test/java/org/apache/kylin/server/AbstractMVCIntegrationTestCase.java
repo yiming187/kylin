@@ -36,6 +36,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -48,6 +49,7 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 @EnableWebMvc
 @WithMockUser(username = "ADMIN", roles = "ADMIN")
 @AutoConfigureMockMvc
+@TestPropertySource(properties = {"spring.cloud.nacos.discovery.enabled = false"})
 @ActiveProfiles({ "testing", "test" })
 public abstract class AbstractMVCIntegrationTestCase extends NLocalFileMetadataTestCase {
 

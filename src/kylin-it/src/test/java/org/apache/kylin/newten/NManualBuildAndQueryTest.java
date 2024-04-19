@@ -28,10 +28,10 @@ import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.engine.spark.IndexDataConstructor;
 import org.apache.kylin.engine.spark.NLocalWithSparkSessionTest;
 import org.apache.kylin.engine.spark.job.NSparkMergingJob;
-import org.apache.kylin.engine.spark.merger.AfterMergeOrRefreshResourceMerger;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
@@ -40,6 +40,7 @@ import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.rest.service.merger.AfterMergeOrRefreshResourceMerger;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -47,8 +48,6 @@ import org.junit.Ignore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sparkproject.guava.collect.Sets;
-
-import org.apache.kylin.guava30.shaded.common.collect.Maps;
 
 import lombok.val;
 
@@ -64,8 +63,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     }
 
     @After
-    public void after() {
-        NDefaultScheduler.destroyInstance();
+    public void after() throws Exception {
+        JobContextUtil.cleanUp();
     }
 
     public void buildCubes() throws Exception {
@@ -92,7 +91,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     private void buildTwoSegementAndMerge(String dfName) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         NDataflow df = dsMgr.getDataflow(dfName);
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
@@ -174,7 +173,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     private void buildFourSegementAndMerge(String dfName) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        ExecutableManager execMgr = ExecutableManager.getInstance(config, getProject());
 
         NDataflow df = dsMgr.getDataflow(dfName);
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));

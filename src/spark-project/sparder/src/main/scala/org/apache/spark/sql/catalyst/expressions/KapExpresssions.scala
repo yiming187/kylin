@@ -194,7 +194,7 @@ case class Sum0(child: Expression)
     super.legacyWithNewChildren(newChildren)
 }
 
-case class TimestampAdd(left: Expression, mid: Expression, right: Expression) extends TernaryExpression with ImplicitCastInputTypes {
+case class KylinTimestampAdd(left: Expression, mid: Expression, right: Expression) extends TernaryExpression with ImplicitCastInputTypes {
 
   override def dataType: DataType = getResultDataType
 
@@ -272,7 +272,7 @@ case class TimestampAdd(left: Expression, mid: Expression, right: Expression) ex
   }
 }
 
-case class TimestampDiff(left: Expression, mid: Expression, right: Expression) extends TernaryExpression
+case class KylinTimestampDiff(left: Expression, mid: Expression, right: Expression) extends TernaryExpression
   with ImplicitCastInputTypes {
 
   override def inputTypes: Seq[AbstractDataType] =
@@ -447,7 +447,7 @@ case class DictEncode(left: Expression, mid: Expression,
 }
 
 
-case class SplitPart(left: Expression, mid: Expression, right: Expression) extends TernaryExpression with ExpectsInputTypes {
+case class KylinSplitPart(left: Expression, mid: Expression, right: Expression) extends TernaryExpression with ExpectsInputTypes {
 
   override def dataType: DataType = left.dataType
 

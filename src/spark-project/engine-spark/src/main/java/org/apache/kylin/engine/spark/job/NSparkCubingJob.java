@@ -18,41 +18,9 @@
 
 package org.apache.kylin.engine.spark.job;
 
-import io.kyligence.kap.secondstorage.SecondStorageConstants;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
-import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.val;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.KylinConfigExt;
-import org.apache.kylin.common.exception.JobErrorCode;
-import org.apache.kylin.common.exception.KylinException;
-import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
-import org.apache.kylin.guava30.shaded.common.base.Preconditions;
-import org.apache.kylin.guava30.shaded.common.collect.Maps;
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.DefaultExecutableOnModel;
-import org.apache.kylin.job.execution.ExecutableParams;
-import org.apache.kylin.job.execution.JobSchedulerModeEnum;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.factory.JobFactory;
-import org.apache.kylin.metadata.cube.model.IndexPlan;
-import org.apache.kylin.metadata.cube.model.LayoutEntity;
-import org.apache.kylin.metadata.cube.model.NBatchConstants;
-import org.apache.kylin.metadata.cube.model.NDataSegment;
-import org.apache.kylin.metadata.cube.model.NDataflow;
-import org.apache.kylin.metadata.cube.model.NDataflowManager;
-import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
-import org.apache.kylin.metadata.cube.model.PartitionStatusEnum;
-import org.apache.kylin.metadata.job.JobBucket;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.util.stream.Collectors.joining;
+import static org.apache.kylin.engine.spark.stats.utils.HiveTableRefChecker.isNeedCleanUpTransactionalTableJob;
+import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -63,9 +31,47 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static java.util.stream.Collectors.joining;
-import static org.apache.kylin.engine.spark.stats.utils.HiveTableRefChecker.isNeedCleanUpTransactionalTableJob;
-import static org.apache.kylin.job.factory.JobFactoryConstant.CUBE_JOB_FACTORY;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigExt;
+import org.apache.kylin.common.exception.JobErrorCode;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.persistence.transaction.UnitOfWork;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
+import org.apache.kylin.guava30.shaded.common.annotations.VisibleForTesting;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.DefaultExecutableOnModel;
+import org.apache.kylin.job.execution.ExecutableParams;
+import org.apache.kylin.job.execution.JobSchedulerModeEnum;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.step.JobStepType;
+import org.apache.kylin.job.factory.JobFactory;
+import org.apache.kylin.metadata.cube.model.IndexPlan;
+import org.apache.kylin.metadata.cube.model.LayoutEntity;
+import org.apache.kylin.metadata.cube.model.NBatchConstants;
+import org.apache.kylin.metadata.cube.model.NDataSegment;
+import org.apache.kylin.metadata.cube.model.NDataflow;
+import org.apache.kylin.metadata.cube.model.NDataflowManager;
+import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
+import org.apache.kylin.metadata.job.JobBucket;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.rest.feign.MetadataInvoker;
+import org.apache.kylin.rest.request.DataFlowUpdateRequest;
+import org.apache.kylin.rest.service.ModelMetadataBaseService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.secondstorage.SecondStorageConstants;
+import io.kyligence.kap.secondstorage.SecondStorageUtil;
+import io.kyligence.kap.secondstorage.enums.LockTypeEnum;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.val;
 
 public class NSparkCubingJob extends DefaultExecutableOnModel {
 
@@ -339,14 +345,31 @@ public class NSparkCubingJob extends DefaultExecutableOnModel {
                 toRemovedSegments.add(segment);
             }
         }
+        if (toRemovedSegments.isEmpty()) {
+            logger.warn("Segment related to job {} can not be found, maybe job has been canceled.", getJobId());
+            return;
+        }
         NDataSegment[] nDataSegments = toRemovedSegments.toArray(new NDataSegment[0]);
         NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         nDataflowUpdate.setToRemoveSegs(nDataSegments);
-        nDataflowManager.updateDataflow(nDataflowUpdate);
-        updatePartitionOnCancelJob();
+        // create 'dataFlowUpdateRequest', then do RPC
+        DataFlowUpdateRequest dataFlowUpdateRequest = new DataFlowUpdateRequest();
+        dataFlowUpdateRequest.setProject(project);
+        dataFlowUpdateRequest.setDataflowUpdate(nDataflowUpdate);
+        // init update request for sub partition job
+        initSubPartitionJobUpdateRequest(dataFlowUpdateRequest);
+        updateDataflow(dataFlowUpdateRequest);
     }
 
-    public void updatePartitionOnCancelJob() {
+    private void updateDataflow(DataFlowUpdateRequest dataFlowUpdateRequest) {
+        if (UnitOfWork.isAlreadyInTransaction()) {
+            new ModelMetadataBaseService().updateDataflow(dataFlowUpdateRequest);
+            return;
+        }
+        MetadataInvoker.getInstance().updateDataflow(dataFlowUpdateRequest);
+    }
+
+    public void initSubPartitionJobUpdateRequest(DataFlowUpdateRequest dataFlowUpdateRequest) {
         if (!isBucketJob()) {
             return;
         }
@@ -354,48 +377,29 @@ public class NSparkCubingJob extends DefaultExecutableOnModel {
         NDataflow df = dfManager.getDataflow(getSparkCubingStep().getDataflowId()).copy();
         Set<String> segmentIds = getSparkCubingStep().getSegmentIds();
         Set<Long> partitions = getSparkCubingStep().getTargetPartitions();
+        Set<String> existsSegments = Sets.newHashSet();
+        for (String id : segmentIds) {
+            NDataSegment segment = df.getSegment(id);
+            if (segment == null) {
+                continue;
+            }
+            existsSegments.add(segment.getId());
+        }
         switch (getJobType()) {
-        case SUB_PARTITION_BUILD:
-            for (String id : segmentIds) {
-                NDataSegment segment = df.getSegment(id);
-                if (segment == null) {
-                    continue;
-                }
-                // remove partition in layouts
-                dfManager.removeLayoutPartition(df.getId(), partitions, Sets.newHashSet(segment.getId()));
-                // remove partition in segments
-                dfManager.removeSegmentPartition(df.getId(), partitions, Sets.newHashSet(segment.getId()));
-                logger.info(String.format(Locale.ROOT, "Remove partitions [%s] in segment [%s] cause to cancel job.",
-                        partitions, id));
-            }
-            break;
-        case SUB_PARTITION_REFRESH:
-            for (String id : segmentIds) {
-                NDataSegment segment = df.getSegment(id);
-                if (segment == null) {
-                    continue;
-                }
-                segment.getMultiPartitions().forEach(partition -> {
-                    if (partitions.contains(partition.getPartitionId())
-                            && PartitionStatusEnum.REFRESH == partition.getStatus()) {
-                        partition.setStatus(PartitionStatusEnum.READY);
-                    }
-                });
-                val dfUpdate = new NDataflowUpdate(df.getId());
-                dfUpdate.setToUpdateSegs(segment);
-                dfManager.updateDataflow(dfUpdate);
-                logger.info(String.format(Locale.ROOT,
-                        "Change partitions [%s] in segment [%s] status to READY cause to cancel job.", partitions, id));
-            }
-            break;
-        default:
-            break;
+            case SUB_PARTITION_BUILD:
+                dataFlowUpdateRequest.setToRemoveSegmentPartitions(new Pair<>(existsSegments, partitions));
+                break;
+            case SUB_PARTITION_REFRESH:
+                dataFlowUpdateRequest.setResetToReadyPartitions(new Pair<>(existsSegments, partitions));
+                break;
+            default:
+                break;
         }
     }
 
     @Override
     public boolean safetyIfDiscard() {
-        if (checkSuicide() || this.getStatus().isFinalState() || this.getJobType() != JobTypeEnum.INC_BUILD) {
+        if (checkSuicide() || this.getStatusInMem().isFinalState() || this.getJobType() != JobTypeEnum.INC_BUILD) {
             return true;
         }
 

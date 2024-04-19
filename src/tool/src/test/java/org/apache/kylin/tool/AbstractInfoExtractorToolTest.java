@@ -21,14 +21,24 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.util.OptionBuilder;
+import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.execution.DefaultExecutable;
+import org.apache.kylin.job.execution.DefaultExecutableOnModel;
+import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.tool.util.ToolUtil;
 import org.junit.After;
 import org.junit.Assert;
@@ -37,8 +47,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import lombok.val;
 
 public class AbstractInfoExtractorToolTest extends NLocalFileMetadataTestCase {
+    private JdbcTemplate jdbcTemplate;
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -48,10 +62,20 @@ public class AbstractInfoExtractorToolTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() throws Exception {
         createTestMetadata();
+        jdbcTemplate = JdbcUtil.getJdbcTemplate(getTestConfig());
+
+        JobContextUtil.cleanUp();
+        JobContextUtil.getJobInfoDao(getTestConfig());
     }
 
     @After
     public void teardown() {
+        if (jdbcTemplate != null) {
+            jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
+        }
+
+        JobContextUtil.cleanUp();
+
         cleanupTestMetadata();
     }
 
@@ -92,30 +116,6 @@ public class AbstractInfoExtractorToolTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(new File(mainDir, "hello").exists());
         Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "hello")).startsWith("hello world"));
         Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "hello")).contains("hello java"));
-    }
-
-    @Test
-    public void TestDumpLicenseInfo() throws IOException {
-        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
-        FileUtils.forceMkdir(mainDir);
-
-        MockInfoExtractorTool mock = new MockInfoExtractorTool();
-
-        File license = new File(ToolUtil.getKylinHome(), "LICENSE");
-        String licenseInfo = "Evaluation license for Kylin 5.0\n" + "Category: 4.x\n" + "SLA Service: NO\n"
-                + "Volume: 1\n" + "Level: professional\n"
-                + "Insight License: 5 users; evaluation; 2019-06-01,2019-07-30\n" + "====\n" + "Kylin 5.0\n"
-                + "2019-06-01,2019-07-30\n"
-                + "19d4801b6dardchr83bp3i7wadbdvycs8ay7ibicu2msfogl6kiwz7z3dmdizepmicl3bgqznn34794jt5g51sutofcfpn9jeiw5k3cvt2750faxw7ip1fp08mt3og6xijt4x02euf1zkrn5m7huwal8lqms3gmn0d5i8y2dqlvkvpqtwz3m9tqcnq6n4lznthbdtfncdqsly7a8v9pndh1cav2tdcczzs17ns6e0d4izeatwybr25lir5f5s6qe4ry10x2fkqco7unb4h4ivx8jo6vdb5sp3r4738zhlvrbdwfa38s3wh82lrnugrhxq8eap3rebq9dz8xka713aui4v2acquulicdadt63cv0biz7y7eccfh1tri60526b2bmon71k29n6p29tsbhyl2wdx5hsjuxg2wd993hcndot1fc5oz8kebopqrudyf4o7tjc5ca0bvtysnw3gn64c1sd2iw2rlhlxk7c5szp6kde8dvitteoqo1oufum5eyjbk1q2fegf9vpyng3bs6c6qfoibc2wvxgjn4hnismbsr4ovwe5gvam74ikdromn8dxv91e5wuvcqml92jgfoj4g0xzrns05hsqs55a5a9ao44f6m2eccscq4crfm5dxwdl7xbmmmj1yfgpygco4mvh9ksitsxoy30v6dgse76wmyemjymyaa2f6my83vu55z9vhywv6a4har3tep32dg3mvol1arsia8bllis4awfqjpw57lpv1fmt5n8ns8vqvle09cpehrlkt5kjcaucwb64c25q8zvikgtm2p0ywfnsapm97fxloymcqp0vgwmqzt3feaq8o6mzjaqmgap7r7gtn1k1awwxjs1sd91g4y1emab14hs";
-        FileUtils.writeStringToFile(license, licenseInfo);
-
-        mock.dumpLicenseInfo(mainDir);
-
-        FileUtils.deleteQuietly(license);
-        Assert.assertTrue(new File(mainDir, "info").exists());
-        String info = FileUtils.readFileToString(new File(mainDir, "info"));
-        Assert.assertTrue(info.contains("MetaStoreID:"));
-        Assert.assertTrue(info.contains("Host:"));
     }
 
     @Test
@@ -164,11 +164,79 @@ public class AbstractInfoExtractorToolTest extends NLocalFileMetadataTestCase {
         }
     }
 
-    class MockInfoExtractorTool extends AbstractInfoExtractorTool {
+    @Test
+    public void testExportOtherMetadata() throws IOException, InterruptedException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+        MockInfoExtractorTool mock = new MockInfoExtractorTool();
+        ExecutablePO po = createJob();
+
+        mock.init(mainDir);
+        doExport(mock, mainDir, null, null);
+        mock.waitAndClose();
+        doCheck(mainDir);
+
+        FileUtils.cleanDirectory(mainDir);
+        Assert.assertEquals(0, mainDir.listFiles().length);
+
+        mock.init(mainDir);
+        doExport(mock, mainDir, po.getProject(), po.getId());
+        mock.waitAndClose();
+        doCheck(mainDir);
+    }
+
+    private void doExport(MockInfoExtractorTool tool, File mainDir, String project, String jobId) {
+        File recordTime = new File(mainDir, "recordTime");
+        if (project == null) {
+            tool.exportJobInfo(0, System.currentTimeMillis(), recordTime);
+        } else {
+            tool.exportJobInfo(project, jobId, recordTime);
+        }
+        tool.exportFavoriteRule(project, recordTime);
+        tool.exportAsyncTask(project, recordTime);
+        tool.exportQueryHistoryOffset(project, recordTime);
+    }
+
+    private void doCheck(File mainDir) {
+        File jobInfoDir = new File(mainDir, "job_info");
+        Assert.assertTrue(jobInfoDir.listFiles().length >= 2);
+        File favoriteRuleDir = new File(mainDir, "favorite_rule");
+        Assert.assertTrue(favoriteRuleDir.listFiles().length >= 1);
+        File asyncTaskDir = new File(mainDir, "async_task");
+        Assert.assertTrue(asyncTaskDir.listFiles().length >= 1);
+        File queryHistoryOffsetDir = new File(mainDir, "query_history_offset");
+        Assert.assertTrue(queryHistoryOffsetDir.listFiles().length >= 1);
+    }
+    
+    public ExecutablePO createJob() {
+        DefaultExecutable job = new DefaultExecutableOnModel();
+        job.setName(JobTypeEnum.INDEX_BUILD.toString());
+        job.setJobType(JobTypeEnum.INDEX_BUILD);
+        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309gg");
+        job.setProject("default");
+        job.setPriority(1);
+        val po = ExecutableManager.toPO(job, "default");
+        return JobContextUtil.getJobInfoDao(getTestConfig()).addJob(po);
+    }
+
+    static class MockInfoExtractorTool extends AbstractInfoExtractorTool {
 
         @Override
         protected void executeExtract(OptionsHelper optionsHelper, File exportDir) throws Exception {
             // Do nothing.
+        }
+
+        public void init(File dir) {
+            executorService = Executors.newScheduledThreadPool(2);
+            timerExecutorService = Executors.newScheduledThreadPool(2);
+            taskQueue = new LinkedBlockingQueue<>();
+            taskStartTime = new ConcurrentHashMap<>();
+            exportDir = dir;
+        }
+
+        public void waitAndClose() throws InterruptedException {
+            executorService.shutdown();
+            awaitDiagPackageTermination(getKapConfig().getDiagPackageTimeout());
         }
     }
 

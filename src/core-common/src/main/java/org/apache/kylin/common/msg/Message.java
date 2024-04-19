@@ -225,12 +225,26 @@ public class Message {
         return "The selected time filter is invalid. Please select again.";
     }
 
-    public String getIllegalSortByFilter() {
-        return "The selected sort filter \"%s\" is invalid. Please select again.";
+    public String getJobSortByError() {
+        return "The parameter \"sort_by\" only supports 'id', 'project', 'create_time', 'last_modified', 'job_name', 'target_subject', 'duration'.";
     }
 
     public String getIllegalExecutableState() {
         return "The job status is invalid. Please select again.";
+    }
+
+    public String getIllegalJobState() {
+        return "The job status is invalid. The value must be “PENDING“, “RUNNING“, “FINISHED“, “ERROR” or “DISCARDED“. Please check and try again.";
+    }
+
+    public String getIllegalJobAction() {
+        return "Invalid value in parameter “action“ or “statuses“ or “job_ids“,  " //
+                + "The value of “statuses“ or the status of jobs specified by “job_ids“ contains “%s“, "
+                + "this status of jobs can only perform the following actions: “%s“ .";
+    }
+
+    public String getIllegalSortByFilter() {
+        return "The selected sort filter \"%s\" is invalid. Please select again.";
     }
 
     // Acl
@@ -1636,5 +1650,4 @@ public class Message {
     public String getRedisInitFailed() {
         return "Redis init failed";
     }
-
 }

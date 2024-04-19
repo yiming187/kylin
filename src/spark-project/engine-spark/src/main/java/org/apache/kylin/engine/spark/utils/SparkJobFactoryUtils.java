@@ -23,6 +23,7 @@ import org.apache.kylin.engine.spark.job.NSparkCubingJob;
 import org.apache.kylin.engine.spark.job.NSparkCubingStep;
 import org.apache.kylin.engine.spark.job.NSparkMergingJob;
 import org.apache.kylin.engine.spark.job.NSparkSnapshotJob;
+import org.apache.kylin.engine.spark.job.NTableSamplingJob;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
 
@@ -36,6 +37,7 @@ public class SparkJobFactoryUtils {
         new NSparkCubingJob();
         new NSparkMergingJob();
         new NSparkSnapshotJob();
+        new NTableSamplingJob();
     }
 
     public static boolean needBuildSnapshots(AbstractExecutable buildTask) {

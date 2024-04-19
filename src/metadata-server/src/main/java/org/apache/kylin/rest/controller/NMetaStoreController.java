@@ -37,13 +37,14 @@ import java.util.Objects;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.bind.DatatypeConverter;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.constant.Constant;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.ZipFileUtils;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.io.BaseEncoding;
 import org.apache.kylin.metadata.model.schema.SchemaChangeCheckResult;
 import org.apache.kylin.rest.request.MetadataCleanupRequest;
 import org.apache.kylin.rest.request.ModelImportRequest;
@@ -65,8 +66,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
-
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
 
 import io.swagger.annotations.ApiOperation;
 
@@ -110,7 +109,7 @@ public class NMetaStoreController extends NBasicController {
             filename = String.format(Locale.ROOT, "%s_model_metadata_%s_%s.zip", projectName.toLowerCase(Locale.ROOT),
                     new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.getDefault(Locale.Category.FORMAT))
                             .format(new Date()),
-                    DatatypeConverter.printHexBinary(md5));
+                    BaseEncoding.base16().encode(md5));
         }
 
         try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(
