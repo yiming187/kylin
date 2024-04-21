@@ -24,7 +24,6 @@ import java.util.Locale;
 import org.apache.kylin.common.Singletons;
 
 public class Message {
-    private static final String UNKNOWN_ERROR = "UNKNOWN ERROR";
     private static final String SECOND_STORAGE_PROJECT_ENABLED = "The project %s does not have tiered storage enabled.";
     private static final String SECOND_STORAGE_MODEL_ENABLED = "The model %s does not have tiered storage enabled.";
     private static final String SECOND_STORAGE_SEGMENT_WITHOUT_BASE_INDEX = "The base table index is missing in the segments, please add and try again.";
@@ -351,7 +350,7 @@ public class Message {
         long remainingHour = ((seconds - remainingSeconds - remainingMinutes * 60) / 3600) % 24;
         long remainingDay = (seconds - remainingSeconds - remainingMinutes * 60 - remainingHour * 3600) / (3600 * 24);
         String formatTimeMessage = formatTime(remainingDay, remainingHour, remainingMinutes, remainingSeconds);
-        return formatTimeMessage.length() > 0 ? formatTimeMessage.substring(0, formatTimeMessage.length() - 1)
+        return !formatTimeMessage.isEmpty() ? formatTimeMessage.substring(0, formatTimeMessage.length() - 1)
                 : formatTimeMessage;
     }
 
@@ -574,75 +573,6 @@ public class Message {
     }
 
     // Query statistics
-
-    // License
-    public String getLicenseErrorPre() {
-        return UNKNOWN_ERROR;
-    }
-
-    public String getLicenseErrorSuff() {
-        return UNKNOWN_ERROR;
-    }
-
-    public String getLicenseOverdueTrial() {
-        return UNKNOWN_ERROR;
-    }
-
-    public String getLicenseNodesExceed() {
-        return UNKNOWN_ERROR;
-    }
-
-    public String getLicenseNodesNotMatch() {
-        return UNKNOWN_ERROR;
-    }
-
-    public String getLicenseOverVolume() {
-        return UNKNOWN_ERROR;
-    }
-
-    public String getLicenseNoLicense() {
-        return UNKNOWN_ERROR;
-    }
-
-    public String getlicenseWrongCategory() {
-        return UNKNOWN_ERROR;
-    }
-
-    public String getLicenseInvalidLicense() {
-        return UNKNOWN_ERROR;
-    }
-
-    public String getLicenseMismatchLicense() {
-        return UNKNOWN_ERROR;
-    }
-
-    public String getLicenseNotEffective() {
-        return UNKNOWN_ERROR;
-    }
-
-    public String getLicenseExpired() {
-        return UNKNOWN_ERROR;
-    }
-
-    public String getLicenseSourceOverCapacity() {
-        return UNKNOWN_ERROR;
-    }
-
-    public String getLicenseProjectSourceOverCapacity() {
-        return UNKNOWN_ERROR;
-    }
-
-    public String getLicenseNodesOverCapacity() {
-        return UNKNOWN_ERROR;
-    }
-
-    public String getLicenseSourceNodesOverCapacity() {
-        return UNKNOWN_ERROR;
-    }
-
-    public String getlicenseProjectSourceNodesOverCapacity() {
-        return UNKNOWN_ERROR;
-    }
 
     public String getLowLevelLicenseMessage() {
         return "Tiered Storage cannot be used. Please upgrade to Kyligence Premium version if you want to use the function.";
