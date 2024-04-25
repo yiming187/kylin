@@ -185,6 +185,10 @@ public class QueryContext implements Closeable {
     @Setter
     private long responseStartTime = 0L;
 
+    @Getter
+    @Setter
+    private String firstHintStr;
+
     private QueryContext() {
         // use QueryContext.current() instead
         queryId = RandomUtil.randomUUIDStr();

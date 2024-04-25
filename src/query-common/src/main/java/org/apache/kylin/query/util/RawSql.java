@@ -76,6 +76,26 @@ public class RawSql {
         return statementStringCache;
     }
 
+    public String getStatementStringWithoutHints() {
+        StringBuilder stmt = new StringBuilder();
+        int prevEndLine = -1;
+        for (RawSqlBlock block : stmtBlockList) {
+            if (RawSqlBlock.Type.STATEMENT == block.getType()) {
+                if (block.getBeginLine() > prevEndLine) {
+                    if (prevEndLine != -1) {
+                        stmt.append(LINE_SEPARATOR);
+                    }
+                    stmt.append(block.getTrimmedText());
+                } else if (block.getBeginLine() == prevEndLine) {
+                    stmt.append(" ");
+                    stmt.append(block.getTrimmedText());
+                }
+                prevEndLine = block.getEndLine();
+            }
+        }
+        return stmt.toString();
+    }
+
     public String getFullTextString() {
         if (fullTextStringCache != null) {
             return fullTextStringCache;
@@ -86,6 +106,14 @@ public class RawSql {
         }
         fullTextStringCache = fullText.toString();
         return fullTextStringCache;
+    }
+
+    public String getFirstHintString() {
+        RawSqlBlock firstHintBlock = stmtBlockList.stream()
+                .filter(stmtBlock -> RawSqlBlock.Type.HINT == stmtBlock.getType())
+                .findFirst()
+                .orElse(null);
+        return firstHintBlock == null ? null : firstHintBlock.getText();
     }
 
     public void autoAppendLimit(KylinConfig kylinConfig, int limit) {
