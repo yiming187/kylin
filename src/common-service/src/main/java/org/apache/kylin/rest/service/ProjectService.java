@@ -152,7 +152,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.SneakyThrows;
 import lombok.val;
 
@@ -657,11 +656,6 @@ public class ProjectService extends BasicService {
         response.setPackageVersion(KylinVersion.getCurrentVersion().toString());
         response.setPackageTimestamp(infos.getSecond());
 
-        if (SecondStorageUtil.isGlobalEnable()) {
-            response.setSecondStorageEnabled(SecondStorageUtil.isProjectEnable(project));
-            response.setSecondStorageNodes(SecondStorageUtil.listProjectNodes(project));
-        }
-
         return response;
     }
 
@@ -945,11 +939,6 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     @Transaction(project = 0)
     public void dropProject(String project, HttpHeaders headers) {
-        if (SecondStorageUtil.isProjectEnable(project)) {
-            throw new KylinException(PROJECT_DROP_FAILED,
-                    String.format(Locale.ROOT, MsgPicker.getMsg().getProjectDropFailedSecondStorageEnabled(), project));
-        }
-
         ExecutableManager executableManager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         List<String> jobIds = executableManager
                 .getExecutablePOsByStatus(Lists.newArrayList(ExecutableState.RUNNING, ExecutableState.PENDING,
@@ -977,6 +966,8 @@ public class ProjectService extends BasicService {
     private void deleteProjectRelatedMeta(String project) {
         // delete query history id offset
         QueryHistoryIdOffsetManager.getInstance(project).delete();
+        // delete favorite rule
+        FavoriteRuleManager.getInstance(project).deleteByProject();
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")

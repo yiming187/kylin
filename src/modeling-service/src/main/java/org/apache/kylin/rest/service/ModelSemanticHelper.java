@@ -110,14 +110,11 @@ import org.apache.kylin.rest.response.BuildIndexResponse;
 import org.apache.kylin.rest.response.SimplifiedMeasure;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.SCD2SimplificationConvertUtil;
-import org.apache.kylin.rest.util.SpringContext;
 import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import io.kyligence.kap.secondstorage.SecondStorageUpdater;
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -167,8 +164,8 @@ public class ModelSemanticHelper extends BasicService {
             allTablesMap.put(factTableIdentity, extendTable);
         }
         dataModel.setUuid(modelRequest.getUuid() != null ? modelRequest.getUuid() : RandomUtil.randomUUIDStr());
-        dataModel.setDescription(modelRequest.getDescription() != null ? modelRequest.getDescription()
-                : StringUtils.EMPTY);
+        dataModel.setDescription(
+                modelRequest.getDescription() != null ? modelRequest.getDescription() : StringUtils.EMPTY);
         dataModel.setProject(modelRequest.getProject());
         dataModel.setAllMeasures(convertMeasure(simplifiedMeasures));
         dataModel.setAllNamedColumns(convertNamedColumns(modelRequest.getProject(), dataModel, modelRequest));
@@ -180,6 +177,7 @@ public class ModelSemanticHelper extends BasicService {
 
     /**
      * expand model request, add hidden internal measures from current model
+     *
      * @param modelRequest
      * @return
      */
@@ -239,6 +237,7 @@ public class ModelSemanticHelper extends BasicService {
 
     /**
      * expand measures (e.g. CORR measure) in current model, may create new CC or new measures
+     *
      * @param model
      * @return
      */
@@ -670,8 +669,9 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     /**
-     *  one measure in expectedModel but not in originModel then add one
-     *  one in expectedModel, is also a TOMB one in originModel, set status to not TOMB
+     * one measure in expectedModel but not in originModel then add one
+     * one in expectedModel, is also a TOMB one in originModel, set status to not TOMB
+     *
      * @param newMeasures
      * @param originModel
      * @param updateImpact
@@ -726,6 +726,7 @@ public class ModelSemanticHelper extends BasicService {
 
     /**
      * one in expectedModel, is also a TOMB one in originModel, set status as the expected's
+     *
      * @param newCols
      * @param originModel
      * @param updateImpact
@@ -757,6 +758,7 @@ public class ModelSemanticHelper extends BasicService {
     /**
      * if a measure becomes invalid because of cc delete,
      * the measure and related aggGroups/layouts should remains
+     *
      * @param removedCCs
      * @param originModel
      * @param measureId
@@ -1026,8 +1028,6 @@ public class ModelSemanticHelper extends BasicService {
             copyForWrite.setSegments(new Segments<>());
         });
 
-        cleanModelWithSecondStorage(newModel.getUuid(), project);
-
         String modelId = newModel.getUuid();
         NDataModelManager modelManager = NDataModelManager.getInstance(config, project);
         if (newModel.isMultiPartitionModel() || oriModel.isMultiPartitionModel()) {
@@ -1052,13 +1052,6 @@ public class ModelSemanticHelper extends BasicService {
                 segments.forEach(segment -> segmentRanges.add(segment.getSegRange()));
                 dataflowManager.fillDfManually(df, segmentRanges);
             }
-        }
-    }
-
-    private void cleanModelWithSecondStorage(String modelId, String project) {
-        if (SecondStorageUtil.isModelEnable(project, modelId)) {
-            SecondStorageUpdater updater = SpringContext.getBean(SecondStorageUpdater.class);
-            updater.cleanModel(project, modelId);
         }
     }
 

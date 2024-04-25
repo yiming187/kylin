@@ -25,6 +25,7 @@ public interface NBatchConstants {
     String P_JOB_TYPE = "jobType";
     String P_JOB_ENABLE_PLANNER = "enablePlanner";
     String P_LAYOUT_IDS = "layoutIds";
+    String P_LAYOUTS_DELETABLE_AFTER_BUILD = "layoutsDeletableAfterBuild";
     String P_TO_BE_DELETED_LAYOUT_IDS = "toBeDeletedLayoutIds";
     String P_CLASS_NAME = "className";
     String P_JARS = "jars";

@@ -99,7 +99,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -636,7 +635,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
         val copyModel = JsonUtil.deepCopy(brokenModel, NDataModel.class);
         val updateJoinTables = copyModel.getJoinTables();
-        updateJoinTables.get(0).getJoin().setForeignKey(new String[] { "TEST_KYLIN_FACT.ORDER_ID2" });
+        updateJoinTables.get(0).getJoin().setForeignKey(new String[]{"TEST_KYLIN_FACT.ORDER_ID2"});
         copyModel.setJoinTables(updateJoinTables);
         UnitOfWork.doInTransactionWithRetry(() -> {
             modelService.repairBrokenModel(PROJECT, createModelRequest(copyModel));
@@ -697,7 +696,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val copyModel = JsonUtil.deepCopy(brokenModel, NDataModel.class);
         copyModel.getPartitionDesc().setPartitionDateColumn("DEFAULT.TEST_KYLIN_FACT.CAL_DT2");
         val updateJoinTables = copyModel.getJoinTables();
-        updateJoinTables.get(2).getJoin().setForeignKey(new String[] { "TEST_KYLIN_FACT.CAL_DT2" });
+        updateJoinTables.get(2).getJoin().setForeignKey(new String[]{"TEST_KYLIN_FACT.CAL_DT2"});
         copyModel.setJoinTables(updateJoinTables);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
@@ -747,7 +746,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val copyModel = JsonUtil.deepCopy(brokenModel, NDataModel.class);
         copyModel.setPartitionDesc(null);
         val updateJoinTables = copyModel.getJoinTables();
-        updateJoinTables.get(2).getJoin().setForeignKey(new String[] { "TEST_KYLIN_FACT.CAL_DT2" });
+        updateJoinTables.get(2).getJoin().setForeignKey(new String[]{"TEST_KYLIN_FACT.CAL_DT2"});
         copyModel.setJoinTables(updateJoinTables);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
@@ -788,11 +787,11 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             NIndexPlanManager.getInstance(getTestConfig(), PROJECT).updateIndexPlan(originModel.getUuid(),
                     copyForWrite -> {
                         SelectRule selectRule = new SelectRule();
-                        selectRule.setMandatoryDims(new Integer[] {});
-                        selectRule.setJointDims(new Integer[][] {});
-                        selectRule.setHierarchyDims(new Integer[][] {});
+                        selectRule.setMandatoryDims(new Integer[]{});
+                        selectRule.setJointDims(new Integer[][]{});
+                        selectRule.setHierarchyDims(new Integer[][]{});
                         copyForWrite.getRuleBasedIndex().getAggregationGroups().get(0).setSelectRule(selectRule);
-                        copyForWrite.getRuleBasedIndex().getAggregationGroups().get(0).setIncludes(new Integer[] { 2 });
+                        copyForWrite.getRuleBasedIndex().getAggregationGroups().get(0).setIncludes(new Integer[]{2});
                     });
             return null;
         }, PROJECT);
@@ -810,7 +809,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true, null);
         val brokenModel = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
         val copyModel = JsonUtil.deepCopy(brokenModel, NDataModel.class);
-        copyModel.getJoinTables().get(2).getJoin().setForeignKey(new String[] { "TEST_KYLIN_FACT.LSTG_SITE_ID" });
+        copyModel.getJoinTables().get(2).getJoin().setForeignKey(new String[]{"TEST_KYLIN_FACT.LSTG_SITE_ID"});
         UnitOfWork.doInTransactionWithRetry(() -> {
             modelService.repairBrokenModel(PROJECT, createModelRequest(copyModel));
             return null;
@@ -1015,7 +1014,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     }
 
     private void testReloadAggShardByColumns(RuleBasedIndex ruleBasedIndex, List<Integer> beforeAggShardBy,
-            List<Integer> endAggShardBy) throws Exception {
+                                             List<Integer> endAggShardBy) throws Exception {
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
         val updatedIndexPlan = indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
@@ -1363,7 +1362,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 + "        }\n" //
                 + "}", NAggregationGroup.class);
         newRule.setAggregationGroups(Lists.newArrayList(group1));
-        group1.setMeasures(new Integer[] { 100000, 100008 });
+        group1.setMeasures(new Integer[]{100000, 100008});
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
         val modelId = originIndexPlan.getId();
@@ -1404,7 +1403,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 + "        }\n" //
                 + "}", NAggregationGroup.class);
         newRule.setAggregationGroups(Lists.newArrayList(group1));
-        group1.setMeasures(new Integer[] { 100000, 100008 });
+        group1.setMeasures(new Integer[]{100000, 100008});
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
         val modelId = originIndexPlan.getId();
@@ -1477,7 +1476,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 + "}", NAggregationGroup.class);
         newRule.setAggregationGroups(Lists.newArrayList(group1));
         // 100000 count(1), 100004 sum(TEST_KYLIN_FACT.ITEM_COUNT)
-        group1.setMeasures(new Integer[] { 100000, 100004 });
+        group1.setMeasures(new Integer[]{100000, 100004});
         indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
             copyForWrite.setRuleBasedIndex(newRule);
         });
@@ -1547,7 +1546,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 + "}", NAggregationGroup.class);
         newRule.setAggregationGroups(Lists.newArrayList(group1));
         // 100000 count(1), 100004 sum(TEST_KYLIN_FACT.ITEM_COUNT)
-        group1.setMeasures(new Integer[] { 100000, 100004 });
+        group1.setMeasures(new Integer[]{100000, 100004});
         indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
             copyForWrite.setRuleBasedIndex(newRule);
         });
@@ -1741,31 +1740,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertNull(roleArn);
     }
 
-    public void testReloadTableWithSecondStorage() throws Exception {
-        val model = "741ca86a-1f13-46da-a59f-95fb68615e3a";
-        val project = "default";
-        //        MockSecondStorage.mock("default", new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> {
-                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
-            });
-            return null;
-        }, project);
-        SecondStorageUtil.initModelMetaData("default", model);
-        Assert.assertTrue(indexPlanManager.getIndexPlan(model).containBaseTableLayout());
-        ModelRequest request = new ModelRequest();
-        request.setWithSecondStorage(true);
-        request.setUuid(model);
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-
-        val tableIdentity = "DEFAULT.TEST_KYLIN_FACT";
-        removeColumn(tableIdentity, "IS_EFFECTUAL");
-        tableService.innerReloadTable(PROJECT, tableIdentity, true, null);
-
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-    }
-
     @Test
     public void testReloadRemoveColumnAndUpdateTableExtDesc() throws Exception {
         removeColumn("DEFAULT.TEST_ORDER", "TEST_TIME_ENC");
@@ -1848,12 +1822,12 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(Sets.newHashSet("ITEM_COUNT", "LSTG_FORMAT_NAME"),
                 response.getDetails().getRemovedColumns());
         Assert.assertEquals(Sets.newHashSet("nmodel_basic/COUNT_DISTINCT", "nmodel_basic_inner/ITEM_COUNT_SUM",
-                "ut_inner_join_cube_partial/ITEM_COUNT_SUM", "all_fixed_length/COUNT_DISTINCT",
-                "nmodel_basic_inner/ITEM_COUNT_MAX", "ut_inner_join_cube_partial/COUNT_DISTINCT",
-                "nmodel_basic/ITEM_COUNT_SUM", "nmodel_basic_inner/COUNT_DISTINCT",
-                "ut_inner_join_cube_partial/ITEM_COUNT_MAX", "nmodel_basic/SUM_NEST4", "nmodel_basic_inner/SUM_NEST4",
-                "nmodel_basic/ITEM_COUNT_MAX", "nmodel_basic_inner/SUM_DEAL_AMOUNT", "all_fixed_length/ITEM_COUNT_SUM",
-                "nmodel_basic/SUM_DEAL_AMOUNT", "all_fixed_length/ITEM_COUNT_MAX"),
+                        "ut_inner_join_cube_partial/ITEM_COUNT_SUM", "all_fixed_length/COUNT_DISTINCT",
+                        "nmodel_basic_inner/ITEM_COUNT_MAX", "ut_inner_join_cube_partial/COUNT_DISTINCT",
+                        "nmodel_basic/ITEM_COUNT_SUM", "nmodel_basic_inner/COUNT_DISTINCT",
+                        "ut_inner_join_cube_partial/ITEM_COUNT_MAX", "nmodel_basic/SUM_NEST4", "nmodel_basic_inner/SUM_NEST4",
+                        "nmodel_basic/ITEM_COUNT_MAX", "nmodel_basic_inner/SUM_DEAL_AMOUNT", "all_fixed_length/ITEM_COUNT_SUM",
+                        "nmodel_basic/SUM_DEAL_AMOUNT", "all_fixed_length/ITEM_COUNT_MAX"),
                 response.getDetails().getRemovedMeasures());
         Assert.assertEquals(
                 Sets.newHashSet("all_fixed_length/LSTG_FORMAT_NAME", "nmodel_basic_inner/NEST4",
@@ -1922,7 +1896,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     }
 
     private void changeTypeColumn(String tableIdentity, Map<String, String> columns, Map<String, String> comments,
-            boolean useMeta) throws IOException {
+                                  boolean useMeta) throws IOException {
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
         val factTable = tableManager.getTableDesc(tableIdentity);
         String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();

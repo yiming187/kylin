@@ -43,7 +43,6 @@ import java.util.function.Supplier;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
@@ -59,7 +58,6 @@ import org.apache.kylin.engine.spark.job.step.NStageForBuild;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.guava30.shaded.common.collect.Sets;
-import org.apache.kylin.job.constant.JobActionEnum;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.NExecutableDao;
@@ -67,24 +65,19 @@ import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ChainedStageExecutable;
-import org.apache.kylin.job.execution.DefaultExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
-import org.apache.kylin.job.execution.JobSchedulerModeEnum;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NSparkExecutable;
 import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.job.execution.SucceedChainedTestExecutable;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
-import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
-import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.plugin.asyncprofiler.ProfilerStatus;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.ExecutableResponse;
 import org.apache.kylin.rest.response.JobStatisticsResponse;
-import org.apache.kylin.rest.response.NDataSegmentResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.awaitility.Duration;
@@ -728,14 +721,14 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     private long getCreateTime(String name) {
         switch (name) {
-        case "1":
-            return 1560324101000L;
-        case "2":
-            return 1560324102000L;
-        case "3":
-            return 1560324103000L;
-        default:
-            return 0L;
+            case "1":
+                return 1560324101000L;
+            case "2":
+                return 1560324102000L;
+            case "3":
+                return 1560324103000L;
+            default:
+                return 0L;
         }
     }
 
@@ -781,90 +774,6 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
         jobDurationPerMb = jobService.getJobDurationPerByte("default", startTime, endTime, "model");
         Assert.assertEquals(0, jobDurationPerMb.size());
-    }
-
-    @Test
-    public void jobActionValidate() throws IOException {
-        val manager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-        val job = new DefaultExecutable();
-        job.setProject(getProject());
-        job.setJobType(JobTypeEnum.INDEX_BUILD);
-        manager.addJob(job);
-        jobService.jobActionValidateToTest(job.getId(), getProject(), JobActionEnum.PAUSE.name());
-
-        val job1 = new DefaultExecutable();
-        job1.setProject(getProject());
-        job1.setJobType(JobTypeEnum.INDEX_BUILD);
-        job1.setJobSchedulerMode(JobSchedulerModeEnum.DAG);
-        manager.addJob(job1);
-        jobService.jobActionValidateToTest(job1.getId(), getProject(), JobActionEnum.PAUSE.name());
-
-        val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        val project = "default";
-        //        MockSecondStorage.mock("default", new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> {
-                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
-            });
-            return null;
-        }, project);
-        //        SecondStorageUtil.initModelMetaData(project, model);
-        //        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-        //        Assert.assertTrue(SecondStorageUtil.isModelEnableWithoutCheckKylinInfo(project, model));
-
-        val job3 = new DefaultExecutable();
-        job3.setProject(getProject());
-        job3.setJobType(JobTypeEnum.INDEX_BUILD);
-        job3.setTargetSubject(model);
-        manager.addJob(job3);
-        jobService.jobActionValidateToTest(job3.getId(), getProject(), JobActionEnum.PAUSE.name());
-
-        val job4 = new DefaultExecutable();
-        job4.setProject(getProject());
-        job4.setJobType(JobTypeEnum.INDEX_BUILD);
-        job4.setJobSchedulerMode(JobSchedulerModeEnum.DAG);
-        job4.setTargetSubject(model);
-        manager.addJob(job4);
-        jobService.jobActionValidateToTest(job4.getId(), getProject(), JobActionEnum.PAUSE.name());
-    }
-
-    //@Test
-    public void testGetSegmentsInGetJobList() throws IOException {
-        val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        val modelMock = RandomUtil.randomUUIDStr();
-        val project = "default";
-        //        MockSecondStorage.mock("default", new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> {
-                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
-            });
-            return null;
-        }, project);
-        //        SecondStorageUtil.initModelMetaData(project, model);
-        //        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-        //        Assert.assertTrue(SecondStorageUtil.isModelEnableWithoutCheckKylinInfo(project, model));
-
-        val manager = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
-        val job = new DefaultExecutable();
-        job.setProject(getProject());
-        job.setJobType(JobTypeEnum.INDEX_BUILD);
-        job.setTargetSubject(modelMock);
-        manager.addJob(job);
-        val segments = jobService.getSegments(job);
-        Assert.assertTrue(CollectionUtils.isEmpty(segments));
-
-        val job1 = new DefaultExecutable();
-        job1.setProject(getProject());
-        job1.setJobType(JobTypeEnum.INDEX_BUILD);
-        job1.setTargetSubject(model);
-        manager.addJob(job1);
-        val segment = Mockito.mock(NDataSegmentResponse.class);
-        Mockito.doReturn(Lists.newArrayList(segment)).when(modelService).getSegmentsResponseByJob(model, getProject(),
-                job1);
-        val segments1 = jobService.getSegments(job1);
-        Assert.assertEquals(1, segments1.size());
     }
 
     @Test

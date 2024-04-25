@@ -20,7 +20,6 @@ package org.apache.kylin.rest.service;
 
 import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_EXECUTE_MODEL_SQL;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
-import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.COMPUTED_COLUMN_CONFLICT;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.COMPUTED_COLUMN_CONFLICT_ADJUST_INFO;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.COMPUTED_COLUMN_EXPR_CONFLICT;
@@ -34,14 +33,11 @@ import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_INVALID;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_TOO_LONG;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NOT_EXIST;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.PARAMETER_INVALID_SUPPORT_LIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_LOCKED;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_NOT_EXIST_ID;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_NOT_EXIST_NAME;
-import static org.apache.kylin.common.exception.code.ErrorCodeServer.SEGMENT_STATUS_ILLEGAL;
 import static org.apache.kylin.rest.request.MultiPartitionMappingRequest.MappingRequest;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -65,7 +61,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -89,7 +84,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DateUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.KylinException;
@@ -105,7 +99,6 @@ import org.apache.kylin.engine.spark.utils.ComputedColumnEvalUtil;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.guava30.shaded.common.collect.Sets;
-import org.apache.kylin.guava30.shaded.common.primitives.Longs;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -150,7 +143,6 @@ import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.RetentionRange;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentSecondStorageStatusEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.Segments;
@@ -174,7 +166,6 @@ import org.apache.kylin.rest.request.ModelRequest;
 import org.apache.kylin.rest.request.MultiPartitionMappingRequest;
 import org.apache.kylin.rest.request.OwnerChangeRequest;
 import org.apache.kylin.rest.request.UpdateRuleBasedCuboidRequest;
-import org.apache.kylin.rest.response.BuildBaseIndexResponse;
 import org.apache.kylin.rest.response.CheckSegmentResponse;
 import org.apache.kylin.rest.response.ComputedColumnConflictResponse;
 import org.apache.kylin.rest.response.ComputedColumnUsageResponse;
@@ -211,7 +202,6 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -220,7 +210,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import io.kyligence.kap.secondstorage.SecondStorageUtil;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -581,52 +570,8 @@ public class ModelServiceTest extends SourceTestCase {
         dataflowUpdate.setToRemoveLayouts(dataflow.getSegments().get(0).getSegDetails().getLayouts().get(0));
         dataflowManager.updateDataflow(dataflowUpdate);
         List<NDataSegmentResponse> segments = modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-                "default", "0", "" + Long.MAX_VALUE, "ONLINE", null, null, true, "start_time", false, null, null);
+                "default", "0", "" + Long.MAX_VALUE, "ONLINE", null, null, true, "start_time", false, null);
         Assert.assertThat(segments.size(), is(0));
-    }
-
-    @Test
-    public void testGetSegmentsResponseSort() {
-        Date now = new Date();
-        List<NDataSegmentResponse> mockSegments = Lists.newArrayList();
-        NDataSegmentResponse segmentResponse1 = new NDataSegmentResponse();
-        segmentResponse1.setId("1");
-        segmentResponse1.setRowCount(1);
-        segmentResponse1.setCreateTime(DateUtils.addHours(now, -1).getTime());
-
-        NDataSegmentResponse segmentResponse2 = new NDataSegmentResponse();
-        segmentResponse2.setId("2");
-        segmentResponse2.setRowCount(2);
-        segmentResponse2.setCreateTime(now.getTime());
-
-        NDataSegmentResponse segmentResponse3 = new NDataSegmentResponse();
-        segmentResponse3.setId("3");
-        segmentResponse3.setRowCount(3);
-        segmentResponse3.setCreateTime(DateUtils.addHours(now, 1).getTime());
-
-        mockSegments.add(segmentResponse1);
-        mockSegments.add(segmentResponse3);
-        mockSegments.add(segmentResponse2);
-
-        doReturn(mockSegments).when(modelService).getSegmentsResponseCore(ArgumentMatchers.any(),
-                ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(),
-                ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.anyBoolean(),
-                ArgumentMatchers.any());
-
-        Mockito.doAnswer(invocation -> {
-            List<NDataSegmentResponse> segmentResponseList = invocation.getArgument(2);
-            for (NDataSegmentResponse segmentResponse : segmentResponseList) {
-                segmentResponse.setSecondStorageSize(Longs.tryParse(segmentResponse.getId()));
-            }
-            return null;
-        }).when(modelService).addSecondStorageResponse(ArgumentMatchers.any(), ArgumentMatchers.any(),
-                ArgumentMatchers.any(), ArgumentMatchers.any());
-
-        List<NDataSegmentResponse> segmentResponseList = modelService.getSegmentsResponse(
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "0", "" + Long.MAX_VALUE, "", "second_storage_size",
-                false);
-
-        Assert.assertEquals("3", segmentResponseList.get(0).getId());
     }
 
     @Test
@@ -734,7 +679,7 @@ public class ModelServiceTest extends SourceTestCase {
         // loading
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
         val segment1Id = segments.get(0).getId();
-        dataflowManager.appendPartitions(dataflowId, segment1Id, Lists.<String[]> newArrayList(new String[] { "4" }));
+        dataflowManager.appendPartitions(dataflowId, segment1Id, Lists.<String[]>newArrayList(new String[]{"4"}));
         segments = modelService.getSegmentsResponse(dataflowId, project, "0", "" + Long.MAX_VALUE, "", "", false);
         Assert.assertEquals(SegmentStatusEnumToDisplay.LOADING, segments.get(0).getStatusToDisplay());
 
@@ -749,7 +694,7 @@ public class ModelServiceTest extends SourceTestCase {
     }
 
     private void checkSegment(NDataSegmentResponse response, int count, int total, int byteSize, int rowCount,
-            int sourceByteSize, SegmentStatusEnumToDisplay status) {
+                              int sourceByteSize, SegmentStatusEnumToDisplay status) {
         Assert.assertEquals(count, response.getMultiPartitionCount());
         Assert.assertEquals(total, response.getMultiPartitionCountTotal());
         Assert.assertEquals(byteSize, response.getBytesSize());
@@ -758,7 +703,7 @@ public class ModelServiceTest extends SourceTestCase {
         Assert.assertEquals(status, response.getStatusToDisplay());
     }
 
-    // @Test
+    @Test
     public void testGetSegmentsResponseByJob() {
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val project = "default";
@@ -776,8 +721,7 @@ public class ModelServiceTest extends SourceTestCase {
 
         val segmentIds = segments.stream().map(NDataSegment::getId).collect(Collectors.toSet());
         Mockito.when(job.getSegmentIds()).thenReturn(Sets.newHashSet(segmentIds));
-        //Mockito.when(job.getStatus()).thenReturn(ExecutableState.SUCCEED);
-        Mockito.doReturn(ExecutableState.SUCCEED).when(job).getStatus();
+        Mockito.when(job.getStatus()).thenReturn(ExecutableState.SUCCEED);
         segmentsResponseByJob = modelService.getSegmentsResponseByJob(modelId, project, job);
         Assert.assertEquals(1, segmentsResponseByJob.size());
         Assert.assertEquals(3380224, segments.get(0).getBytesSize());
@@ -794,7 +738,7 @@ public class ModelServiceTest extends SourceTestCase {
 
         // append a new partition to segment1
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
-        dataflowManager.appendPartitions(dataflowId, segment1Id, Lists.<String[]> newArrayList(new String[] { "4" }));
+        dataflowManager.appendPartitions(dataflowId, segment1Id, Lists.<String[]>newArrayList(new String[]{"4"}));
         // make the first partition in segment2 to refresh status
         val segment2 = dataflowManager.getDataflow(dataflowId).copy().getSegment(segment2Id);
         segment2.getMultiPartitions().get(0).setStatus(PartitionStatusEnum.REFRESH);
@@ -805,25 +749,25 @@ public class ModelServiceTest extends SourceTestCase {
         val partitions1 = modelService.getSegmentPartitions(project, dataflowId, segment1Id, null, "last_modified_time",
                 false);
         Assert.assertEquals(5, partitions1.size());
-        checkPartition(partitions1.get(0), 0, new String[] { "0" }, PartitionStatusEnumToDisplay.ONLINE, 42, 1397);
-        checkPartition(partitions1.get(4), 4, new String[] { "4" }, PartitionStatusEnumToDisplay.LOADING, 0, 0);
+        checkPartition(partitions1.get(0), 0, new String[]{"0"}, PartitionStatusEnumToDisplay.ONLINE, 42, 1397);
+        checkPartition(partitions1.get(4), 4, new String[]{"4"}, PartitionStatusEnumToDisplay.LOADING, 0, 0);
 
         val partitions2 = modelService.getSegmentPartitions(project, dataflowId, segment2Id, null, "last_modified_time",
                 false);
         Assert.assertEquals(3, partitions2.size());
-        checkPartition(partitions2.get(0), 0, new String[] { "0" }, PartitionStatusEnumToDisplay.REFRESHING, 0, 1397);
-        checkPartition(partitions2.get(1), 1, new String[] { "1" }, PartitionStatusEnumToDisplay.ONLINE, 0, 1397);
+        checkPartition(partitions2.get(0), 0, new String[]{"0"}, PartitionStatusEnumToDisplay.REFRESHING, 0, 1397);
+        checkPartition(partitions2.get(1), 1, new String[]{"1"}, PartitionStatusEnumToDisplay.ONLINE, 0, 1397);
 
         // filter by status
         val onlinePartitions2 = modelService.getSegmentPartitions(project, dataflowId, segment2Id,
                 Lists.newArrayList("ONLINE"), "last_modified_time", true);
         Assert.assertEquals(2, onlinePartitions2.size());
-        checkPartition(onlinePartitions2.get(0), 2, new String[] { "2" }, PartitionStatusEnumToDisplay.ONLINE, -1, -1);
-        checkPartition(onlinePartitions2.get(1), 1, new String[] { "1" }, PartitionStatusEnumToDisplay.ONLINE, -1, -1);
+        checkPartition(onlinePartitions2.get(0), 2, new String[]{"2"}, PartitionStatusEnumToDisplay.ONLINE, -1, -1);
+        checkPartition(onlinePartitions2.get(1), 1, new String[]{"1"}, PartitionStatusEnumToDisplay.ONLINE, -1, -1);
     }
 
     private void checkPartition(SegmentPartitionResponse response, long id, String[] values,
-            PartitionStatusEnumToDisplay status, long sourceCount, long byteSize) {
+                                PartitionStatusEnumToDisplay status, long sourceCount, long byteSize) {
         Assert.assertEquals(id, response.getPartitionId());
         Assert.assertArrayEquals(values, response.getValues());
         Assert.assertEquals(status, response.getStatus());
@@ -863,7 +807,7 @@ public class ModelServiceTest extends SourceTestCase {
         // update mapping
         mappingRequest.setPartitionCols(Lists.newArrayList("test_kylin_fact.lstg_site_id"));
         mappingRequest.setAliasCols(Lists.newArrayList("test_kylin_fact.leaf_categ_id"));
-        val valueMappings = Lists.<MappingRequest<List<String>, List<String>>> newArrayList();
+        val valueMappings = Lists.<MappingRequest<List<String>, List<String>>>newArrayList();
         valueMappings.add(new MappingRequest<>(Lists.newArrayList("0"), Lists.newArrayList("10")));
         valueMappings.add(new MappingRequest<>(Lists.newArrayList("1"), Lists.newArrayList("10")));
         valueMappings.add(new MappingRequest<>(Lists.newArrayList("2"), Lists.newArrayList("11")));
@@ -876,16 +820,16 @@ public class ModelServiceTest extends SourceTestCase {
         Assert.assertEquals(1, mapping.getAliasColumns().size());
         Assert.assertEquals(aliasColumn, mapping.getAliasColumns().get(0));
         Assert.assertNotNull(mapping.getAliasValue(Lists.newArrayList("0")));
-        Assert.assertEquals(Lists.<List<String>> newArrayList(Lists.newArrayList("10")),
+        Assert.assertEquals(Lists.<List<String>>newArrayList(Lists.newArrayList("10")),
                 mapping.getAliasValue(Lists.newArrayList("0")));
         Assert.assertNotNull(mapping.getAliasValue(Lists.newArrayList("1")));
-        Assert.assertEquals(Lists.<List<String>> newArrayList(Lists.newArrayList("10")),
+        Assert.assertEquals(Lists.<List<String>>newArrayList(Lists.newArrayList("10")),
                 mapping.getAliasValue(Lists.newArrayList("1")));
         Assert.assertNotNull(mapping.getAliasValue(Lists.newArrayList("2")));
-        Assert.assertEquals(Lists.<List<String>> newArrayList(Lists.newArrayList("11")),
+        Assert.assertEquals(Lists.<List<String>>newArrayList(Lists.newArrayList("11")),
                 mapping.getAliasValue(Lists.newArrayList("2")));
         Assert.assertNotNull(mapping.getAliasValue(Lists.newArrayList("3")));
-        Assert.assertEquals(Lists.<List<String>> newArrayList(Lists.newArrayList("11")),
+        Assert.assertEquals(Lists.<List<String>>newArrayList(Lists.newArrayList("11")),
                 mapping.getAliasValue(Lists.newArrayList("3")));
 
         // invalid request
@@ -943,42 +887,42 @@ public class ModelServiceTest extends SourceTestCase {
         val modelId = "747f864b-9721-4b97-acde-0aa8e8656cba";
         var values = modelService.getMultiPartitionValues(project, modelId);
         Assert.assertEquals(4, values.size());
-        checkPartitionValue(values.get(0), new String[] { "0" }, 3, 5);
-        checkPartitionValue(values.get(1), new String[] { "1" }, 4, 5);
-        checkPartitionValue(values.get(2), new String[] { "2" }, 4, 5);
-        checkPartitionValue(values.get(3), new String[] { "3" }, 3, 5);
+        checkPartitionValue(values.get(0), new String[]{"0"}, 3, 5);
+        checkPartitionValue(values.get(1), new String[]{"1"}, 4, 5);
+        checkPartitionValue(values.get(2), new String[]{"2"}, 4, 5);
+        checkPartitionValue(values.get(3), new String[]{"3"}, 3, 5);
 
         // add a new value and a existed value
         modelService.addMultiPartitionValues(project, modelId,
-                Lists.newArrayList(new String[] { "13" }, new String[] { "3" }));
+                Lists.newArrayList(new String[]{"13"}, new String[]{"3"}));
         values = modelService.getMultiPartitionValues(project, modelId);
         Assert.assertEquals(5, values.size());
-        checkPartitionValue(values.get(4), new String[] { "13" }, 0, 5);
+        checkPartitionValue(values.get(4), new String[]{"13"}, 0, 5);
         // delete a existed value and a non-exist value
         modelService.deletePartitions(project, null, modelId, Sets.newHashSet(4L, 5L));
         values = modelService.getMultiPartitionValues(project, modelId);
         Assert.assertEquals(4, values.size());
-        Assert.assertArrayEquals(new String[] { "0" }, values.get(0).getPartitionValue());
-        Assert.assertArrayEquals(new String[] { "1" }, values.get(1).getPartitionValue());
-        Assert.assertArrayEquals(new String[] { "2" }, values.get(2).getPartitionValue());
-        Assert.assertArrayEquals(new String[] { "3" }, values.get(3).getPartitionValue());
+        Assert.assertArrayEquals(new String[]{"0"}, values.get(0).getPartitionValue());
+        Assert.assertArrayEquals(new String[]{"1"}, values.get(1).getPartitionValue());
+        Assert.assertArrayEquals(new String[]{"2"}, values.get(2).getPartitionValue());
+        Assert.assertArrayEquals(new String[]{"3"}, values.get(3).getPartitionValue());
 
-        List<String[]> partitionValues = Lists.<String[]> newArrayList(new String[] { "2" });
+        List<String[]> partitionValues = Lists.<String[]>newArrayList(new String[]{"2"});
         modelService.deletePartitionsByValues(project, null, modelId, partitionValues);
         values = modelService.getMultiPartitionValues(project, modelId);
         Assert.assertEquals(3, values.size());
         Assert.assertEquals(3L, values.get(2).getId());
-        Assert.assertArrayEquals(new String[] { "3" }, values.get(2).getPartitionValue());
+        Assert.assertArrayEquals(new String[]{"3"}, values.get(2).getPartitionValue());
 
         // add an empty value and a value with part of blank
         modelService.addMultiPartitionValues(project, modelId,
-                Lists.newArrayList(new String[] { "  14  " }, new String[] { "  " }));
+                Lists.newArrayList(new String[]{"  14  "}, new String[]{"  "}));
         values = modelService.getMultiPartitionValues(project, modelId);
         Assert.assertEquals(4, values.size());
-        Assert.assertArrayEquals(new String[] { "14" }, values.get(3).getPartitionValue());
+        Assert.assertArrayEquals(new String[]{"14"}, values.get(3).getPartitionValue());
 
         try {
-            partitionValues = Lists.<String[]> newArrayList(new String[] { "not-exist-value" });
+            partitionValues = Lists.<String[]>newArrayList(new String[]{"not-exist-value"});
             modelService.deletePartitionsByValues(project, null, modelId, partitionValues);
         } catch (Exception ex) {
             Assert.assertTrue(ex instanceof KylinException);
@@ -989,7 +933,7 @@ public class ModelServiceTest extends SourceTestCase {
     }
 
     private void checkPartitionValue(MultiPartitionValueResponse response, String[] value, int buildCount,
-            int totalCount) {
+                                     int totalCount) {
         Assert.assertArrayEquals(value, response.getPartitionValue());
         Assert.assertEquals(buildCount, response.getBuiltSegmentCount());
         Assert.assertEquals(totalCount, response.getTotalSegmentCount());
@@ -1615,7 +1559,7 @@ public class ModelServiceTest extends SourceTestCase {
                 dataSegment.displayIdName()));
 
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { dataSegment.getId() }, false);
+                new String[]{dataSegment.getId()}, false);
     }
 
     @Test
@@ -1630,7 +1574,7 @@ public class ModelServiceTest extends SourceTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage(SEGMENT_NOT_EXIST_ID.getMsg(not_exist_01));
         //refresh exception
-        modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default", new String[] { not_exist_01 },
+        modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default", new String[]{not_exist_01},
                 false);
     }
 
@@ -1684,7 +1628,7 @@ public class ModelServiceTest extends SourceTestCase {
         thrown.expectMessage(
                 "Can’t delete the segment(s) in model \"nmodel_basic_inner\" under the current project settings.");
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { dataSegment.getId() }, false);
+                new String[]{dataSegment.getId()}, false);
     }
 
     @Test
@@ -1722,7 +1666,7 @@ public class ModelServiceTest extends SourceTestCase {
         dfManager.updateDataflow(update2);
         // mark a layout tobedelete
         indexManager.updateIndexPlan(modelId, copyForWrite -> copyForWrite.markWhiteIndexToBeDelete(modelId,
-                Sets.newHashSet(tobeDeleteLayoutId), Collections.emptyMap()));
+                Sets.newHashSet(tobeDeleteLayoutId)));
         Assert.assertFalse(
                 NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId).getSegments().isEmpty());
         modelService.purgeModel(modelId, project);
@@ -1765,7 +1709,7 @@ public class ModelServiceTest extends SourceTestCase {
 
         // mark a layout tobedelete
         indexManager.updateIndexPlan(modelId, copyForWrite -> copyForWrite.markWhiteIndexToBeDelete(modelId,
-                Sets.newHashSet(tobeDeleteLayoutId), Collections.emptyMap()));
+                Sets.newHashSet(tobeDeleteLayoutId)));
         Assert.assertFalse(indexManager.getIndexPlan(modelId).getToBeDeletedIndexes().isEmpty());
 
         //remove tobedelete layout from seg1
@@ -1985,14 +1929,14 @@ public class ModelServiceTest extends SourceTestCase {
                 BadModelException ccException = (BadModelException) item;
                 return BadModelException.CauseType.SAME_NAME_DIFF_EXPR == ccException.getCauseType()
                         && ccException.getAdvise()
-                                .equals("\"TEST_KYLIN_FACT\".\"PRICE\" * \"TEST_KYLIN_FACT\".\"ITEM_COUNT\"")
+                        .equals("\"TEST_KYLIN_FACT\".\"PRICE\" * \"TEST_KYLIN_FACT\".\"ITEM_COUNT\"")
                         && ccException.getConflictingModel().equals("nmodel_basic_inner")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                                "The name of computed column 'TEST_KYLIN_FACT.DEAL_AMOUNT' has already been used in "
-                                        + "model 'nmodel_basic_inner', and the expression is "
-                                        + "'\"TEST_KYLIN_FACT\".\"PRICE\" * \"TEST_KYLIN_FACT\".\"ITEM_COUNT\"'. "
-                                        + "Please modify the expression to keep consistent, or use a different name.");
+                        "The name of computed column 'TEST_KYLIN_FACT.DEAL_AMOUNT' has already been used in "
+                                + "model 'nmodel_basic_inner', and the expression is "
+                                + "'\"TEST_KYLIN_FACT\".\"PRICE\" * \"TEST_KYLIN_FACT\".\"ITEM_COUNT\"'. "
+                                + "Please modify the expression to keep consistent, or use a different name.");
 
             }
         });
@@ -2119,8 +2063,8 @@ public class ModelServiceTest extends SourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("SELLER_ACCOUNT.LEFTJOIN_SELLER_COUNTRY_ABBR")
                         && ccException.getMessage().equals(
-                                "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR's expression is already defined in model nmodel_basic, "
-                                        + "to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
+                        "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR's expression is already defined in model nmodel_basic, "
+                                + "to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
             }
         });
 
@@ -2196,7 +2140,7 @@ public class ModelServiceTest extends SourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_cc_test")
                         && ccException.getBadCC().equals("TEST_ORDER.ID_PLUS_1") && ccException.getAdvise() == null
                         && ccException.getMessage().equals(
-                                "Computed column ID_PLUS_1 is already defined in model nmodel_cc_test, no suggestion could be provided to reuse it");
+                        "Computed column ID_PLUS_1 is already defined in model nmodel_cc_test, no suggestion could be provided to reuse it");
             }
         });
 
@@ -2252,10 +2196,10 @@ public class ModelServiceTest extends SourceTestCase {
                         && "UPPER(\"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\")".equals(ccException.getAdvise())
                         && ccException.getBadCC().equals("BUYER_ACCOUNT.COUNTRY_UPPER")
                         && ccException.getMessage().equals(
-                                "The name of computed column 'BUYER_ACCOUNT.COUNTRY_UPPER' has already been used "
-                                        + "in model 'nmodel_cc_test', and the expression is "
-                                        + "'UPPER(\"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\")'. "
-                                        + "Please modify the expression to keep consistent, or use a different name.");
+                        "The name of computed column 'BUYER_ACCOUNT.COUNTRY_UPPER' has already been used "
+                                + "in model 'nmodel_cc_test', and the expression is "
+                                + "'UPPER(\"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\")'. "
+                                + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -2318,7 +2262,7 @@ public class ModelServiceTest extends SourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("SELLER_ACCOUNT.LEFTJOIN_SELLER_COUNTRY_ABBR_2")
                         && ccException.getMessage().equals(
-                                "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR_2's expression is already defined in model nmodel_basic, to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
+                        "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR_2's expression is already defined in model nmodel_basic, to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
             }
         });
 
@@ -2368,10 +2312,10 @@ public class ModelServiceTest extends SourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR")
                         && ccException.getMessage()
-                                .equals("The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR' "
-                                        + "has already been used in model 'nmodel_basic', and the expression is "
-                                        + "'SUBSTR(\"SELLER_ACCOUNT\".\"ACCOUNT_COUNTRY\",0,1)'. "
-                                        + "Please modify the expression to keep consistent, or use a different name.");
+                        .equals("The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR' "
+                                + "has already been used in model 'nmodel_basic', and the expression is "
+                                + "'SUBSTR(\"SELLER_ACCOUNT\".\"ACCOUNT_COUNTRY\",0,1)'. "
+                                + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -2407,14 +2351,14 @@ public class ModelServiceTest extends SourceTestCase {
                 BadModelException ccException = (BadModelException) item;
                 return ccException.getCauseType() == BadModelException.CauseType.SAME_NAME_DIFF_EXPR
                         && ccException.getAdvise()
-                                .equals("CONCAT(\"SELLER_ACCOUNT\".\"ACCOUNT_ID\", \"SELLER_COUNTRY\".\"NAME\")")
+                        .equals("CONCAT(\"SELLER_ACCOUNT\".\"ACCOUNT_ID\", \"SELLER_COUNTRY\".\"NAME\")")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
-                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
-                                        + "has already been used in model 'nmodel_basic', and the expression is "
-                                        + "'CONCAT(\"SELLER_ACCOUNT\".\"ACCOUNT_ID\", \"SELLER_COUNTRY\".\"NAME\")'. "
-                                        + "Please modify the expression to keep consistent, or use a different name.");
+                        "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
+                                + "has already been used in model 'nmodel_basic', and the expression is "
+                                + "'CONCAT(\"SELLER_ACCOUNT\".\"ACCOUNT_ID\", \"SELLER_COUNTRY\".\"NAME\")'. "
+                                + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -2453,9 +2397,9 @@ public class ModelServiceTest extends SourceTestCase {
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR_2")
                         && ccException.getMessage().equals(
-                                "The expression of computed column has already been used in model 'nmodel_basic' as "
-                                        + "'LEFTJOIN_BUYER_COUNTRY_ABBR'. Please modify the name to keep consistent, "
-                                        + "or use a different expression.");
+                        "The expression of computed column has already been used in model 'nmodel_basic' as "
+                                + "'LEFTJOIN_BUYER_COUNTRY_ABBR'. Please modify the name to keep consistent, "
+                                + "or use a different expression.");
             }
         });
 
@@ -2532,14 +2476,14 @@ public class ModelServiceTest extends SourceTestCase {
                 BadModelException ccException = (BadModelException) item;
                 return BadModelException.CauseType.SAME_NAME_DIFF_EXPR == ccException.getCauseType()
                         && ccException.getAdvise()
-                                .equals("CONCAT(\"SELLER_ACCOUNT\".\"ACCOUNT_ID\", \"SELLER_COUNTRY\".\"NAME\")")
+                        .equals("CONCAT(\"SELLER_ACCOUNT\".\"ACCOUNT_ID\", \"SELLER_COUNTRY\".\"NAME\")")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
-                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
-                                        + "has already been used in model 'nmodel_basic', and the expression is "
-                                        + "'CONCAT(\"SELLER_ACCOUNT\".\"ACCOUNT_ID\", \"SELLER_COUNTRY\".\"NAME\")'. "
-                                        + "Please modify the expression to keep consistent, or use a different name.");
+                        "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
+                                + "has already been used in model 'nmodel_basic', and the expression is "
+                                + "'CONCAT(\"SELLER_ACCOUNT\".\"ACCOUNT_ID\", \"SELLER_COUNTRY\".\"NAME\")'. "
+                                + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -2628,10 +2572,10 @@ public class ModelServiceTest extends SourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
-                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
-                                        + "has already been used in model 'nmodel_basic', and the expression is "
-                                        + "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. "
-                                        + "Please modify the expression to keep consistent, or use a different name.");
+                        "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME' "
+                                + "has already been used in model 'nmodel_basic', and the expression is "
+                                + "'CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)'. "
+                                + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -2670,15 +2614,15 @@ public class ModelServiceTest extends SourceTestCase {
                 BadModelException ccException = (BadModelException) item;
                 return BadModelException.CauseType.SAME_NAME_DIFF_EXPR == ccException.getCauseType()
                         && ccException.getAdvise()
-                                .equals("CONCAT(\"BUYER_ACCOUNT\".\"ACCOUNT_ID\", \"BUYER_COUNTRY\".\"NAME\")")
+                        .equals("CONCAT(\"BUYER_ACCOUNT\".\"ACCOUNT_ID\", \"BUYER_COUNTRY\".\"NAME\")")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME")
 
                         && ccException.getMessage().equals(
-                                "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME' "
-                                        + "has already been used in model 'nmodel_basic', and the expression is "
-                                        + "'CONCAT(\"BUYER_ACCOUNT\".\"ACCOUNT_ID\", \"BUYER_COUNTRY\".\"NAME\")'. "
-                                        + "Please modify the expression to keep consistent, or use a different name.");
+                        "The name of computed column 'TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME' "
+                                + "has already been used in model 'nmodel_basic', and the expression is "
+                                + "'CONCAT(\"BUYER_ACCOUNT\".\"ACCOUNT_ID\", \"BUYER_COUNTRY\".\"NAME\")'. "
+                                + "Please modify the expression to keep consistent, or use a different name.");
             }
         });
 
@@ -2711,7 +2655,7 @@ public class ModelServiceTest extends SourceTestCase {
                 copyForWrite -> copyForWrite.getComputedColumnDescs().get(0).setDatatype("date"));
         thrown.expect(KylinException.class);
         thrown.expectMessage(new MessageFormat(MsgPicker.getMsg().getCheckCCType(), Locale.ROOT)
-                .format(new String[] { "LINEORDER.CC_CNAME", "DOUBLE", "date" }));
+                .format(new String[]{"LINEORDER.CC_CNAME", "DOUBLE", "date"}));
         modelService.validateCCType(modelId, project);
     }
 
@@ -2737,7 +2681,7 @@ public class ModelServiceTest extends SourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                                "This name has already been used by other computed columns in this model. Please modify it.");
+                        "This name has already been used by other computed columns in this model. Please modify it.");
             }
         });
 
@@ -2779,7 +2723,7 @@ public class ModelServiceTest extends SourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                                "This expression has already been used by other computed columns in this model. Please modify it.");
+                        "This expression has already been used by other computed columns in this model. Please modify it.");
             }
         });
 
@@ -2822,7 +2766,7 @@ public class ModelServiceTest extends SourceTestCase {
                         && ccException.getAdvise() == null && ccException.getConflictingModel() == null
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
                         && ccException.getMessage().equals(
-                                "This expression has already been used by other computed columns in this model. Please modify it.");
+                        "This expression has already been used by other computed columns in this model. Please modify it.");
             }
         });
 
@@ -3255,8 +3199,8 @@ public class ModelServiceTest extends SourceTestCase {
         joinTableDesc.setTable("DEFAULT.TEST_ACCOUNT");
         JoinDesc joinDesc = new JoinDesc();
         joinDesc.setType("INNER");
-        joinDesc.setPrimaryKey(new String[] { "TEST_ACCOUNT.ACCOUNT_ID", "TEST_ACCOUNT.ACCOUNT_ID" });
-        joinDesc.setForeignKey(new String[] { "TEST_KYLIN_FACT.SELLER_ID", "TEST_KYLIN_FACT.SELLER_ID" });
+        joinDesc.setPrimaryKey(new String[]{"TEST_ACCOUNT.ACCOUNT_ID", "TEST_ACCOUNT.ACCOUNT_ID"});
+        joinDesc.setForeignKey(new String[]{"TEST_KYLIN_FACT.SELLER_ID", "TEST_KYLIN_FACT.SELLER_ID"});
 
         joinTableDesc.setJoin(joinDesc);
         modelRequest.setJoinTables(Lists.newArrayList(joinTableDesc));
@@ -3617,7 +3561,7 @@ public class ModelServiceTest extends SourceTestCase {
         model.setFilterCondition(originSql);
         modelService.massageModelFilterCondition(model);
         Assert.assertEquals("(((`TEST_KYLIN_FACT`.`TRANS_ID` = 0) "
-                + "AND (`TEST_ORDER`.`ORDER_ID` < 100)) AND ((`TEST_KYLIN_FACT`.`PRICE` * `TEST_KYLIN_FACT`.`ITEM_COUNT`) > 123))",
+                        + "AND (`TEST_ORDER`.`ORDER_ID` < 100)) AND ((`TEST_KYLIN_FACT`.`PRICE` * `TEST_KYLIN_FACT`.`ITEM_COUNT`) > 123))",
                 model.getFilterCondition());
     }
 
@@ -3966,22 +3910,6 @@ public class ModelServiceTest extends SourceTestCase {
                 null);
         Assert.assertEquals(1, overlapSegments8.size());
 
-        //        MockSecondStorage.mock(defaultProject, new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), defaultProject);
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(modelId, indexPlan -> {
-                indexPlan.createAndAddBaseIndex(indexPlan.getModel());
-            });
-            return null;
-        }, defaultProject);
-        //        SecondStorageUtil.initModelMetaData(defaultProject, modelId);
-        //        Assert.assertTrue(SecondStorageUtil.isModelEnable(defaultProject, modelId));
-        //        Assert.assertTrue(SecondStorageUtil.isModelEnableWithoutCheckKylinInfo(defaultProject, modelId));
-        List<NDataSegment> overlapSegments31 = modelService.checkSegmentToBuildOverlapsBuilt(defaultProject,
-                dataModelDesc, new SegmentRange.TimePartitionedSegmentRange(1309891513770L, 1509891513770L), true,
-                null);
-        Assert.assertEquals(0, overlapSegments31.size());
-
         kylinConfig.setProperty("kylin.build.segment-overlap-enabled", "false");
         List<NDataSegment> overlapSegments9 = modelService.checkSegmentToBuildOverlapsBuilt(defaultProject,
                 dataModelDesc, new SegmentRange.TimePartitionedSegmentRange(1309891513770L, 1509891513770L), true,
@@ -4081,26 +4009,26 @@ public class ModelServiceTest extends SourceTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage(SEGMENT_NOT_EXIST_NAME.getMsg("not exist name1,not exist name2"));
         modelService.convertSegmentIdWithName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default", null,
-                new String[] { "not exist name1", "not exist name2" });
+                new String[]{"not exist name1", "not exist name2"});
     }
 
     @Test
     public void testConvertSegmentIdWithName_ByName() {
         String[] segIds = modelService.convertSegmentIdWithName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default", null,
-                new String[] { "20171104141833_20171105141833" });
-        String[] originSegIds = { "11124840-b3e3-43db-bcab-2b78da666d00" };
+                new String[]{"20171104141833_20171105141833"});
+        String[] originSegIds = {"11124840-b3e3-43db-bcab-2b78da666d00"};
         Assert.assertTrue(ArrayUtils.isEquals(segIds, originSegIds));
     }
 
     @Test
     public void testCheckSegmentsExistById() {
         boolean existed = modelService.checkSegmentsExistById("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
-                new String[] { "11124840-b3e3-43db-bcab-2b78da666d00" }, false);
+                new String[]{"11124840-b3e3-43db-bcab-2b78da666d00"}, false);
         Assert.assertTrue(existed);
 
         try {
             modelService.checkSegmentsExistById("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
-                    new String[] { "11124840-b3e3-43db-bcab-2b78da666d00_not" }, false);
+                    new String[]{"11124840-b3e3-43db-bcab-2b78da666d00_not"}, false);
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertEquals(SEGMENT_NOT_EXIST_ID.getCodeMsg("11124840-b3e3-43db-bcab-2b78da666d00_not"),
@@ -4111,12 +4039,12 @@ public class ModelServiceTest extends SourceTestCase {
     @Test
     public void testCheckSegmentsExistByName() {
         boolean existed = modelService.checkSegmentsExistByName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
-                new String[] { "20171104141833_20171105141833" }, false);
+                new String[]{"20171104141833_20171105141833"}, false);
         Assert.assertTrue(existed);
 
         try {
             modelService.checkSegmentsExistByName("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default",
-                    new String[] { "20171104141833_20171105141833_not" }, false);
+                    new String[]{"20171104141833_20171105141833_not"}, false);
         } catch (Exception e) {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertEquals(SEGMENT_NOT_EXIST_NAME.getCodeMsg("20171104141833_20171105141833_not"),
@@ -4298,116 +4226,6 @@ public class ModelServiceTest extends SourceTestCase {
 
     }
 
-    // @Test
-    public void testConvertToRequestWithSecondStorage() throws IOException {
-        val model = "741ca86a-1f13-46da-a59f-95fb68615e3a";
-        val project = "default";
-        //        MockSecondStorage.mock("default", new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> indexPlan.createAndAddBaseIndex(indexPlan.getModel()));
-            return null;
-        }, project);
-        SecondStorageUtil.initModelMetaData("default", model);
-        Assert.assertTrue(indexPlanManager.getIndexPlan(model).containBaseTableLayout());
-        ModelRequest request = new ModelRequest();
-        request.setWithSecondStorage(true);
-        request.setUuid(model);
-        BuildBaseIndexResponse changedResponse = mock(BuildBaseIndexResponse.class);
-        Mockito.doCallRealMethod().when(modelService).changeSecondStorageIfNeeded("default", request, () -> true);
-
-        when(changedResponse.hasTableIndexChange()).thenReturn(true);
-        modelService.changeSecondStorageIfNeeded(project, request, () -> true);
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-        //        Assert.assertTrue(SecondStorageUtil.isModelEnableWithoutCheckKylinInfo(project, model));
-
-        val modelRequest = modelService.convertToRequest(modelService.getModelById(model, project));
-        Assert.assertTrue(modelRequest.isWithSecondStorage());
-    }
-
-    // @Test
-    public void testAddSecondStorageDisplayStatus() throws IOException {
-        val model = "acfde546-2cc9-4eec-bc92-e3bd46d4e2ee";
-        val project = "table_index";
-        //        MockSecondStorage.mock(project, new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> indexPlan.createAndAddBaseIndex(indexPlan.getModel()));
-            return null;
-        }, project);
-        Assert.assertTrue(indexPlanManager.getIndexPlan(model).containBaseTableLayout());
-        SecondStorageUtil.initModelMetaData(project, model);
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-        //        Assert.assertTrue(SecondStorageUtil.isModelEnableWithoutCheckKylinInfo(project, model));
-        {
-            List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(model, project, "0",
-                    "" + Long.MAX_VALUE, "", null, null, true, "start_time", false, null, null);
-            Assert.assertEquals(1, segments.size());
-            NDataSegmentResponse nDataSegmentResponse = segments.get(0);
-            Assert.assertEquals(SegmentStatusEnumToDisplay.ONLINE_HDFS, nDataSegmentResponse.getStatusToDisplay());
-            Assert.assertNull(nDataSegmentResponse.getStatusSecondStorageToDisplay());
-
-            nDataSegmentResponse.setStatusToDisplay(SegmentStatusEnumToDisplay.LOCKED);
-            List<NDataSegmentResponse> segmentResponseList = Lists.newArrayList(nDataSegmentResponse);
-            modelService.changeSegmentDisplayStatus(model, project, segmentResponseList);
-            Assert.assertEquals(1, segmentResponseList.size());
-            Assert.assertEquals(SegmentStatusEnumToDisplay.LOCKED, segmentResponseList.get(0).getStatusToDisplay());
-        }
-        {
-            List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(model, project, "0",
-                    "" + Long.MAX_VALUE, "", null, null, true, "start_time", false,
-                    Lists.newArrayList(SegmentStatusEnumToDisplay.ONLINE_HDFS.toString()), Lists.newArrayList());
-            Assert.assertEquals(1, segments.size());
-            Assert.assertEquals(SegmentStatusEnumToDisplay.ONLINE_HDFS, segments.get(0).getStatusToDisplay());
-            Assert.assertNull(segments.get(0).getStatusSecondStorageToDisplay());
-        }
-        {
-            List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(model, project, "0",
-                    "" + Long.MAX_VALUE, "", null, null, true, "start_time", false, Lists.newArrayList(),
-                    Lists.newArrayList());
-            Assert.assertEquals(1, segments.size());
-            Assert.assertEquals(SegmentStatusEnumToDisplay.ONLINE_HDFS, segments.get(0).getStatusToDisplay());
-            Assert.assertNull(segments.get(0).getStatusSecondStorageToDisplay());
-        }
-        {
-            List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(model, project, "0",
-                    "" + Long.MAX_VALUE, "", null, null, true, "start_time", false,
-                    Lists.newArrayList(SegmentStatusEnumToDisplay.ONLINE_TIERED_STORAGE.toString()),
-                    Lists.newArrayList(SegmentSecondStorageStatusEnum.LOADING.toString()));
-            Assert.assertEquals(0, segments.size());
-        }
-        {
-            List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(model, project, "0",
-                    "" + Long.MAX_VALUE, "", null, null, true, "start_time", false, Lists.newArrayList(),
-                    Lists.newArrayList(SegmentSecondStorageStatusEnum.LOADING.toString()));
-            Assert.assertEquals(0, segments.size());
-        }
-    }
-
-    @Test
-    public void testAddSecondStorageDisplayStatusWithCHDisable() throws IOException {
-        val model = "acfde546-2cc9-4eec-bc92-e3bd46d4e2ee";
-        val project = "table_index";
-        //        MockSecondStorage.mock(project, new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> indexPlan.createAndAddBaseIndex(indexPlan.getModel()));
-            return null;
-        }, project);
-        Assert.assertTrue(indexPlanManager.getIndexPlan(model).containBaseTableLayout());
-        Assert.assertFalse(SecondStorageUtil.isModelEnable(project, model));
-        //        Assert.assertFalse(SecondStorageUtil.isModelEnableWithoutCheckKylinInfo(project, model));
-        {
-            List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(model, project, "0",
-                    "" + Long.MAX_VALUE, "", null, null, true, "start_time", false,
-                    Lists.newArrayList(SegmentStatusEnumToDisplay.ONLINE.toString()),
-                    Lists.newArrayList(SegmentSecondStorageStatusEnum.LOADING.toString()));
-            Assert.assertEquals(1, segments.size());
-            Assert.assertEquals(SegmentStatusEnumToDisplay.ONLINE, segments.get(0).getStatusToDisplay());
-            Assert.assertNull(segments.get(0).getStatusSecondStorageToDisplay());
-        }
-    }
-
     @Test
     public void testCheckModelDimensionNameAndMeasureName() {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
@@ -4587,7 +4405,7 @@ public class ModelServiceTest extends SourceTestCase {
         // Multi Partition column change
         dfm.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite(), SegmentStatusEnum.READY);
         dfm.updateDataflowStatus(modelId, RealizationStatusEnum.ONLINE);
-        val columns = Lists.<String> newLinkedList();
+        val columns = Lists.<String>newLinkedList();
         columns.add("location");
 
         modelService.updatePartitionColumn(getProject(), modelId, model.getPartitionDesc(),
@@ -4733,9 +4551,9 @@ public class ModelServiceTest extends SourceTestCase {
         // PartitionDesc change. Multi Partition column change or from none to have or from have to none.
 
         List<String[]> partitionValues = new ArrayList<>();
-        partitionValues.add(new String[] { "p1" });
-        partitionValues.add(new String[] { "p2" });
-        partitionValues.add(new String[] { "p3" });
+        partitionValues.add(new String[]{"p1"});
+        partitionValues.add(new String[]{"p2"});
+        partitionValues.add(new String[]{"p3"});
         var dataModel = modelService.batchUpdateMultiPartition(getProject(), modelId, partitionValues);
 
         List<List<String>> expectPartitionValues = new ArrayList<>();
@@ -4747,9 +4565,9 @@ public class ModelServiceTest extends SourceTestCase {
                 .map(MultiPartitionDesc.PartitionInfo::getValues).map(Arrays::asList).collect(Collectors.toList()));
 
         partitionValues = new ArrayList<>();
-        partitionValues.add(new String[] { "p2" });
-        partitionValues.add(new String[] { "p1" });
-        partitionValues.add(new String[] { "p5" });
+        partitionValues.add(new String[]{"p2"});
+        partitionValues.add(new String[]{"p1"});
+        partitionValues.add(new String[]{"p5"});
         dataModel = modelService.batchUpdateMultiPartition(getProject(), modelId, partitionValues);
 
         expectPartitionValues = new ArrayList<>();
@@ -4764,9 +4582,9 @@ public class ModelServiceTest extends SourceTestCase {
     public void testBatchUpdateMultiPartitionWithNotExistsModel() {
         val modelId = "1";
         List<String[]> partitionValues = new ArrayList<>();
-        partitionValues.add(new String[] { "p1" });
-        partitionValues.add(new String[] { "p2" });
-        partitionValues.add(new String[] { "p3" });
+        partitionValues.add(new String[]{"p1"});
+        partitionValues.add(new String[]{"p2"});
+        partitionValues.add(new String[]{"p3"});
         thrown.expect(KylinException.class);
         thrown.expectMessage(MODEL_ID_NOT_EXIST.getMsg("1"));
         modelService.batchUpdateMultiPartition(getProject(), modelId, partitionValues);
@@ -4998,17 +4816,13 @@ public class ModelServiceTest extends SourceTestCase {
         val model = mock(NDataModel.class);
         val indexPlan = mock(IndexPlan.class);
 
-        when(modelRequest.isWithSecondStorage()).thenReturn(false);
         when(model.getModelType()).thenReturn(NDataModel.ModelType.BATCH);
         when(modelRequest.isWithBaseIndex()).thenReturn(true);
         when(modelRequest.getBaseIndexType()).thenReturn(null);
         modelService.addBaseIndex(modelRequest, model, indexPlan);
         Mockito.verify(indexPlan).createAndAddBaseIndex(model,
                 Lists.newArrayList(IndexEntity.Source.BASE_AGG_INDEX, IndexEntity.Source.BASE_TABLE_INDEX));
-        when(modelRequest.isWithSecondStorage()).thenReturn(true);
         when(indexPlan.createBaseTableIndex(model)).thenReturn(null);
-        modelService.addBaseIndex(modelRequest, model, indexPlan);
-        Mockito.verify(indexPlan).createAndAddBaseIndex(anyList());
     }
 
     @Test
@@ -5017,7 +4831,6 @@ public class ModelServiceTest extends SourceTestCase {
         val model = mock(NDataModel.class);
         val indexPlan = mock(IndexPlan.class);
 
-        when(modelRequest.isWithSecondStorage()).thenReturn(false);
         when(model.getModelType()).thenReturn(NDataModel.ModelType.BATCH);
         when(modelRequest.isWithBaseIndex()).thenReturn(true);
         when(modelRequest.getBaseIndexType()).thenReturn(null);
@@ -5033,10 +4846,7 @@ public class ModelServiceTest extends SourceTestCase {
         modelService.addBaseIndex(modelRequest, model, indexPlan);
         Mockito.verify(indexPlan).createAndAddBaseIndex(model, Lists.newArrayList(IndexEntity.Source.BASE_TABLE_INDEX));
 
-        when(modelRequest.isWithSecondStorage()).thenReturn(true);
         when(indexPlan.createBaseTableIndex(model)).thenReturn(null);
-        modelService.addBaseIndex(modelRequest, model, indexPlan);
-        Mockito.verify(indexPlan).createAndAddBaseIndex(anyList());
     }
 
     @Test
@@ -5240,76 +5050,6 @@ public class ModelServiceTest extends SourceTestCase {
                 () -> modelService.validatePartitionDesc(partitionDesc));
         partitionDesc.setPartitionDateFormat("yyyy-MM-dd");
         modelService.validatePartitionDesc(partitionDesc);
-    }
-
-    // @Test
-    public void testCheckSegmentSecondStorage() throws IOException {
-        val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        val project = "default";
-        //        MockSecondStorage.mock("default", new ArrayList<>(), this);
-        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            indexPlanManager.updateIndexPlan(model, indexPlan -> indexPlan.createAndAddBaseIndex(indexPlan.getModel()));
-            return null;
-        }, project);
-        SecondStorageUtil.initModelMetaData(project, model);
-        Assert.assertTrue(SecondStorageUtil.isModelEnable(project, model));
-        //        Assert.assertTrue(SecondStorageUtil.isModelEnableWithoutCheckKylinInfo(project, model));
-
-        val mockModel = RandomUtil.randomUUIDStr();
-        Assert.assertFalse(SecondStorageUtil.isModelEnable(project, mockModel));
-        //        Assert.assertFalse(SecondStorageUtil.isModelEnableWithoutCheckKylinInfo(project, mockModel));
-
-        val segment = Mockito.mock(NDataSegment.class);
-        modelService.checkSegmentSecondStorage(mockModel, project, segment);
-        try {
-            Mockito.when(segment.getLayoutsMap()).thenReturn(Maps.newHashMap());
-            modelService.checkSegmentSecondStorage(model, project, segment);
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof KylinException);
-            Assert.assertEquals(PERMISSION_DENIED.toErrorCode().getCodeString(),
-                    ((KylinException) e).getErrorCode().getCodeString());
-            Assert.assertEquals(MsgPicker.getMsg().getInvalidMergeSegmentWithoutDFS(), e.getMessage());
-        }
-
-        val layoutsMap = Maps.<Long, NDataLayout> newHashMap();
-        val layout = Mockito.mock(NDataLayout.class);
-        layoutsMap.put(0L, layout);
-        Mockito.when(segment.getLayoutsMap()).thenReturn(layoutsMap);
-        modelService.checkSegmentSecondStorage(model, project, segment);
-    }
-
-    @Test
-    public void testCheckSegmentStatus() {
-        {
-            modelService.checkSegmentStatus(Lists.newArrayList());
-        }
-        {
-            modelService.checkSegmentStatus(Lists.newArrayList("ONLINE", "ONLINE(HDFS)"));
-        }
-        {
-            ArrayList<String> exceptionStatuses = Lists.newArrayList("ONLINE_EXCEPTION");
-            Assert.assertThrows(SEGMENT_STATUS_ILLEGAL.getMsg(), KylinException.class,
-                    () -> modelService.checkSegmentStatus(exceptionStatuses));
-        }
-    }
-
-    @Test
-    public void testCheckSegmentSecondStorageStatus() {
-        {
-            modelService.checkSegmentSecondStorageStatus(Lists.newArrayList());
-        }
-        {
-            modelService.checkSegmentSecondStorageStatus(Lists.newArrayList("LOADING", "LOADED"));
-        }
-        {
-            ArrayList<String> exceptionStatuses = Lists.newArrayList("LOADING_EXCEPTION");
-            Assert.assertThrows(
-                    PARAMETER_INVALID_SUPPORT_LIST.getMsg("statuses_second_storage",
-                            StringUtils.join(SegmentStatusEnumToDisplay.getNames(), ", ")),
-                    KylinException.class, () -> modelService.checkSegmentSecondStorageStatus(exceptionStatuses));
-        }
     }
 
     @Test
@@ -5716,7 +5456,7 @@ public class ModelServiceTest extends SourceTestCase {
                 + "{\"id\":6,\"name\":\"ACCOUNT2\",\"column\":\"SUM_LC_NULL_TBL.ACCOUNT2\",\"status\":\"DIMENSION\",\"excluded\":false,\"cardinality\":null,\"min_value\":null,\"max_value\":null,\"max_length_value\":null,\"min_length_value\":null,\"null_count\":null,\"comment\":null,\"type\":\"varchar(52)\",\"simple\":null,\"datatype\":\"varchar(52)\"}],"
                 + "\"simplified_measures\":[{\"id\":100000,\"expression\":\"COUNT\",\"name\":\"COUNT_ALL\",\"return_type\":\"bigint\",\"parameter_value\":[{\"type\":\"constant\",\"value\":\"1\"}],\"converted_columns\":[],\"column\":null,\"comment\":null},{\"id\":100001,\"expression\":\"SUM_LC\",\"name\":\"sumlc_double_null\",\"return_type\":\"double\",\"parameter_value\":[{\"type\":\"column\",\"value\":\"SUM_LC_NULL_TBL.DATA_NULL\"},{\"type\":\"column\",\"value\":\"SUM_LC_NULL_TBL.SUM_DATE1\"}],"
                 + "\"converted_columns\":[],\"column\":null,\"comment\":\"\"},{\"id\":100002,\"expression\":\"SUM_LC\",\"name\":\"sumlc_decimal_null\",\"return_type\":\"decimal(20,6)\",\"parameter_value\":[{\"type\":\"column\",\"value\":\"SUM_LC_NULL_TBL.DATA_DECIMAL\"},{\"type\":\"column\",\"value\":\"SUM_LC_NULL_TBL.SUM_DATE1\"}],\"converted_columns\":[],\"column\":null,\"comment\":\"\"},{\"name\":\"abc\",\"expression\":\"SUM_LC\",\"return_type\":\"\",\"comment\":\"\",\"parameter_value\":[{\"type\":\"column\",\"value\":\"SUM_LC_NULL_TBL.BALANCE1\"},{\"type\":\"column\",\"value\":\"SUM_LC_NULL_TBL.BALANCE1\",\"table_guid\":null}]}],"
-                + "\"computed_columns\":[],\"last_modified\":1668402813791,\"filter_condition\":\"\",\"partition_desc\":null,\"multi_partition_desc\":null,\"management_type\":\"MODEL_BASED\",\"with_second_storage\":false,\"second_storage_size\":0,\"canvas\":{\"coordinate\":{\"SUM_LC_NULL_TBL\":{\"x\":462.44444105360253,\"y\":108.66667005750864,\"width\":200,\"height\":486.66666666666663,\"isSpread\":true}},\"zoom\":9,\"marginClient\":{\"left\":0,\"top\":0}},\"available_indexes_count\":0,\"other_columns\":[{\"column\":\"SUM_LC_NULL_TBL.BALANCE1\",\"name\":\"BALANCE1\",\"datatype\":\"double\"},"
+                + "\"computed_columns\":[],\"last_modified\":1668402813791,\"filter_condition\":\"\",\"partition_desc\":null,\"multi_partition_desc\":null,\"management_type\":\"MODEL_BASED\",\"canvas\":{\"coordinate\":{\"SUM_LC_NULL_TBL\":{\"x\":462.44444105360253,\"y\":108.66667005750864,\"width\":200,\"height\":486.66666666666663,\"isSpread\":true}},\"zoom\":9,\"marginClient\":{\"left\":0,\"top\":0}},\"available_indexes_count\":0,\"other_columns\":[{\"column\":\"SUM_LC_NULL_TBL.BALANCE1\",\"name\":\"BALANCE1\",\"datatype\":\"double\"},"
                 + "{\"column\":\"SUM_LC_NULL_TBL.DATA_NULL\",\"name\":\"DATA_NULL\",\"datatype\":\"double\"},{\"column\":\"SUM_LC_NULL_TBL.DATA_DECIMAL\",\"name\":\"DATA_DECIMAL\",\"datatype\":\"decimal(10,6)\"}]}";
         ModelRequest request = JsonUtil.readValue(modelRequest, ModelRequest.class);
         Assert.assertThrows(KylinException.class, () -> modelService.checkBeforeModelSave(request));

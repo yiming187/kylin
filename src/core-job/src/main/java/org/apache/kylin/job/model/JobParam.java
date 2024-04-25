@@ -89,7 +89,10 @@ public class JobParam {
 
     private Set<LayoutEntity> deleteLayouts;
 
-    private Set<Long> secondStorageDeleteLayoutIds;
+    /**
+     * Used only for {@link JobTypeEnum#INDEX_BUILD} job
+     */
+    private boolean layoutsDeletableAfterBuild = false;
 
     public JobParam addExtParams(String key, String value) {
         Map<String, String> params = getExtParams();
@@ -120,7 +123,7 @@ public class JobParam {
     }
 
     public JobParam(Set<String> targetSegments, Set<Long> targetLayouts, String model, String owner,
-            Set<Long> targetPartitions, Set<JobBucket> targetBuckets) {
+                    Set<Long> targetPartitions, Set<JobBucket> targetBuckets) {
         this(model, owner);
         this.withTargetSegments(targetSegments);
         this.setTargetLayouts(targetLayouts);
@@ -204,12 +207,6 @@ public class JobParam {
     public void setCondition(Map<String, Object> condition) {
         if (Objects.nonNull(condition)) {
             this.condition = condition;
-        }
-    }
-
-    public void setSecondStorageDeleteLayoutIds(Set<Long> secondStorageDeleteLayoutIds) {
-        if (Objects.nonNull(secondStorageDeleteLayoutIds)) {
-            this.secondStorageDeleteLayoutIds = secondStorageDeleteLayoutIds;
         }
     }
 

@@ -27,11 +27,10 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
-import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.engine.spark.job.NSparkSnapshotJob;
 import org.apache.kylin.engine.spark.job.NTableSamplingJob;
-import org.apache.kylin.job.SecondStorageCleanJobUtil;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -198,8 +197,6 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
                 executableResponse.setTargetSubject("The snapshot is deleted");
                 executableResponse.setTargetSubjectError(true);
             }
-        } else if (SecondStorageCleanJobUtil.isProjectCleanJob(abstractExecutable)) {
-            executableResponse.setTargetSubject(abstractExecutable.getProject());
         } else {
             val dataflow = NDataflowManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), abstractExecutable.getProject())
@@ -221,18 +218,18 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
 
     /**
      * Single Segment situation:
-     *
+     * <p>
      * CurrentProgress = numberOfCompletedSteps / totalNumberOfSteps, accurate to the single digit percentage.
-     *
+     * <p>
      * Among them, the progress of the "BUILD_LAYER"
      * step = numberOfCompletedIndexes / totalNumberOfIndexesToBeConstructed,
      * the progress of other steps will not be refined
      * ----------------------------------------------------------------------------------------------------------
      * multi segment situation:
-     *
+     * <p>
      * CurrentProgress =
-     *   [numberOfPublicStepsCompleted + (numberOfSegmentStepsCompleted / numberOfSegments)] / totalNumberOfSteps
-     *
+     * [numberOfPublicStepsCompleted + (numberOfSegmentStepsCompleted / numberOfSegments)] / totalNumberOfSteps
+     * <p>
      * Another: "BUILD_LAYER" are not refined
      */
     public static float calculateStepRatio(AbstractExecutable abstractExecutable, ExecutablePO executablePO) {
@@ -268,7 +265,9 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         return stepRatio;
     }
 
-    /** calculate stage count from segment */
+    /**
+     * calculate stage count from segment
+     */
     public static double calculateSuccessStageInTaskMap(AbstractExecutable task, Map<String, List<StageBase>> stageMap,
             ExecutablePO executablePO) {
         var successStages = 0D;

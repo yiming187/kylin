@@ -31,11 +31,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportResource;
@@ -50,17 +48,15 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
-import io.kyligence.kap.secondstorage.SecondStorageUpdater;
-
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = ServiceTestBase.SpringConfig.class)
 @WebAppConfiguration(value = "../common-service/src/test/resources")
 @TestPropertySource(properties = {"spring.cloud.nacos.discovery.enabled = false"})
 @TestPropertySource(properties = {"spring.session.store-type = NONE"})
-@ActiveProfiles({ "testing", "test" })
-@PowerMockIgnore({ "com.sun.security.*", "org.w3c.*", "javax.xml.*", "org.xml.*", "org.apache.*", "org.w3c.dom.*",
+@ActiveProfiles({"testing", "test"})
+@PowerMockIgnore({"com.sun.security.*", "org.w3c.*", "javax.xml.*", "org.xml.*", "org.apache.*", "org.w3c.dom.*",
         "org.apache.cxf.*", "javax.management.*", "javax.script.*", "org.apache.hadoop.*", "javax.security.*",
-        "java.security.*", "javax.crypto.*", "javax.net.ssl.*", "org.apache.kylin.common.asyncprofiler.AsyncProfiler" })
+        "java.security.*", "javax.crypto.*", "javax.net.ssl.*", "org.apache.kylin.common.asyncprofiler.AsyncProfiler"})
 public class ServiceTestBase extends NLocalFileMetadataTestCase {
 
     @Autowired
@@ -120,12 +116,8 @@ public class ServiceTestBase extends NLocalFileMetadataTestCase {
 
     @Configuration
     @ComponentScan("org.apache.kylin.rest")
-    @ImportResource(locations = { "classpath:applicationContext.xml", "classpath:kylinSecurity.xml" })
+    @ImportResource(locations = {"classpath:applicationContext.xml", "classpath:kylinSecurity.xml"})
     @EnableAsync
     public static class SpringConfig {
-        @Bean
-        public SecondStorageUpdater getSecondStorageUpdater() {
-            return Mockito.mock(SecondStorageUpdater.class, invocationOnMock -> "");
-        }
     }
 }
