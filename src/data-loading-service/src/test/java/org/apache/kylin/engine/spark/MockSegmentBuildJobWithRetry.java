@@ -35,6 +35,7 @@ public class MockSegmentBuildJobWithRetry extends SegmentBuildJob {
             if (rootCause instanceof IllegalDictEncodeValueException) {
                 KylinBuildEnv.get().buildJobInfos()
                         .recordJobRetryInfosForSegmentParam("job.retry.segment.force-build-dict", "true");
+                KylinBuildEnv.get().buildJobInfos().recordRetryTimes(1);
                 try {
                     segmentBuildJob.execute(args);
                 } catch (Exception exception) {
