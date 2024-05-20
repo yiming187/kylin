@@ -123,7 +123,7 @@ public class JobTableInterceptor implements Interceptor {
     private boolean isControlledMapper(String mappedStatementId) {
         for (String controlledMapper : controlledMappers) {
             if (mappedStatementId.startsWith(controlledMapper)) {
-                // ok, find controlled mapper, mappedStatementId like "io.kyligence.kap.job.mapper.JobLockMapper.findCount"
+                // ok, find controlled mapper, mappedStatementId like "org.apache.kylin.job.mapper.JobLockMapper.findCount"
                 return true;
             }
         }

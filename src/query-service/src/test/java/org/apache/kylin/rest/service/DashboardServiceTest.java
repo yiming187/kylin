@@ -79,8 +79,6 @@ public class DashboardServiceTest extends SourceTestCase {
     private final ProjectService projectService = Mockito.spy(new ProjectService());
     @InjectMocks
     private final MockModelQueryService modelQueryService = Mockito.spy(new MockModelQueryService());
-    @InjectMocks
-    private final SegmentHelper segmentHelper = new SegmentHelper();
 
     @Mock
     private final AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
@@ -91,13 +89,9 @@ public class DashboardServiceTest extends SourceTestCase {
     @Mock
     private final AclUtil aclUtil = Mockito.spy(AclUtil.class);
 
-    protected String getProject() {
-        return "default";
-    }
-
     @Before
     public void setup() {
-        super.setup();
+        super.setUp();
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(modelService, "accessService", accessService);
@@ -117,7 +111,6 @@ public class DashboardServiceTest extends SourceTestCase {
         ReflectionTestUtils.setField(modelService, "modelBuildService", modelBuildService);
 
         ReflectionTestUtils.setField(modelBuildService, "modelService", modelService);
-        ReflectionTestUtils.setField(modelBuildService, "segmentHelper", segmentHelper);
         ReflectionTestUtils.setField(modelBuildService, "aclEvaluate", aclEvaluate);
         modelService.setSemanticUpdater(semanticService);
 

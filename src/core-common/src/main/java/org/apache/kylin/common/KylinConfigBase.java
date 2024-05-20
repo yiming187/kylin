@@ -66,7 +66,7 @@ import org.apache.kylin.common.constant.NonCustomProjectLevelConfig;
 import org.apache.kylin.common.exception.KylinRuntimeException;
 import org.apache.kylin.common.extension.KylinInfoExtension;
 import org.apache.kylin.common.lock.DistributedLockFactory;
-import org.apache.kylin.common.persistence.metadata.HDFSMetadataStore;
+import org.apache.kylin.common.persistence.metadata.FileSystemMetadataStore;
 import org.apache.kylin.common.util.AddressUtil;
 import org.apache.kylin.common.util.ByteUnit;
 import org.apache.kylin.common.util.ClassLoaderUtils;
@@ -557,12 +557,25 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.job.skip-record-execution-time", FALSE));
     }
 
-    public boolean isMetadataAuditLogEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.metadata.audit-log.enabled", TRUE));
+    public boolean isAuditLogJsonPatchEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.metadata.audit-log-json-patch-enabled", TRUE));
+    }
+
+    public boolean isAuditLogOnlyOriginalEnabled() {
+        return Boolean
+                .parseBoolean(getOptional("kylin.metadata.audit-log-compatible-only-original-format-enabled", FALSE));
     }
 
     public long getMetadataAuditLogMaxSize() {
         return Long.parseLong(getOptional("kylin.metadata.audit-log.max-size", "500000"));
+    }
+
+    public boolean isConcurrencyProcessMetadataEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.metadata.concurrency-process-metadata-size-enabled", TRUE));
+    }
+
+    public int getConcurrencyProcessMetadataThreadNumber() {
+        return Integer.parseInt(getOptional("kylin.metadata.concurrency-process-metadata-thread-number", "8"));
     }
 
     public void setMetadataUrl(String metadataUrl) {
@@ -589,8 +602,9 @@ public abstract class KylinConfigBase implements Serializable {
     public Map<String, String> getMetadataStoreImpls() {
         Map<String, String> r = Maps.newLinkedHashMap();
         // ref constants in ISourceAware
-        r.put("", "org.apache.kylin.common.persistence.metadata.FileMetadataStore");
-        r.put("hdfs", "org.apache.kylin.common.persistence.metadata.HDFSMetadataStore");
+        r.put("", "org.apache.kylin.common.persistence.metadata.FileSystemMetadataStore");
+        r.put("file", "org.apache.kylin.common.persistence.metadata.FileSystemMetadataStore");
+        r.put("hdfs", "org.apache.kylin.common.persistence.metadata.FileSystemMetadataStore");
         r.put("jdbc", "org.apache.kylin.common.persistence.metadata.JdbcMetadataStore");
         r.putAll(getPropertiesByPrefix("kylin.metadata.resource-store-provider.")); // note the naming convention -- http://kylin.apache.org/development/coding_naming_convention.html
         return r;
@@ -975,7 +989,7 @@ public abstract class KylinConfigBase implements Serializable {
     public StorageURL getJobTmpMetaStoreUrl(String project, String jobId) {
         Map<String, String> params = new HashMap<>();
         params.put("path", getJobTmpDir(project) + getNestedPath(jobId) + "meta");
-        return new StorageURL(getMetadataUrlPrefix(), HDFSMetadataStore.HDFS_SCHEME, params);
+        return new StorageURL(getMetadataUrlPrefix(), FileSystemMetadataStore.HDFS_SCHEME, params);
     }
 
     public String getJobTmpOutputStorePath(String project, String jobId) {
@@ -1119,6 +1133,10 @@ public abstract class KylinConfigBase implements Serializable {
 
     public int getMaxStreamingConcurrentJobLimit() {
         return Integer.parseInt(getOptional("kylin.streaming.job.max-concurrent-jobs", "10"));
+    }
+
+    public int getNodeMaxStreamingConcurrentJobLimit() {
+        return Integer.parseInt(getOptional("kylin.streaming.job.node-max-concurrent-jobs", "30"));
     }
 
     public boolean getAutoSetConcurrentJob() {
@@ -1987,7 +2005,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String getMppOnTheFlyLayoutsProvider() {
         return this.getOptional("kylin.query.mpp-on-the-fly-layouts-provider",
-                "io.kyligence.kap.engine.spark.job.MppOnTheFlyImpl");
+                "org.apache.kylin.engine.spark.job.MppOnTheFlyImpl");
     }
 
     public boolean enableReplaceDynamicParams() {
@@ -2773,10 +2791,6 @@ public abstract class KylinConfigBase implements Serializable {
                 TimeUnit.MILLISECONDS);
     }
 
-    public boolean getTimeMachineEnabled() {
-        return Boolean.parseBoolean(this.getOptional("kylin.storage.time-machine-enabled", FALSE));
-    }
-
     public int getMetadataBackupCountThreshold() {
         return Integer.parseInt(getOptional("kylin.metadata.backup-count-threshold", "7"));
     }
@@ -2799,17 +2813,6 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean getSmartModeBrokenModelDeleteEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.metadata.broken-model-deleted-on-smart-mode", FALSE));
-    }
-
-    public boolean isMetadataKeyCaseInSensitiveEnabled() {
-        boolean enabled = Boolean.parseBoolean(getOptional("kylin.metadata.key-case-insensitive", FALSE));
-        if (enabled && !"testing".equals(getSecurityProfile())) {
-            logger.warn("Property kylin.metadata.key-case-insensitive is not suitable for current profile {}, "
-                    + "available profile is testing", getSecurityProfile());
-            return false;
-        }
-
-        return enabled;
     }
 
     public boolean isNeedCollectLookupTableInfo() {

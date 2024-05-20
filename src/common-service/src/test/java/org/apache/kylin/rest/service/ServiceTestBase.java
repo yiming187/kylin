@@ -20,9 +20,9 @@ package org.apache.kylin.rest.service;
 
 import java.util.Arrays;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.engine.spark.utils.SparkJobFactoryUtils;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.user.ManagedUser;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
@@ -51,12 +51,12 @@ import org.springframework.test.context.web.WebAppConfiguration;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = ServiceTestBase.SpringConfig.class)
 @WebAppConfiguration(value = "../common-service/src/test/resources")
-@TestPropertySource(properties = {"spring.cloud.nacos.discovery.enabled = false"})
-@TestPropertySource(properties = {"spring.session.store-type = NONE"})
-@ActiveProfiles({"testing", "test"})
-@PowerMockIgnore({"com.sun.security.*", "org.w3c.*", "javax.xml.*", "org.xml.*", "org.apache.*", "org.w3c.dom.*",
+@TestPropertySource(properties = { "spring.cloud.nacos.discovery.enabled = false" })
+@TestPropertySource(properties = { "spring.session.store-type = NONE" })
+@ActiveProfiles({ "testing", "test" })
+@PowerMockIgnore({ "com.sun.security.*", "org.w3c.*", "javax.xml.*", "org.xml.*", "org.apache.*", "org.w3c.dom.*",
         "org.apache.cxf.*", "javax.management.*", "javax.script.*", "org.apache.hadoop.*", "javax.security.*",
-        "java.security.*", "javax.crypto.*", "javax.net.ssl.*", "org.apache.kylin.common.asyncprofiler.AsyncProfiler"})
+        "java.security.*", "javax.crypto.*", "javax.net.ssl.*", "org.apache.kylin.common.asyncprofiler.AsyncProfiler" })
 public class ServiceTestBase extends NLocalFileMetadataTestCase {
 
     @Autowired
@@ -76,11 +76,11 @@ public class ServiceTestBase extends NLocalFileMetadataTestCase {
     }
 
     @Before
-    public void setup() {
+    public void setUp() {
         // init job factory
         SparkJobFactoryUtils.initJobFactory();
+        JobContextUtil.cleanUp();
         createTestMetadata();
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
         Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
         if (!userService.userExists("ADMIN")) {
@@ -102,7 +102,7 @@ public class ServiceTestBase extends NLocalFileMetadataTestCase {
     }
 
     @After
-    public void cleanup() {
+    public void tearDown() {
         cleanupTestMetadata();
     }
 
@@ -116,7 +116,7 @@ public class ServiceTestBase extends NLocalFileMetadataTestCase {
 
     @Configuration
     @ComponentScan("org.apache.kylin.rest")
-    @ImportResource(locations = {"classpath:applicationContext.xml", "classpath:kylinSecurity.xml"})
+    @ImportResource(locations = { "classpath:applicationContext.xml", "classpath:kylinSecurity.xml" })
     @EnableAsync
     public static class SpringConfig {
     }

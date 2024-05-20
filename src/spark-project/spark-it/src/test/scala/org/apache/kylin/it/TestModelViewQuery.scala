@@ -60,6 +60,7 @@ class TestModelViewQuery
   override protected def getProject: String = DEFAULT_PROJECT
 
   override def beforeAll(): Unit = {
+    appendMetadata("src/test/resources/ut_meta/modelViewQuery")
     super.beforeAll()
     overwriteSystemProp("calcite.keep-in-clause", "true")
     overwriteSystemProp("kylin.dictionary.null-encoding-opt-threshold", "1")
@@ -68,8 +69,6 @@ class TestModelViewQuery
     overwriteSystemProp("kylin.query.pushdown.runner-class-name", "")
     overwriteSystemProp("kylin.query.pushdown-enabled", "false")
     overwriteSystemProp("kylin.snapshot.parallel-build-enabled", "true")
-
-    addModels("src/test/resources/view/", modelIds)
 
     build()
   }

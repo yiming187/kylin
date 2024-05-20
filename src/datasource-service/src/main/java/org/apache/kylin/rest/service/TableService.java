@@ -26,7 +26,6 @@ import static org.apache.kylin.common.exception.ServerErrorCode.FAILED_REFRESH_C
 import static org.apache.kylin.common.exception.ServerErrorCode.FILE_NOT_EXIST;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_COMPUTED_COLUMN_EXPRESSION;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
-import static org.apache.kylin.common.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_ID_NOT_EXIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.MODEL_NAME_NOT_EXIST;
@@ -111,8 +110,6 @@ import org.apache.kylin.job.util.JobInfoUtil;
 import org.apache.kylin.metadata.acl.AclTCR;
 import org.apache.kylin.metadata.acl.AclTCRManager;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
-import org.apache.kylin.metadata.cube.model.NDataLoadingRange;
-import org.apache.kylin.metadata.cube.model.NDataLoadingRangeManager;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager;
@@ -144,7 +141,6 @@ import org.apache.kylin.metadata.model.schema.SchemaUtil;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.recommendation.ref.OptRecManagerV2;
 import org.apache.kylin.metadata.sourceusage.SourceUsageManager;
 import org.apache.kylin.metadata.streaming.DataParserManager;
@@ -159,7 +155,6 @@ import org.apache.kylin.rest.request.DateRangeRequest;
 import org.apache.kylin.rest.request.S3TableExtInfo;
 import org.apache.kylin.rest.request.TableDescRequest;
 import org.apache.kylin.rest.response.AutoMergeConfigResponse;
-import org.apache.kylin.rest.response.BatchLoadTableResponse;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.NHiveTableNameResponse;
 import org.apache.kylin.rest.response.NInitTablesResponse;
@@ -269,7 +264,7 @@ public class TableService extends BasicService {
                 if (!sourceTypes.isEmpty()) {
                     return sourceTypes.contains(tableDesc.getSourceType())
                             || sourceTypes.stream().flatMap(st -> getConfig().getSourceProviderFamily(st).stream())
-                            .collect(Collectors.toList()).contains(tableDesc.getSourceType());
+                                    .collect(Collectors.toList()).contains(tableDesc.getSourceType());
                 }
                 return true;
             }).filter(table -> table.isAccessible(streamingEnabled)).sorted(this::compareTableDesc)
@@ -530,8 +525,7 @@ public class TableService extends BasicService {
             // Table source type conversion
             sourceTypesRequest.stream()
                     .filter(stq -> getConfig().getSourceProviderFamily(stq).contains(originTable.getSourceType()))
-                    .findFirst()
-                    .ifPresent(tableDescResponse::setSourceType);
+                    .findFirst().ifPresent(tableDescResponse::setSourceType);
 
             descs.add(tableDescResponse);
             satisfiedTableSize++;
@@ -624,7 +618,7 @@ public class TableService extends BasicService {
         long size = 0;
         for (val model : models) {
             val df = dfManger.getDataflow(model.getUuid());
-            if(df==null){
+            if (df == null) {
                 logger.warn("cannot get model size  {} of {}（might be deleted） ", model.getAlias(), project);
                 continue;
             }
@@ -646,7 +640,7 @@ public class TableService extends BasicService {
         Set<String> foreignKey = new HashSet<>();
         for (val model : modelsUsingTable) {
             var dataMode = dataModelManager.getDataModelDesc(model.getUuid());
-            if(dataMode==null){
+            if (dataMode == null) {
                 continue;
             }
             val joinTables = dataMode.getJoinTables();
@@ -667,90 +661,6 @@ public class TableService extends BasicService {
     public String normalizeHiveTableName(String tableName) {
         String[] dbTableName = HadoopUtil.parseHiveTableName(tableName);
         return (dbTableName[0] + "." + dbTableName[1]).toUpperCase(Locale.ROOT);
-    }
-
-    @Transaction(project = 1)
-    public void setPartitionKey(String table, String project, String column, String columnFormat) {
-        aclEvaluate.checkProjectWritePermission(project);
-        if (StringUtils.isNotEmpty(column)) {
-            Preconditions.checkArgument(StringUtils.isNotEmpty(columnFormat),
-                    "Partition column format can not be empty!");
-        }
-
-        NDataLoadingRangeManager dataLoadingRangeManager = getManager(NDataLoadingRangeManager.class, project);
-        val dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
-        String tableName = table.substring(table.lastIndexOf('.') + 1);
-        String columnIdentity = tableName + "." + column;
-        if ((dataLoadingRange == null && StringUtils.isEmpty(column)) || (dataLoadingRange != null
-                && StringUtils.equalsIgnoreCase(columnIdentity, dataLoadingRange.getColumnName())
-                && StringUtils.equalsIgnoreCase(columnFormat, dataLoadingRange.getPartitionDateFormat()))) {
-            logger.info("Partition column {} does not change", column);
-            return;
-        }
-        handlePartitionColumnChanged(dataLoadingRange, columnIdentity, column, columnFormat, project, table);
-    }
-
-    private void purgeRelatedModel(String modelId, String table, String project) {
-        val dfManager = getManager(NDataflowManager.class, project);
-        // toggle table type, remove all segments in related models
-        //follow semanticVersion,#8196
-        modelService.onPurgeModel(modelId, project);
-        val dataflow = dfManager.getDataflow(modelId);
-        if (RealizationStatusEnum.LAG_BEHIND == dataflow.getStatus()) {
-            dfManager.updateDataflowStatus(dataflow.getId(), RealizationStatusEnum.ONLINE);
-        }
-    }
-
-    private void handlePartitionColumnChanged(NDataLoadingRange dataLoadingRange, String columnIdentity, String column,
-            String columnFormat, String project, String table) {
-        val dataLoadingRangeManager = getManager(NDataLoadingRangeManager.class, project);
-        val tableManager = getManager(NTableMetadataManager.class, project);
-        val tableDesc = tableManager.getTableDesc(table);
-        val copy = tableManager.copyForWrite(tableDesc);
-        if (StringUtils.isEmpty(column)) {
-            dataLoadingRangeManager.removeDataLoadingRange(dataLoadingRange);
-            copy.setIncrementLoading(false);
-            tableManager.updateTableDesc(copy);
-        } else {
-            modelService.onCheckLoadingRange(project, table);
-            if (dataLoadingRange != null) {
-                val loadingRangeCopy = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
-                loadingRangeCopy.setColumnName(columnIdentity);
-                loadingRangeCopy.setPartitionDateFormat(columnFormat);
-                loadingRangeCopy.setCoveredRange(null);
-                dataLoadingRangeManager.updateDataLoadingRange(loadingRangeCopy);
-            } else {
-                dataLoadingRange = new NDataLoadingRange(table, columnIdentity);
-                dataLoadingRange.setPartitionDateFormat(columnFormat);
-                logger.info("Create DataLoadingRange {}", dataLoadingRange.getTableName());
-                dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
-            }
-            copy.setIncrementLoading(true);
-            tableManager.updateTableDesc(copy);
-        }
-        val dfManager = getManager(NDataflowManager.class, project);
-        val models = dfManager.getTableOrientedModelsUsingRootTable(tableDesc);
-        for (val model : models) {
-            purgeRelatedModel(model.getUuid(), table, project);
-            modelService.onSyncPartition(model.getUuid(), project);
-            if (StringUtils.isEmpty(column)) {
-                buildFullSegment(model.getUuid(), project);
-            }
-        }
-    }
-
-    private void buildFullSegment(String model, String project) {
-        val dataflowManager = getManager(NDataflowManager.class, project);
-        val indexPlanManager = getManager(NIndexPlanManager.class, project);
-        val indexPlan = indexPlanManager.getIndexPlan(model);
-        val dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
-        val newSegment = dataflowManager.appendSegment(dataflow,
-                new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
-
-        final JobParam jobParam = new JobParam(newSegment, model, getUsername());
-        jobParam.setProject(project);
-        getManager(SourceUsageManager.class).licenseCheckWrap(project,
-                () -> JobManager.getInstance(getConfig(), project).addSegmentJob(jobParam));
     }
 
     public String getPartitionColumnFormat(String project, String table, String partitionColumn,
@@ -812,32 +722,6 @@ public class TableService extends BasicService {
 
     }
 
-    public List<BatchLoadTableResponse> getBatchLoadTables(String project) {
-        aclEvaluate.checkProjectOperationPermission(project);
-        final List<TableDesc> incrementalLoadTables = getManager(NTableMetadataManager.class, project)
-                .getAllIncrementalLoadTables();
-        final List<BatchLoadTableResponse> result = Lists.newArrayList();
-
-        for (TableDesc table : incrementalLoadTables) {
-            String tableIdentity = table.getIdentity();
-            int relatedIndexNum = getRelatedIndexNumOfATable(table, project);
-            result.add(new BatchLoadTableResponse(tableIdentity, relatedIndexNum));
-        }
-
-        return result;
-    }
-
-    private int getRelatedIndexNumOfATable(TableDesc tableDesc, String project) {
-        int result = 0;
-        val dataflowManager = getManager(NDataflowManager.class, project);
-        for (val model : dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc)) {
-            IndexPlan indexPlan = getManager(NIndexPlanManager.class, project).getIndexPlan(model.getUuid());
-            result += indexPlan.getAllIndexes().size();
-        }
-
-        return result;
-    }
-
     private List<AbstractExecutable> stopAndGetSnapshotJobs(String project, String table) {
         val execManager = getManager(ExecutableManager.class, project);
 
@@ -877,13 +761,6 @@ public class TableService extends BasicService {
         }
 
         unloadTable(project, table);
-
-        NDataLoadingRangeManager dataLoadingRangeManager = getManager(NDataLoadingRangeManager.class, project);
-        NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
-        if (dataLoadingRange != null) {
-            dataLoadingRangeManager.removeDataLoadingRange(dataLoadingRange);
-        }
-
         aclTCRService.unloadTable(project, table);
 
         NProjectManager npr = getManager(NProjectManager.class);
@@ -993,44 +870,6 @@ public class TableService extends BasicService {
         return result;
     }
 
-    public void checkRefreshDataRangeReadiness(String project, String table, String start, String end) {
-        NTableMetadataManager tableMetadataManager = getManager(NTableMetadataManager.class, project);
-        TableDesc tableDesc = tableMetadataManager.getTableDesc(table);
-        if (!tableDesc.isIncrementLoading())
-            return;
-
-        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
-        SegmentRange readySegmentRange = dataLoadingRange.getCoveredRange();
-        if (readySegmentRange == null) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getInvalidRefreshSegmentByNoSegment());
-        }
-        SegmentRange segmentRangeRefresh = SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
-
-        if (!readySegmentRange.contains(segmentRangeRefresh)) {
-            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getInvalidRefreshSegmentByNotReady());
-        }
-    }
-
-    private NDataLoadingRange getDataLoadingRange(String project, String table) {
-        NDataLoadingRangeManager dataLoadingRangeManager = getManager(NDataLoadingRangeManager.class, project);
-        NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
-        if (dataLoadingRange == null) {
-            throw new IllegalStateException(
-                    "this table can not set date range, please check table " + table + " is fact or not");
-        }
-        return dataLoadingRange;
-    }
-
-    @Transaction(project = 0)
-    public void setPushDownMode(String project, String table, boolean pushdownRangeLimited) {
-        aclEvaluate.checkProjectWritePermission(project);
-        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
-        NDataLoadingRangeManager dataLoadingRangeManager = getManager(NDataLoadingRangeManager.class, project);
-        NDataLoadingRange dataLoadingRangeUpdate = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
-        dataLoadingRangeUpdate.setPushdownRangeLimited(pushdownRangeLimited);
-        dataLoadingRangeManager.updateDataLoadingRange(dataLoadingRangeUpdate);
-    }
-
     public AutoMergeConfigResponse getAutoMergeConfigByModel(String project, String modelId) {
         aclEvaluate.checkProjectOperationPermission(project);
         NDataModelManager dataModelManager = getManager(NDataModelManager.class, project);
@@ -1041,17 +880,6 @@ public class TableService extends BasicService {
             throw new KylinException(MODEL_ID_NOT_EXIST, modelId);
         }
         val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, modelId);
-        Preconditions.checkState(segmentConfig != null);
-        mergeConfig.setAutoMergeEnabled(segmentConfig.getAutoMergeEnabled());
-        mergeConfig.setAutoMergeTimeRanges(segmentConfig.getAutoMergeTimeRanges());
-        mergeConfig.setVolatileRange(segmentConfig.getVolatileRange());
-        return mergeConfig;
-    }
-
-    public AutoMergeConfigResponse getAutoMergeConfigByTable(String project, String tableName) {
-        aclEvaluate.checkProjectOperationPermission(project);
-        AutoMergeConfigResponse mergeConfig = new AutoMergeConfigResponse();
-        val segmentConfig = NSegmentConfigHelper.getTableSegmentConfig(project, tableName);
         Preconditions.checkState(segmentConfig != null);
         mergeConfig.setAutoMergeEnabled(segmentConfig.getAutoMergeEnabled());
         mergeConfig.setAutoMergeTimeRanges(segmentConfig.getAutoMergeTimeRanges());
@@ -1084,41 +912,7 @@ public class TableService extends BasicService {
             segmentConfig.setAutoMergeTimeRanges(autoMergeRanges);
             segmentConfig.setAutoMergeEnabled(autoMergeRequest.isAutoMergeEnabled());
             dataModelManager.updateDataModelDesc(modelUpdate);
-
-        } else {
-            autoMergeRequest.setTable(model.getRootFactTable().getTableIdentity());
-            setAutoMergeConfigByTable(project, autoMergeRequest);
-
         }
-    }
-
-    public boolean getPushDownMode(String project, String table) {
-        aclEvaluate.checkProjectOperationPermission(project);
-        NDataLoadingRangeManager dataLoadingRangeManager = getManager(NDataLoadingRangeManager.class, project);
-        NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
-        return dataLoadingRange.isPushdownRangeLimited();
-    }
-
-    @Transaction(project = 0)
-    public void setAutoMergeConfigByTable(String project, AutoMergeRequest autoMergeRequest) {
-        aclEvaluate.checkProjectWritePermission(project);
-        String tableName = autoMergeRequest.getTable();
-        List<AutoMergeTimeEnum> autoMergeRanges = new ArrayList<>();
-        for (String range : autoMergeRequest.getAutoMergeTimeRanges()) {
-            autoMergeRanges.add(AutoMergeTimeEnum.valueOf(range));
-        }
-        VolatileRange volatileRange = new VolatileRange();
-        volatileRange.setVolatileRangeType(AutoMergeTimeEnum.valueOf(autoMergeRequest.getVolatileRangeType()));
-        volatileRange.setVolatileRangeEnabled(autoMergeRequest.isVolatileRangeEnabled());
-        volatileRange.setVolatileRangeNumber(autoMergeRequest.getVolatileRangeNumber());
-        NDataLoadingRangeManager dataLoadingRangeManager = getManager(NDataLoadingRangeManager.class, project);
-        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, tableName);
-        NDataLoadingRange dataLoadingRangeUpdate = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
-        var segmentConfig = dataLoadingRangeUpdate.getSegmentConfig();
-        segmentConfig.setAutoMergeEnabled(autoMergeRequest.isAutoMergeEnabled());
-        segmentConfig.setAutoMergeTimeRanges(autoMergeRanges);
-        segmentConfig.setVolatileRange(volatileRange);
-        dataLoadingRangeManager.updateDataLoadingRange(dataLoadingRangeUpdate);
     }
 
     public OpenPreReloadTableResponse preProcessBeforeReloadWithoutFailFast(String project, String tableIdentity,
@@ -1349,14 +1143,6 @@ public class TableService extends BasicService {
                 jobs.add(jobId);
             }
         }
-
-        val loadingManager = getManager(NDataLoadingRangeManager.class, projectName);
-        val removeCols = context.getRemoveColumnFullnames();
-        loadingManager.getDataLoadingRanges().forEach(loadingRange -> {
-            if (removeCols.contains(loadingRange.getColumnName())) {
-                setPartitionKey(tableIdentity, projectName, null, null);
-            }
-        });
 
         mergeTable(projectName, context, false);
         return jobs;

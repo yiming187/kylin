@@ -47,22 +47,16 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.common.persistence.TrashRecord;
-import org.apache.kylin.common.persistence.lock.MemoryLockUtils;
-import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.CliCommandExecutor.CliCmdExecResult;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.guava30.shaded.common.collect.Sets;
-import org.apache.kylin.guava30.shaded.common.io.ByteSource;
 import org.apache.kylin.guava30.shaded.common.util.concurrent.RateLimiter;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.JobInfoDao;
@@ -75,9 +69,7 @@ import org.apache.kylin.metadata.cube.model.NDataSegDetails;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
-import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.metadata.model.NTableMetadataManager;
-import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.query.util.QueryHisStoreUtil;
@@ -99,18 +91,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class StorageCleaner implements GarbageCleaner {
     private final boolean cleanup;
-    private final boolean timeMachineEnabled;
-
     @Getter
     private final Collection<String> projectNames;
     private final KylinConfig kylinConfig;
 
     // for s3 https://olapio.atlassian.net/browse/AL-3154
     private static final RateLimiter rateLimiter = RateLimiter.create(Integer.MAX_VALUE);
-
-    @Getter
-    private final Map<String, String> trashRecord;
-    private final ResourceStore resourceStore;
 
     public enum CleanerTag {
         ROUTINE, CLI, SERVICE
@@ -134,11 +120,6 @@ public class StorageCleaner implements GarbageCleaner {
         this.cleanup = cleanup;
         this.projectNames = projects;
         this.kylinConfig = KylinConfig.getInstanceFromEnv();
-        this.timeMachineEnabled = kylinConfig.getTimeMachineEnabled();
-        this.resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-        val trashRecordResource = resourceStore.getResource(ResourceStore.METASTORE_TRASH_RECORD);
-        this.trashRecord = trashRecordResource == null ? Maps.newHashMap()
-                : JsonUtil.readValue(trashRecordResource.getByteSource().read(), TrashRecord.class).getTrashRecord();
     }
 
     public StorageCleaner(boolean cleanup, Collection<String> projects, double requestFSRate, int tRetryTimes)
@@ -209,16 +190,11 @@ public class StorageCleaner implements GarbageCleaner {
             collect(project.getName());
         }
 
-        long configSurvivalTimeThreshold = timeMachineEnabled ? kylinConfig.getStorageResourceSurvivalTimeThreshold()
-                : config.getCuboidLayoutSurvivalTimeThreshold();
+        long configSurvivalTimeThreshold = config.getCuboidLayoutSurvivalTimeThreshold();
         long protectionTime = startTime - configSurvivalTimeThreshold;
         for (StorageItem item : allFileSystems) {
             for (FileTreeNode node : item.getAllNodes()) {
                 val path = new Path(item.getPath(), node.getRelativePath());
-                if (timeMachineEnabled && trashRecord.get(path.toString()) == null) {
-                    trashRecord.put(path.toString(), String.valueOf(startTime));
-                    continue;
-                }
                 try {
                     log.debug("start to add item {}", path);
                     addItem(item.getFileSystemDecorator(), path, protectionTime);
@@ -293,27 +269,12 @@ public class StorageCleaner implements GarbageCleaner {
                 try {
                     stats.onItemStart(item);
                     item.getFileSystemDecorator().delete(new Path(item.getPath()), true);
-                    if (timeMachineEnabled) {
-                        trashRecord.remove(item.getPath());
-                    }
                     stats.onItemSuccess(item);
                 } catch (IOException e) {
                     log.error("delete file " + item.getPath() + " failed", e);
                     stats.onItemError(item);
                     success = false;
                 }
-            }
-            if (timeMachineEnabled) {
-                EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-                    ResourceStore threadViewRS = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-                    RawResource raw = resourceStore.getResource(ResourceStore.METASTORE_TRASH_RECORD);
-                    long mvcc = raw == null ? -1 : raw.getMvcc();
-                    // TrashRecord doesn't extend RootPersistentEntity. Let's manually lock it's resource path.
-                    MemoryLockUtils.doWithLock(ResourceStore.METASTORE_TRASH_RECORD, false, threadViewRS, () -> null);
-                    threadViewRS.checkAndPutResource(ResourceStore.METASTORE_TRASH_RECORD,
-                            ByteSource.wrap(JsonUtil.writeValueAsBytes(new TrashRecord(trashRecord))), mvcc);
-                    return 0;
-                }, UnitOfWork.GLOBAL_UNIT, 1);
             }
         }
         return success;
@@ -330,15 +291,13 @@ public class StorageCleaner implements GarbageCleaner {
     private String getDfFlatTableDir(String project, String dataFlowId) {
         return project + FLAT_TABLE_STORAGE_ROOT + "/" + dataFlowId;
     }
+
     private void addItem(FileSystemDecorator fs, Path itemPath, long protectionTime) throws IOException {
         val status = fs.getFileStatus(itemPath);
         if (status.getPath().getName().startsWith(".")) {
             return;
         }
-        if (timeMachineEnabled && Long.parseLong(trashRecord.get(itemPath.toString())) > protectionTime) {
-            return;
-        }
-        if (!timeMachineEnabled && status.getModificationTime() > protectionTime) {
+        if (status.getModificationTime() > protectionTime) {
             return;
         }
 
@@ -714,8 +673,8 @@ public class StorageCleaner implements GarbageCleaner {
             val config = KylinConfig.getInstanceFromEnv();
             val executableManager = ExecutableManager.getInstance(config, project);
             List<ExecutablePO> executablePOList = executableManager.getAllJobs();
-            Set<String> activeJobs = executablePOList.stream()
-                    .map(e -> project + JOB_TMP_ROOT + "/" + e.getId()).collect(Collectors.toSet());
+            Set<String> activeJobs = executablePOList.stream().map(e -> project + JOB_TMP_ROOT + "/" + e.getId())
+                    .collect(Collectors.toSet());
             for (StorageItem item : allFileSystems) {
                 item.getProject(project).getJobTmps().removeIf(node -> activeJobs.contains(node.getRelativePath()));
             }
@@ -812,7 +771,6 @@ public class StorageCleaner implements GarbageCleaner {
             doExecuteCmd(collectDropTemporaryTransactionTable(jobTemps));
         }
 
-
         private void doExecuteCmd(String cmd) {
             try {
                 CliCmdExecResult executeResult = cliCommandExecutor.execute(cmd, null);
@@ -853,6 +811,7 @@ public class StorageCleaner implements GarbageCleaner {
             return result;
         }
     }
+
     /**
      * Sparder history dir hierarchy is
      *
@@ -870,7 +829,6 @@ public class StorageCleaner implements GarbageCleaner {
         private static final String SPARK_EVENTLOG_DIR = "spark.eventLog.dir";
         private long queryExpirationTime;
         private long buildExpirationTime;
-        private final boolean cleanup;
 
         private void init() {
             long eventLogCleanStartTime = System.currentTimeMillis();
@@ -897,16 +855,8 @@ public class StorageCleaner implements GarbageCleaner {
                     buildExpirationTime);
         }
 
-        public EventLogCleaner(boolean cleanup) {
-            this.cleanup = cleanup;
+        public EventLogCleaner() {
             init();
-        }
-
-        public void execute() {
-            if (cleanup) {
-                cleanCurrentSparderEventLog();
-                cleanSparkEventLogs();
-            }
         }
 
         public void cleanCurrentSparderEventLog() {
@@ -921,12 +871,8 @@ public class StorageCleaner implements GarbageCleaner {
             String allSparkEventLogDir = KYLIN_CONFIG.getSparkConfigOverride().get(SPARK_EVENTLOG_DIR).trim();
             clean(allSparkEventLogDir, buildExpirationTime);
 
-            EpochManager epochManager = EpochManager.getInstance();
             NProjectManager prjManager = NProjectManager.getInstance(KYLIN_CONFIG);
             prjManager.listAllProjects().forEach(project -> {
-                if (!epochManager.checkEpochOwner(project.getName())) {
-                    return;
-                }
                 String sparkEventLogDir = project.getConfig().getExtendedOverrides()
                         .get("kylin.engine.spark-conf.spark.eventLog.dir");
                 if (!StringUtils.isEmpty(sparkEventLogDir)) {
@@ -934,6 +880,22 @@ public class StorageCleaner implements GarbageCleaner {
                 }
             });
             log.info("End to clean spark event log");
+        }
+
+        public void cleanSparkEventLogs(String projectName) {
+            log.info("Start to clean spark event log for project {}", projectName);
+            String allSparkEventLogDir = KYLIN_CONFIG.getSparkConfigOverride().get(SPARK_EVENTLOG_DIR).trim();
+            clean(allSparkEventLogDir, buildExpirationTime);
+
+            NProjectManager prjManager = NProjectManager.getInstance(KYLIN_CONFIG);
+            ProjectInstance project = prjManager.getProject(projectName);
+            String sparkEventLogDir = project.getConfig().getExtendedOverrides()
+                    .get("kylin.engine.spark-conf.spark.eventLog.dir");
+            if (!StringUtils.isEmpty(sparkEventLogDir)) {
+                clean(sparkEventLogDir, buildExpirationTime);
+            }
+
+            log.info("End to clean spark event log for project {}", projectName);
         }
 
         // for RoutineTool & FastRoutineTool

@@ -42,7 +42,6 @@ import org.apache.kylin.common.util.CaseInsensitiveStringSet;
 import org.apache.kylin.constants.AclConstants;
 import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 import org.apache.kylin.guava30.shaded.common.collect.Sets;
-import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.rest.aspect.Transaction;
 import org.apache.kylin.rest.constant.Constant;
@@ -276,7 +275,7 @@ public class UserAclService extends BasicService implements UserAclServiceSuppor
 
     public void remoteSyncAdminUserAcl(AdminUserSyncEventNotifier eventNotifier) {
         eventNotifier.setProject(UnitOfWork.GLOBAL_UNIT);
-        remoteRequest(eventNotifier, StringUtils.EMPTY);
+        remoteRequest(eventNotifier);
     }
 
     private static boolean isCustomProfile() {
@@ -300,8 +299,7 @@ public class UserAclService extends BasicService implements UserAclServiceSuppor
 
     public void syncSuperAdminUserAcl() {
         List<String> superAdminUserList = userService.listSuperAdminUsers();
-        if (CollectionUtils.isEmpty(superAdminUserList)
-                || !EpochManager.getInstance().checkEpochOwner(UnitOfWork.GLOBAL_UNIT)) {
+        if (CollectionUtils.isEmpty(superAdminUserList)) {
             return;
         }
         if (superAdminUserList.stream().allMatch(su -> hasUserAclPermission(su, AclPermission.DATA_QUERY))) {
@@ -328,8 +326,7 @@ public class UserAclService extends BasicService implements UserAclServiceSuppor
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val userAclManager = UserAclManager.getInstance(kylinConfig);
         val dbAdminUserList = userAclManager.listAclUsernames();
-        if (CollectionUtils.isEmpty(apiAdminUserList)
-                || !EpochManager.getInstance().checkEpochOwner(UnitOfWork.GLOBAL_UNIT)) {
+        if (CollectionUtils.isEmpty(apiAdminUserList)) {
             return;
         }
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {

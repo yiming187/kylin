@@ -20,11 +20,9 @@ package org.apache.kylin.rest.security;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.USER_LOGIN_FAILED;
 
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
-import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.metadata.user.ManagedUser;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.KylinUserService;
-import org.apache.kylin.rest.service.MaintenanceModeService;
 import org.apache.kylin.rest.service.UserAclService;
 import org.junit.After;
 import org.junit.Assert;
@@ -160,10 +158,6 @@ public class LimitLoginAuthenticationProviderTest extends NLocalFileMetadataTest
 
     @Test
     public void testAuthenticate_Unlocked() {
-        EpochManager.getInstance().tryUpdateEpoch(EpochManager.GLOBAL, true);
-        ReflectionTestUtils.setField(limitLoginAuthenticationProvider, "maintenanceModeService",
-                new MaintenanceModeService());
-
         userAdmin.setLocked(true);
         userAdmin.setLockedTime(System.currentTimeMillis() - 60 * 1000);
         userAdmin.setWrongTime(3);

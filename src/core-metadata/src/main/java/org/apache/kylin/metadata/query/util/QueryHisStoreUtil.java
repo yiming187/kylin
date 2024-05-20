@@ -84,14 +84,10 @@ public class QueryHisStoreUtil {
     private static final String CREATE_QUERY_HISTORY_REALIZATION_INDEX4 = "create.queryhistoryrealization.store.tableindex4";
     private static final String CREATE_QUERY_HISTORY_REALIZATION_INDEX5 = "create.queryhistoryrealization.store.tableindex5";
     private static final String CREATE_QUERY_HISTORY_REALIZATION_INDEX6 = "create.queryhistoryrealization.store.tableindex6";
-    static final String[] QUERY_HISTORY_REALIZATION_INDEX_NAMES = {
-            CREATE_QUERY_HISTORY_REALIZATION_INDEX1,
-            CREATE_QUERY_HISTORY_REALIZATION_INDEX2,
-            CREATE_QUERY_HISTORY_REALIZATION_INDEX3,
-            CREATE_QUERY_HISTORY_REALIZATION_INDEX4,
-            CREATE_QUERY_HISTORY_REALIZATION_INDEX5,
-            CREATE_QUERY_HISTORY_REALIZATION_INDEX6
-    };
+    static final String[] QUERY_HISTORY_REALIZATION_INDEX_NAMES = { CREATE_QUERY_HISTORY_REALIZATION_INDEX1,
+            CREATE_QUERY_HISTORY_REALIZATION_INDEX2, CREATE_QUERY_HISTORY_REALIZATION_INDEX3,
+            CREATE_QUERY_HISTORY_REALIZATION_INDEX4, CREATE_QUERY_HISTORY_REALIZATION_INDEX5,
+            CREATE_QUERY_HISTORY_REALIZATION_INDEX6 };
 
     private QueryHisStoreUtil() {
     }
@@ -124,6 +120,7 @@ public class QueryHisStoreUtil {
                         String.format(Locale.ROOT, properties.getProperty(CREATE_QUERY_HISTORY_TABLE), qhTableName)
                                 .getBytes(DEFAULT_CHARSET)),
                         DEFAULT_CHARSET));
+                log.info("Succeed to create query history table: {}", qhTableName);
             }
         }
         // create index for query history table

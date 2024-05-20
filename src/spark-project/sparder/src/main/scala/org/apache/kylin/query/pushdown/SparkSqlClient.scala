@@ -18,13 +18,6 @@
 
 package org.apache.kylin.query.pushdown
 
-import java.math.BigDecimal
-import java.nio.charset.StandardCharsets
-import java.sql.Timestamp
-import java.util
-import java.util.concurrent.{Callable, Executors, TimeUnit, TimeoutException}
-import java.util.{UUID, List => JList}
-
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil, Pair}
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
@@ -47,6 +40,12 @@ import org.apache.kylin.cache.kylin.KylinCacheFileSystem
 import org.apache.kylin.softaffinity.SoftAffinityManager
 import org.apache.kylin.fileseg.FileSegments
 
+import java.math.BigDecimal
+import java.nio.charset.StandardCharsets
+import java.sql.Timestamp
+import java.util
+import java.util.concurrent.{Callable, Executors, TimeUnit, TimeoutException}
+import java.util.{UUID, List => JList}
 import scala.collection.JavaConverters._
 import scala.collection.{immutable, mutable}
 import scala.concurrent.duration.Duration
@@ -189,7 +188,7 @@ object SparkSqlClient {
       NProjectManager.getProjectConfig(QueryContext.current().getProject).isQueryUseIterableCollectApi
 
       val results = if (NProjectManager.getProjectConfig(QueryContext.current().getProject)
-        .isQueryUseIterableCollectApi ) {
+        .isQueryUseIterableCollectApi) {
         df.collectToIterator()
       } else {
         df.toIterator()

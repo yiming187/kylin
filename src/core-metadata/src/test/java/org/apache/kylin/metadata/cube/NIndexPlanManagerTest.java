@@ -211,10 +211,11 @@ public class NIndexPlanManagerTest {
         val config = KylinConfig.getInstanceFromEnv();
         val indexPlanManager = NIndexPlanManager.getInstance(config, project);
         val indexPlan = indexPlanManager.getIndexPlan(indexPlanId);
+        Assert.assertNotNull(indexPlan);
 
         val indexPlan2 = indexPlanManager.getIndexPlanByModelAlias("AUTO_MODEL_TEST_ACCOUNT_1");
-        Assert.assertNotNull(indexPlan2);
-        Assert.assertEquals(indexPlan.getId(), indexPlan2.getId());
+        // broken index plan has no project, so it will be ignored
+        Assert.assertNull(indexPlan2);
     }
 
     @Test

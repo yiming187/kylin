@@ -18,6 +18,7 @@
 
 package org.apache.kylin.rest.config.initialize;
 
+import static org.apache.kylin.metadata.asynctask.MetadataRestoreTask.MetadataRestoreStatus.IN_PROGRESS;
 import static org.awaitility.Awaitility.await;
 
 import java.io.IOException;
@@ -30,7 +31,6 @@ import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.asynctask.MetadataRestoreTask;
-import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.rest.MockClusterManager;
 import org.apache.kylin.rest.cluster.ClusterManager;
 import org.apache.kylin.rest.reponse.MetadataBackupResponse;
@@ -99,16 +99,14 @@ public class OpsAppInitializerTest extends NLocalFileMetadataTestCase {
             return false;
         });
         String restoreTask = opsService.restoreMetadata(path, null, false);
-        await().atMost(10, TimeUnit.SECONDS).until(EpochManager.getInstance()::isMaintenanceMode);
+        await().atMost(10, TimeUnit.SECONDS)
+                .until(() -> IN_PROGRESS == opsService.getMetadataRestoreStatus(restoreTask, UnitOfWork.GLOBAL_UNIT));
         OpsService.MetadataRestore.getRunningTask().cancel(true);
-        Assert.assertEquals(MetadataRestoreTask.MetadataRestoreStatus.IN_PROGRESS,
-                opsService.getMetadataRestoreStatus(restoreTask, UnitOfWork.GLOBAL_UNIT));
-        Assert.assertTrue(EpochManager.getInstance().isMaintenanceMode());
+        Assert.assertEquals(IN_PROGRESS, opsService.getMetadataRestoreStatus(restoreTask, UnitOfWork.GLOBAL_UNIT));
         OpsAppInitializer opsAppInitializer = new OpsAppInitializer();
         opsAppInitializer.beforeStarted();
         Assert.assertEquals(MetadataRestoreTask.MetadataRestoreStatus.FAILED,
                 opsService.getMetadataRestoreStatus(restoreTask, UnitOfWork.GLOBAL_UNIT));
-        Assert.assertFalse(EpochManager.getInstance().isMaintenanceMode());
     }
 
 }

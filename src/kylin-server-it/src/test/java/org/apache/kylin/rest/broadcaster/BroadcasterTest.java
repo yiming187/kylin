@@ -37,7 +37,6 @@ import org.apache.kylin.common.persistence.transaction.AddCredentialToSparkBroad
 import org.apache.kylin.common.persistence.transaction.AuditLogBroadcastEventNotifier;
 import org.apache.kylin.common.persistence.transaction.BroadcastEventReadyNotifier;
 import org.apache.kylin.junit.annotation.MetadataInfo;
-import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.rest.cluster.ClusterManager;
 import org.apache.kylin.rest.cluster.DefaultClusterManager;
 import org.apache.kylin.rest.config.initialize.BroadcastListener;
@@ -110,8 +109,6 @@ class BroadcasterTest {
 
     @Test
     void testBroadcastSyncAdminUserAcl() throws Exception {
-        EpochManager epochManager = EpochManager.getInstance();
-        epochManager.tryUpdateEpoch(EpochManager.GLOBAL, true);
         BroadcastListener broadcastListener = new BroadcastListener();
         val userAclService = Mockito.spy(UserAclService.class);
         ReflectionTestUtils.setField(userAclService, "userService", Mockito.spy(UserService.class));

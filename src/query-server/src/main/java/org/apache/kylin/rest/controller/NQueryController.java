@@ -334,7 +334,7 @@ public class NQueryController extends NBasicController {
 
     @ApiOperation(value = "savedQueries", tags = { "QE" })
     @PostMapping(value = "/saved_queries")
-    public EnvelopeResponse<String> saveQuery(@RequestBody SaveSqlRequest sqlRequest) throws IOException {
+    public EnvelopeResponse<String> saveQuery(@RequestBody SaveSqlRequest sqlRequest) {
         String queryName = sqlRequest.getName();
         checkRequiredArg("name", queryName);
         checkQueryName(queryName);
@@ -349,7 +349,7 @@ public class NQueryController extends NBasicController {
     @DeleteMapping(value = "/saved_queries/{id:.+}")
     @ResponseBody
     public EnvelopeResponse<String> removeSavedQuery(@PathVariable("id") String id,
-            @RequestParam("project") String project) throws IOException {
+            @RequestParam("project") String project) {
 
         String creator = SecurityContextHolder.getContext().getAuthentication().getName();
         queryService.removeSavedQuery(creator, project, id);
@@ -361,7 +361,7 @@ public class NQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<DataResult<List<Query>>> getSavedQueries(@RequestParam(value = "project") String project,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) throws IOException {
+            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
         String creator = SecurityContextHolder.getContext().getAuthentication().getName();
         List<Query> savedQueries = queryService.getSavedQueries(creator, project).getQueries();
@@ -598,7 +598,7 @@ public class NQueryController extends NBasicController {
             csvWriter = new CsvListWriter(writer, CsvPreference.STANDARD_PREFERENCE);
             List<String> headerList = new ArrayList<>();
 
-            // avoid handle npe in io.kyligence.kap.rest.controller.NBasicController.handleError
+            // avoid handle npe in org.apache.kylin.rest.controller.NBasicController.handleError
             // when result.getColumnMetas is null
             if (result.isException()) {
                 logger.warn("Download query result failed, exception is {}", result.getExceptionMessage());

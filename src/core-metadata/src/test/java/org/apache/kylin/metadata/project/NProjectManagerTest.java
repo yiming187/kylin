@@ -19,7 +19,6 @@
 package org.apache.kylin.metadata.project;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 
 import org.apache.hadoop.fs.FileSystem;
@@ -137,13 +136,13 @@ public class NProjectManagerTest extends NLocalFileMetadataTestCase {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 NProjectManager pManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
                 return pManager.createProject("project_tmp_1", "ADMIN", "", new LinkedHashMap<>());
-            }, "_global");
+            }, "project_tmp_1");
         });
         Thread t2 = new Thread(() -> {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 NProjectManager pManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
                 return pManager.createProject("project_tmp_2", "ADMIN", "", new LinkedHashMap<>());
-            }, "_global");
+            }, "project_tmp_2");
         });
 
         t1.start();

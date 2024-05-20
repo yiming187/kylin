@@ -172,7 +172,6 @@ public class MetadataTool extends ExecutableApplication {
         result.addOption(OPTION_DIR);
         result.addOption(OPTION_PROJECT);
         result.addOption(FOLDER_NAME);
-        result.addOption(OPTION_TARGET);
         result.addOption(OPERATE_COMPRESS);
         result.addOption(OPTION_EXCLUDE_TABLE_EXD);
         result.addOption(OPTION_AFTER_TRUNCATE);
@@ -190,21 +189,21 @@ public class MetadataTool extends ExecutableApplication {
         String project = optionsHelper.getOptionValue(OPTION_PROJECT);
         String path = optionsHelper.getOptionValue(OPTION_DIR);
         String folder = optionsHelper.getOptionValue(FOLDER_NAME);
-        String target = optionsHelper.getOptionValue(OPTION_TARGET);
         boolean compress = optionsHelper.hasOption(OPERATE_COMPRESS);
         boolean excludeTableExd = optionsHelper.hasOption(OPTION_EXCLUDE_TABLE_EXD);
         if (optionsHelper.hasOption(OPERATE_BACKUP)) {
             backupMetadata(project, path, folder, compress, excludeTableExd);
-        } else if (optionsHelper.hasOption(OPERATE_FETCH)) {
-            helper.fetch(kylinConfig, path, folder, target, excludeTableExd);
-        } else if (optionsHelper.hasOption(OPERATE_LIST)) {
-            helper.list(kylinConfig, target);
+            // todo: upgrading to kylin5 need more work on MetadataTool
+            // } else if (optionsHelper.hasOption(OPERATE_FETCH)) {
+            //     helper.fetch(kylinConfig, path, folder, target, excludeTableExd);
+            // } else if (optionsHelper.hasOption(OPERATE_LIST)) {
+            //     helper.list(kylinConfig, target);
         } else if (optionsHelper.hasOption(OPERATE_RESTORE)) {
             boolean delete = optionsHelper.hasOption(OPTION_AFTER_TRUNCATE);
             UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().processor(() -> {
                 restoreMetadata(project, path, delete);
                 return null;
-            }).useProjectLock(true).unitName(GLOBAL_UNIT).all(true).build());
+            }).unitName(GLOBAL_UNIT).all(true).build());
         } else {
             throw new KylinException(PARAMETER_NOT_SPECIFY, "-restore");
         }

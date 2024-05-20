@@ -103,8 +103,9 @@ public class MetadataExtension implements BeforeEachCallback, BeforeAllCallback,
             SystemPropertiesCache.setProperty("KYLIN_HOME", kylinHomePath);
             val jobJar = org.apache.kylin.common.util.FileUtils.findFile(
                     new File(kylinHomePath, "../../../assembly/target/").getAbsolutePath(), "kylin-assembly(.?)\\.jar");
-            getTestConfig().setProperty("kylin.engine.spark.job-jar", jobJar == null ? "" : jobJar.getAbsolutePath());
-            getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "false");
+            KylinConfig testConfig = getTestConfig();
+            testConfig.setProperty("kylin.engine.spark.job-jar", jobJar == null ? "" : jobJar.getAbsolutePath());
+            testConfig.setProperty("kylin.query.security.acl-tcr-enabled", "false");
             return tempMetadataDirectory;
         }
 

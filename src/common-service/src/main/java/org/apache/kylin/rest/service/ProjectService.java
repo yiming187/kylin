@@ -39,6 +39,7 @@ import static org.apache.kylin.common.exception.ServerErrorCode.PROJECT_DROP_FAI
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.CONFIG_NOT_SUPPORT_EDIT;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PARAMETER_INVALID_SUPPORT_LIST;
 import static org.apache.kylin.common.exception.code.ErrorCodeServer.PROJECT_NOT_EXIST;
+import static org.apache.kylin.job.execution.JobTypeEnum.Category.CRON;
 
 import java.io.File;
 import java.io.IOException;
@@ -73,6 +74,7 @@ import org.apache.kylin.common.event.ProjectCleanOldQueryResultEvent;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.scheduler.EventBusFactory;
@@ -94,7 +96,6 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.cube.storage.ProjectStorageInfoCollector;
 import org.apache.kylin.metadata.cube.storage.StorageInfoEnum;
-import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.metadata.favorite.FavoriteRuleManager;
 import org.apache.kylin.metadata.favorite.QueryHistoryIdOffsetManager;
 import org.apache.kylin.metadata.model.ISourceAware;
@@ -106,7 +107,6 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.recommendation.candidate.RawRecManager;
 import org.apache.kylin.rest.aspect.Transaction;
-import org.apache.kylin.rest.cluster.ClusterManager;
 import org.apache.kylin.rest.config.initialize.ProjectDropListener;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.ComputedColumnConfigRequest;
@@ -190,9 +190,6 @@ public class ProjectService extends BasicService {
     @Autowired
     UserService userService;
 
-    @Autowired
-    private ClusterManager clusterManager;
-
     private static final String DEFAULT_VAL = "default";
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -234,11 +231,10 @@ public class ProjectService extends BasicService {
     }
 
     public List<String> getOwnedProjects() {
+        // Since epoch has been removed, just return all projects.
         val config = KylinConfig.getInstanceFromEnv();
-        val epochManager = EpochManager.getInstance();
         return NProjectManager.getInstance(config).listAllProjects().stream() //
                 .map(ProjectInstance::getName) //
-                .filter(epochManager::checkEpochOwner) // project owner
                 .collect(Collectors.toList());
     }
 
@@ -355,40 +351,36 @@ public class ProjectService extends BasicService {
     }
 
     @SneakyThrows
-    public void garbageCleanup(long remainingTime) {
+    public void garbageCleanup(String projectName, long remainingTime) {
         try (SetThreadName ignored = new SetThreadName("GarbageCleanupWorker")) {
             val config = KylinConfig.getInstanceFromEnv();
             val projectManager = NProjectManager.getInstance(config);
-            val epochMgr = EpochManager.getInstance();
-            for (ProjectInstance project : projectManager.listAllProjects()) {
-                if (Thread.currentThread().isInterrupted()) {
-                    throw new InterruptedException("Thread is interrupted: " + Thread.currentThread().getName());
-                }
-                if (!config.isUTEnv() && !epochMgr.checkEpochOwner(project.getName()))
-                    continue;
-                logger.info("Start to cleanup garbage for project<{}>", project.getName());
-                try {
-                    updateStatMetaImmediately(project.getName(), remainingTime);
-                    boolean needAggressiveOpt = Arrays.stream(config.getProjectsAggressiveOptimizationIndex())
-                            .map(StringUtils::lowerCase).collect(Collectors.toList())
-                            .contains(StringUtils.toRootLowerCase(project.getName()));
-                    MetadataCleaner.clean(project.getName(), needAggressiveOpt);
-                    EventBusFactory.getInstance().callService(new ProjectCleanOldQueryResultEvent(project.getName()));
-                } catch (Exception e) {
-                    logger.warn("clean project<" + project.getName() + "> failed", e);
-                }
-                logger.info("Garbage cleanup for project<{}> finished", project.getName());
+            val project = projectManager.getProject(projectName);
+            if (Thread.currentThread().isInterrupted()) {
+                throw new InterruptedException("Thread is interrupted: " + Thread.currentThread().getName());
             }
-            cleanRawRecForDeletedProject(projectManager);
+            logger.info("Start to cleanup garbage for project<{}>", project.getName());
+            try {
+                updateStatMetaImmediately(project.getName(), remainingTime);
+                boolean needAggressiveOpt = Arrays.stream(config.getProjectsAggressiveOptimizationIndex())
+                        .map(StringUtils::lowerCase).collect(Collectors.toList())
+                        .contains(StringUtils.toRootLowerCase(project.getName()));
+                MetadataCleaner.clean(project.getName(), needAggressiveOpt);
+                EventBusFactory.getInstance().callService(new ProjectCleanOldQueryResultEvent(project.getName()));
+            } catch (Exception e) {
+                logger.warn("clean project<" + project.getName() + "> failed", e);
+            }
+            logger.info("Garbage cleanup for project<{}> finished", project.getName());
         }
-
     }
 
-    private void cleanRawRecForDeletedProject(NProjectManager projectManager) {
+    public void cleanRawRecForDeletedProject() {
         if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
             return;
         }
-        RawRecManager.getInstance(EpochManager.GLOBAL).cleanForDeletedProject(
+        val config = KylinConfig.getInstanceFromEnv();
+        val projectManager = NProjectManager.getInstance(config);
+        RawRecManager.getInstance(ResourceStore.GLOBAL_PROJECT).cleanForDeletedProject(
                 projectManager.listAllProjects().stream().map(ProjectInstance::getName).collect(Collectors.toList()));
     }
 
@@ -943,7 +935,8 @@ public class ProjectService extends BasicService {
         List<String> jobIds = executableManager
                 .getExecutablePOsByStatus(Lists.newArrayList(ExecutableState.RUNNING, ExecutableState.PENDING,
                         ExecutableState.READY, ExecutableState.PAUSED))
-                .stream().map(executablePO -> executablePO.getId()).collect(Collectors.toList());
+                .stream().filter(executablePO -> !executablePO.getJobType().getCategory().equals(CRON))
+                .map(RootPersistentEntity::getId).collect(Collectors.toList());
         val streamingJobStatusList = Arrays.asList(JobStatusEnum.STARTING, JobStatusEnum.RUNNING,
                 JobStatusEnum.STOPPING);
         val streamingJobList = getManager(StreamingJobManager.class, project).listAllStreamingJobMeta().stream()
@@ -1240,8 +1233,8 @@ public class ProjectService extends BasicService {
     }
 
     public void updateStatMetaImmediately(String project) {
-        QueryHistoryMetaUpdateScheduler scheduler = QueryHistoryMetaUpdateScheduler.getInstance(project);
-        Future<?> future = scheduler.scheduleImmediately(scheduler.new QueryHistoryMetaUpdateRunner());
+        QueryHistoryMetaUpdateScheduler scheduler = QueryHistoryMetaUpdateScheduler.getInstance();
+        Future<?> future = scheduler.scheduleImmediately(scheduler.new QueryHistoryMetaUpdateRunner(project));
         try {
             future.get();
         } catch (InterruptedException e) {
@@ -1253,9 +1246,9 @@ public class ProjectService extends BasicService {
     }
 
     public void updateStatMetaImmediately(String project, long remainingTime) {
-        QueryHistoryMetaUpdateScheduler scheduler = QueryHistoryMetaUpdateScheduler.getInstance(project);
+        QueryHistoryMetaUpdateScheduler scheduler = QueryHistoryMetaUpdateScheduler.getInstance();
         if (scheduler.hasStarted()) {
-            Future<?> future = scheduler.scheduleImmediately(scheduler.new QueryHistoryMetaUpdateRunner());
+            Future<?> future = scheduler.scheduleImmediately(scheduler.new QueryHistoryMetaUpdateRunner(project));
             waitFuture(future, remainingTime, "updateStatMeta");
         }
     }

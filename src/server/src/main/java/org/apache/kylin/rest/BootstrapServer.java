@@ -29,7 +29,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.EncryptUtil;
 import org.apache.kylin.guava30.shaded.common.base.Charsets;
 import org.apache.kylin.guava30.shaded.common.hash.Hashing;
-import org.apache.kylin.metadata.epoch.EpochManager;
 import org.mybatis.spring.annotation.MapperScan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +59,7 @@ import io.github.resilience4j.timelimiter.TimeLimiterConfig;
 import lombok.val;
 
 @ImportResource(locations = { "applicationContext.xml", "kylinSecurity.xml" })
-@SpringBootApplication(scanBasePackages="org.apache.kylin", excludeName = "io.kyligence.kap.secondstorage.management.ManagementConfig")
+@SpringBootApplication(scanBasePackages = "org.apache.kylin")
 @EnableScheduling
 @EnableAsync
 @EnableCaching
@@ -147,7 +146,6 @@ public class BootstrapServer implements ISmartApplicationListenerForSystem {
             logger.info("init backend end...");
         } else if (event instanceof ContextClosedEvent) {
             logger.info("Stop Kylin 5 node...");
-            EpochManager.getInstance().releaseOwnedEpochs();
         }
     }
 

@@ -17,9 +17,9 @@
 
 package org.apache.kylin.it
 
-import java.io.File
-
+import io.netty.util.internal.ThrowableUtil
 import org.apache.kylin.common._
+import org.apache.kylin.common.persistence.transaction.UnitOfWork
 import org.apache.kylin.common.util.{TestUtils, TimeZoneUtils}
 import org.apache.kylin.engine.spark.IndexDataWarehouse
 import org.apache.kylin.metadata.cube.model.NDataflowManager.NDataflowUpdater
@@ -33,7 +33,7 @@ import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.execution.{KylinFileSourceScanExec, LayoutFileSourceScanExec}
 import org.apache.spark.sql.{DataFrame, SparderEnv}
 
-import io.netty.util.internal.ThrowableUtil
+import java.io.File
 
 class TestQueryAndBuildFunSuite
   extends SparderBaseFunSuite
@@ -127,9 +127,6 @@ class TestQueryAndBuildFunSuite
     overwriteSystemProp("kylin.dictionary.null-encoding-opt-threshold", "1")
     overwriteSystemProp("kylin.query.spark-job-trace-enabled", "false")
     overwriteSystemProp("kylin.web.timezone", "GMT+8")
-    TimeZoneUtils.setDefaultTimeZone(KylinConfig.getInstanceFromEnv)
-    NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, DEFAULT_PROJECT)
-      .updateDataflow(DF_NAME, Updater(RealizationStatusEnum.OFFLINE))
     overwriteSystemProp("kylin.query.pushdown.runner-class-name", "")
     overwriteSystemProp("kylin.query.pushdown-enabled", "false")
     overwriteSystemProp("kylin.snapshot.parallel-build-enabled", "true")
@@ -137,6 +134,12 @@ class TestQueryAndBuildFunSuite
     overwriteSystemProp("kylin.snapshot.version-ttl", "0")
     overwriteSystemProp("kylin.snapshot.max-versions", "1")
     overwriteSystemProp("kylin.engine.persist-flat-use-snapshot-enabled", "false")
+    TimeZoneUtils.setDefaultTimeZone(KylinConfig.getInstanceFromEnv)
+    UnitOfWork.doInTransactionWithRetry(() => {
+      NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, DEFAULT_PROJECT)
+        .updateDataflow(DF_NAME, Updater(RealizationStatusEnum.OFFLINE))
+    }, DEFAULT_PROJECT)
+
     build()
   }
 

@@ -48,7 +48,6 @@ import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 import org.apache.kylin.guava30.shaded.common.collect.ImmutableList;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.guava30.shaded.common.collect.Maps;
-import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.rest.response.ServerInfoResponse;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -65,13 +64,6 @@ import lombok.val;
 @Component
 public class KylinServiceDiscoveryCache implements KylinServiceDiscovery {
     private static final Logger logger = LoggerFactory.getLogger(KylinServiceDiscoveryCache.class);
-    private static final Callback UPDATE_ALL_EPOCHS = () -> {
-        try {
-            EpochManager.getInstance().updateAllEpochs();
-        } catch (Exception e) {
-            logger.error("UpdateAllEpochs failed", e);
-        }
-    };
     private final Map<ServerModeEnum, ServiceCache<ZookeeperInstance>> serverModeCacheMap;
     private final List<ServerModeEnum> ALL_CHECK_MODE_LIST = ImmutableList.of(ALL, JOB, QUERY);
     @Autowired
@@ -118,10 +110,12 @@ public class KylinServiceDiscoveryCache implements KylinServiceDiscovery {
             }));
             break;
         case JOB:
-            serverModeCacheMap.put(JOB, createServiceCache(serviceDiscovery, JOB, UPDATE_ALL_EPOCHS));
+            serverModeCacheMap.put(JOB, createServiceCache(serviceDiscovery, JOB, () -> {
+            }));
             break;
         case ALL:
-            serverModeCacheMap.put(ALL, createServiceCache(serviceDiscovery, ALL, UPDATE_ALL_EPOCHS));
+            serverModeCacheMap.put(ALL, createServiceCache(serviceDiscovery, ALL, () -> {
+            }));
             break;
         default:
             break;

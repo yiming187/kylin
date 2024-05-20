@@ -23,6 +23,7 @@ import static org.apache.kylin.guava30.shaded.common.net.HttpHeaders.ACCEPT_ENCO
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
@@ -33,12 +34,14 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.transaction.BroadcastEventReadyNotifier;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.guava30.shaded.common.base.CaseFormat;
-import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.streaming.DataParserManager;
+import org.apache.kylin.rest.cluster.ClusterManager;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.response.ServerInfoResponse;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.NullsLastPropertyComparator;
 import org.apache.kylin.tool.restclient.RestClient;
@@ -65,6 +68,9 @@ public abstract class BasicService {
     @Autowired
     @Qualifier("userGroupService")
     protected IUserGroupService userGroupService;
+
+    @Autowired
+    ClusterManager clusterManager;
 
     public KylinConfig getConfig() {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -124,14 +130,10 @@ public abstract class BasicService {
         return userGroupService.listUserGroups(AclPermissionUtil.getCurrentUsername());
     }
 
-    public boolean remoteRequest(BroadcastEventReadyNotifier notifier, String projectId) {
+    public boolean remoteRequest(BroadcastEventReadyNotifier notifier) {
         try {
-            String projectName = notifier.getProject();
-            EpochManager epochManager = EpochManager.getInstance();
-            if (StringUtils.isNotBlank(projectId)) {
-                projectName = getManager(NProjectManager.class).getProjectById(projectId).getName();
-            }
-            String owner = epochManager.getEpochOwner(projectName).split("\\|")[0];
+            List<ServerInfoResponse> jobs = clusterManager.getJobServers();
+            String owner = jobs.get(RandomUtil.nextInt(jobs.size())).getHost();
             new RestClient(owner).notify(notifier);
         } catch (Exception e) {
             log.error("Failed to using rest client request.", e);

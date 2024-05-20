@@ -18,6 +18,9 @@
 
 package org.apache.kylin.job.scheduler;
 
+import static org.apache.kylin.common.persistence.ResourceStore.GLOBAL_PROJECT;
+
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -55,9 +58,9 @@ import org.apache.kylin.job.runners.JobCheckUtil;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.job.util.JobInfoUtil;
 import org.apache.kylin.metadata.cube.utils.StreamingUtils;
-import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.resourcegroup.ResourceGroupManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,6 +132,16 @@ public class JdbcJobScheduler implements JobScheduler {
         return JobContextUtil.getJobSchedulerHost(jobId);
     }
 
+    @Override
+    public boolean isMaster() {
+        return isMaster.get();
+    }
+
+    @Override
+    public String getJobMaster() {
+        return jobContext.getJobLockMapper().selectByJobId(MASTER_SCHEDULER).getLockNode();
+    }
+
     public void start() {
         // standby: acquire JSM
         // publish job:  READY -> PENDING
@@ -146,13 +159,14 @@ public class JdbcJobScheduler implements JobScheduler {
         subscribeJob();
     }
 
+    // for UT
     public void destroy() {
 
         if (Objects.nonNull(masterLock)) {
             try {
                 masterLock.tryRelease();
             } catch (LockException e) {
-                logger.error("Something's wrong when removing master lock", e);
+                logger.warn("Something's wrong when removing master lock");
             }
         }
 
@@ -173,7 +187,8 @@ public class JdbcJobScheduler implements JobScheduler {
         // init master lock
         try {
             if (jobContext.getJobLockMapper().selectByJobId(JobScheduler.MASTER_SCHEDULER) == null) {
-                jobContext.getJobLockMapper().insertSelective(new JobLock(JobScheduler.MASTER_SCHEDULER, "_global", 0));
+                jobContext.getJobLockMapper().insertSelective(
+                        new JobLock(JobScheduler.MASTER_SCHEDULER, "_global", 0, JobLock.JobTypeEnum.MASTER));
             }
         } catch (Exception e) {
             logger.error("Try insert 'master_scheduler' failed.", e);
@@ -249,7 +264,7 @@ public class JdbcJobScheduler implements JobScheduler {
         int i = 0;
         while (i < produceCount) {
             if (projectReadyJobCache.isEmpty()) {
-                return i;
+                break;
             }
             JobInfo jobInfo = projectReadyJobCache.poll();
             if (doProduce(jobInfo)) {
@@ -268,8 +283,8 @@ public class JdbcJobScheduler implements JobScheduler {
             return JobContextUtil.withTxAndRetry(() -> {
                 String jobId = jobInfo.getJobId();
                 JobLock lock = jobContext.getJobLockMapper().selectByJobId(jobId);
-                if (lock == null && jobContext.getJobLockMapper()
-                        .insertSelective(new JobLock(jobId, jobInfo.getProject(), jobInfo.getPriority())) == 0) {
+                if (lock == null && jobContext.getJobLockMapper().insertSelective(new JobLock(jobId,
+                        jobInfo.getProject(), jobInfo.getPriority(), JobLock.JobTypeEnum.OFFLINE)) == 0) {
                     logger.error("Create job lock for [{}] failed!", jobId);
                     return false;
                 }
@@ -279,7 +294,7 @@ public class JdbcJobScheduler implements JobScheduler {
                 return true;
             });
         } catch (Exception e) {
-            logger.error("Failed to produce job: " + jobInfo.getJobId(), e);
+            logger.error("Failed to produce job: {}", jobInfo.getJobId(), e);
             return false;
         }
     }
@@ -307,15 +322,16 @@ public class JdbcJobScheduler implements JobScheduler {
         for (ProjectInstance projectInstance : allProjects) {
             String project = projectInstance.getName();
             int projectMaxConcurrent = projectInstance.getConfig().getMaxConcurrentJobLimit();
-            int projectRunningCount = projectRunningCountMap.containsKey(project)
-                    ? projectRunningCountMap.get(project).intValue()
-                    : 0;
+            int projectRunningCount = projectRunningCountMap.getOrDefault(project, 0);
             if (projectRunningCount < projectMaxConcurrent) {
                 projectProduceCount.put(project, projectMaxConcurrent - projectRunningCount);
                 continue;
             }
             projectProduceCount.put(project, 0);
         }
+        // _global is a virtual project, used to schedule cron jobs, such as SecondStorageLowCardinalityJob.
+        int globalRunningCount = projectRunningCountMap.getOrDefault(GLOBAL_PROJECT, 0);
+        projectProduceCount.put(GLOBAL_PROJECT, globalRunningCount == 0 ? 1 : 0);
         return projectProduceCount;
     }
 
@@ -358,7 +374,8 @@ public class JdbcJobScheduler implements JobScheduler {
             if (exeFreeSlots < batchSize) {
                 batchSize = exeFreeSlots;
             }
-            List<String> projects = EpochManager.getInstance().listRealProjectWithPermission();
+            List<String> projects = ResourceGroupManager.getInstance(jobContext.getKylinConfig())
+                    .listProjectWithPermission();
             List<String> jobIdList = findNonLockIdListInOrder(batchSize, projects);
 
             if (CollectionUtils.isEmpty(jobIdList)) {
@@ -398,14 +415,13 @@ public class JdbcJobScheduler implements JobScheduler {
 
     public List<String> findNonLockIdListInOrder(int batchSize, List<String> projects) {
         KylinConfig config = jobContext.getKylinConfig();
-        if (projects.size() == 0) {
-            return Collections.emptyList();
-        }
-        if (projects.size() == NProjectManager.getInstance(config).listAllProjects().size()) {
-            projects = null;
+        List<String> projectsAndGlobal = new ArrayList<>(projects);
+        projectsAndGlobal.add(GLOBAL_PROJECT);
+        if (projectsAndGlobal.size() == NProjectManager.getInstance(config).listAllProjects().size() + 1) {
+            projectsAndGlobal = null;
         }
         List<PriorityFistRandomOrderJob> jobIdList = jobContext.getJobLockMapper().findNonLockIdList(batchSize,
-                projects);
+                projectsAndGlobal);
         // Shuffle jobs avoiding jobLock conflict.
         // At the same time, we should ensure the overall order.
         if (hasRunningJob()) {
@@ -424,7 +440,7 @@ public class JdbcJobScheduler implements JobScheduler {
             AbstractJobExecutable jobExecutable = getJobExecutable(jobInfo);
             return new Pair<>(jobInfo, jobExecutable);
         } catch (Exception e) {
-            logger.error("Fetch job failed, job id: " + jobId, e);
+            logger.error("Fetch job failed, job id: {}", jobId, e);
             return null;
         }
     }
@@ -442,7 +458,7 @@ public class JdbcJobScheduler implements JobScheduler {
                 return false;
             }
         } catch (Exception e) {
-            logger.error("Error when preparing to submit job: " + jobId, e);
+            logger.error("Error when preparing to submit job: {}", jobId, e);
             return false;
         }
         return true;
@@ -481,7 +497,7 @@ public class JdbcJobScheduler implements JobScheduler {
             // heavy action
             jobExecutor.execute();
         } catch (Exception e) {
-            logger.error("Execute job failed " + jobExecutable.getJobId(), e);
+            logger.error("Execute job failed {}", jobExecutable.getJobId(), e);
         } finally {
             if (jobLock != null) {
                 stopJobLockRenewAfterExecute(jobLock);

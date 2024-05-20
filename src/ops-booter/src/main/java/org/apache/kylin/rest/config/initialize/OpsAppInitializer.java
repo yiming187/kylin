@@ -26,13 +26,11 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.metadata.asynctask.AbstractAsyncTask;
 import org.apache.kylin.metadata.asynctask.MetadataRestoreTask;
-import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.metadata.favorite.AsyncTaskManager;
 import org.apache.kylin.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.reponse.MetadataBackupResponse;
 import org.apache.kylin.rest.service.OpsService;
-import org.apache.kylin.tool.MaintainModeTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -46,7 +44,6 @@ public class OpsAppInitializer {
     @EventListener(ApplicationReadyEvent.class)
     public void beforeStarted() throws IOException {
         checkMetadataRestoreTaskStatus();
-        checkMaintainMode();
         checkMetadataBackupTaskStatus();
     }
 
@@ -64,17 +61,6 @@ public class OpsAppInitializer {
             }
         }
         log.info("finished check metadata restore task status in {} ms", System.currentTimeMillis() - startTime);
-    }
-
-    public void checkMaintainMode() {
-        if (EpochManager.getInstance().isMaintenanceMode()) {
-            log.info("start to exit maintain mode.");
-            long startTime = System.currentTimeMillis();
-            MaintainModeTool maintainModeTool = new MaintainModeTool();
-            maintainModeTool.init();
-            maintainModeTool.releaseEpochs();
-            log.info("finished exit maintain mode in {} ms.", System.currentTimeMillis() - startTime);
-        }
     }
 
     public void checkMetadataBackupTaskStatus() throws IOException {

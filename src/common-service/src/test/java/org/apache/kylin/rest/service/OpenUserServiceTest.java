@@ -31,7 +31,6 @@ import org.apache.kylin.common.scheduler.EventBusFactory;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.helper.UpdateUserAclToolHelper;
-import org.apache.kylin.metadata.epoch.EpochManager;
 import org.apache.kylin.metadata.user.ManagedUser;
 import org.apache.kylin.rest.config.initialize.UserAclListener;
 import org.apache.kylin.rest.constant.Constant;
@@ -126,8 +125,6 @@ public class OpenUserServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testBasic() {
-        EpochManager epochManager = EpochManager.getInstance();
-        epochManager.tryUpdateEpoch(EpochManager.GLOBAL, true);
         Assert.assertNotNull(userService);
 
         // test list users
@@ -275,8 +272,6 @@ public class OpenUserServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testSyncAdminUser() {
-        EpochManager epochManager = EpochManager.getInstance();
-        epochManager.tryUpdateEpoch(EpochManager.GLOBAL, true);
         userAclService.syncAdminUserAcl();
         Assert.assertTrue(userAclService.hasUserAclPermission("admin", AclPermission.DATA_QUERY));
     }
