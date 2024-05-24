@@ -39,8 +39,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @MetadataInfo
-@OverwriteProp(value = "false", key = "kylin.pushdown.select-star-case-sensitive-enabled")
-class HackSelectStarWithColumnACLTest {
+@OverwriteProp(value = "true", key = "kylin.pushdown.select-star-lowercase-enabled")
+class HackSelectStarWithColumnACLWithSelectStarLowercaseTest {
     private static final String PROJECT = "default";
     private static final String SCHEMA = "DEFAULT";
     private static final HackSelectStarWithColumnACL TRANSFORMER = new HackSelectStarWithColumnACL();
@@ -66,11 +66,11 @@ class HackSelectStarWithColumnACLTest {
                     + "on TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             String expected = "select * from ( " //
-                    + "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + "select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\" "
-                    + "join ( select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\" "
+                    + "join ( select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\" "
                     + "on TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID";
             Assertions.assertEquals(expected, converted);
         }
@@ -79,10 +79,10 @@ class HackSelectStarWithColumnACLTest {
             String sql = "select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             String expected = "select * from ( " //
-                    + "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"T1\" "
-                    + "join ( select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" from \"DEFAULT\".\"TEST_ORDER\") as \"T2\" "
+                    + "select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"T1\" "
+                    + "join ( select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" from \"DEFAULT\".\"TEST_ORDER\") as \"T2\" "
                     + "on t1.ORDER_ID = t2.ORDER_ID";
             Assertions.assertEquals(expected, converted);
         }
@@ -91,10 +91,10 @@ class HackSelectStarWithColumnACLTest {
             String sql = "select t1.ORDER_ID from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             String expected = "select t1.ORDER_ID from ( " //
-                    + "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"T1\" "
-                    + "join ( select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" from \"DEFAULT\".\"TEST_ORDER\") as \"T2\" "
+                    + "select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"T1\" "
+                    + "join ( select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" from \"DEFAULT\".\"TEST_ORDER\") as \"T2\" "
                     + "on t1.ORDER_ID = t2.ORDER_ID";
             Assertions.assertEquals(expected, converted);
         }
@@ -104,13 +104,13 @@ class HackSelectStarWithColumnACLTest {
                     + " join TEST_ORDER t3 on t1.ORDER_ID = t3.ORDER_ID";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             String expected = "select * from ( " //
-                    + "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"T1\" "
-                    + "join ( select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" from \"DEFAULT\".\"TEST_ORDER\") as \"T2\" "
+                    + "select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"T1\" "
+                    + "join ( select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" from \"DEFAULT\".\"TEST_ORDER\") as \"T2\" "
                     + "on t1.ORDER_ID = t2.ORDER_ID "
-                    + "join ( select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" from \"DEFAULT\".\"TEST_ORDER\") as \"T3\" "
+                    + "join ( select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" from \"DEFAULT\".\"TEST_ORDER\") as \"T3\" "
                     + "on t1.ORDER_ID = t3.ORDER_ID";
             Assertions.assertEquals(expected, converted);
         }
@@ -120,13 +120,13 @@ class HackSelectStarWithColumnACLTest {
                     + " join TEST_ORDER t3 on t1.ORDER_ID = t3.ORDER_ID";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             String expected = "select t1.ORDER_ID from ( " //
-                    + "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"T1\" "
-                    + "join ( select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" from \"DEFAULT\".\"TEST_ORDER\") as \"T2\" "
+                    + "select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"T1\" "
+                    + "join ( select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" from \"DEFAULT\".\"TEST_ORDER\") as \"T2\" "
                     + "on t1.ORDER_ID = t2.ORDER_ID "
-                    + "join ( select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" from \"DEFAULT\".\"TEST_ORDER\") as \"T3\" "
+                    + "join ( select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" from \"DEFAULT\".\"TEST_ORDER\") as \"T3\" "
                     + "on t1.ORDER_ID = t3.ORDER_ID";
             Assertions.assertEquals(expected, converted);
         }
@@ -137,11 +137,11 @@ class HackSelectStarWithColumnACLTest {
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             String expected = "select * from (" //
                     + "select * from ( " //
-                    + "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + "select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\""
-                    + ") t1 join ( select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" from \"DEFAULT\".\"TEST_ORDER\""
+                    + ") t1 join ( select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" from \"DEFAULT\".\"TEST_ORDER\""
                     + ") as \"T2\" on t1.ORDER_ID = t2.ORDER_ID";
             Assertions.assertEquals(expected, converted);
         }
@@ -156,11 +156,11 @@ class HackSelectStarWithColumnACLTest {
                     + "on TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             String expected = "with test_order as (select * from ( "
-                    + "select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\")\n"
+                    + "select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\")\n"
                     + "select * from ( " //
-                    + "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + "select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\" "
                     + "join \"TEST_ORDER\" on TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID";
             Assertions.assertEquals(expected, converted);
@@ -172,7 +172,7 @@ class HackSelectStarWithColumnACLTest {
                     + "select fpd.order_id, fpd.buyer_id from temp_dept as fpd";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             String expected = "with \"TEMP_DEPT\" as (select fpd.order_id, fpd.buyer_id from ( "
-                    + "select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", \"TEST_ORDER\".\"TEST_DATE_ENC\" "
+                    + "select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", \"TEST_ORDER\".\"test_date_enc\" "
                     + "from \"DEFAULT\".\"TEST_ORDER\") as \"FPD\" group by fpd.order_id, fpd.buyer_id)\n"
                     + "select fpd.order_id, fpd.buyer_id from \"TEMP_DEPT\" as \"FPD\"";
             Assertions.assertEquals(expected, converted);
@@ -184,11 +184,11 @@ class HackSelectStarWithColumnACLTest {
                     + "on TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             String expected = "with test_order as (select * from ( "
-                    + "select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\")\n"
+                    + "select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\")\n"
                     + "select * from ( " //
-                    + "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + "select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\" "
                     + "join (select * from \"TEST_ORDER\") TEST_ORDER on TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID";
             Assertions.assertEquals(expected, converted);
@@ -200,15 +200,15 @@ class HackSelectStarWithColumnACLTest {
                     + "on TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             String expected = "with test_order as (select * from ( "
-                    + "select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\")\n"
+                    + "select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\")\n"
                     + "select * from ( " //
-                    + "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + "select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\" " //
                     + "join (select * from ( " //
-                    + "select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" "
+                    + "select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" "
                     + "from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\") TEST_ORDER "
                     + "on TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID";
             Assertions.assertEquals(expected, converted);
@@ -221,12 +221,12 @@ class HackSelectStarWithColumnACLTest {
                     + "on TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             String expected = "with test_order as (" //
-                    + "select * from ( select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" " //
+                    + "select * from ( select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" " //
                     + "from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\"), " //
                     + "test_kylin_fact as ("
-                    + "select * from ( select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + "select * from ( select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\")\n"
                     + "select * from \"TEST_KYLIN_FACT\" join (select * from \"TEST_ORDER\") TEST_ORDER "
                     + "on TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID";
@@ -245,11 +245,11 @@ class HackSelectStarWithColumnACLTest {
             String expected = "select " //
                     + " sum(ORDER_ID)," //
                     + " (select sum(ORDER_ID) from " //
-                    + "( select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" " //
+                    + "( select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" " //
                     + "from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\" ) as o2" //
-                    + "  from ( select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + "  from ( select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\"";
             Assertions.assertEquals(expected, converted);
         }
@@ -262,11 +262,11 @@ class HackSelectStarWithColumnACLTest {
             String expected = "select " //
                     + " sum(ORDER_ID)," //
                     + " (select sum(ORDER_ID) from " //
-                    + "( select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + "( select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\" ) as o2" //
-                    + "  from ( select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + "  from ( select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\"";
             Assertions.assertEquals(expected, converted);
         }
@@ -281,12 +281,12 @@ class HackSelectStarWithColumnACLTest {
                     + ") as a1";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             String expected = "select -((select sum(ORDER_ID) from" //
-                    + " ( select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + " ( select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\")" //
                     + " -(select sum(ORDER_ID) from" //
-                    + " ( select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + " ( select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\")" //
                     + ") as a1";
             Assertions.assertEquals(expected, converted);
@@ -298,12 +298,12 @@ class HackSelectStarWithColumnACLTest {
                     + ") as a1, sum(ORDER_ID) as a2";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             String expected = "select -((select sum(ORDER_ID) from" //
-                    + " ( select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + " ( select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\")" //
                     + " -(select sum(ORDER_ID) from" //
-                    + " ( select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + " ( select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\")" //
                     + ") as a1, sum(ORDER_ID) as a2";
             Assertions.assertEquals(expected, converted);
@@ -318,13 +318,13 @@ class HackSelectStarWithColumnACLTest {
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             String expected = "select -((" //
                     + "with test_kylin_fact1 as ("
-                    + "select * from ( select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + "select * from ( select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\") " //
                     + "select sum(ORDER_ID) from \"TEST_KYLIN_FACT1\")" //
                     + " -(select sum(PRICE) from" //
-                    + " ( select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + " ( select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\")" //
                     + ") as a1, sum(ORDER_ID) as a2";
             Assertions.assertEquals(expected, converted);
@@ -341,19 +341,19 @@ class HackSelectStarWithColumnACLTest {
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             String expected = "select -((" //
                     + "with test_order as (" //
-                    + "select * from ( select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" " //
+                    + "select * from ( select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" " //
                     + "from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\"), " //
                     + "test_kylin_fact1 as ("
-                    + "select * from ( select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + "select * from ( select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\") "
                     + "select sum(TEST_KYLIN_FACT1.ORDER_ID) from \"TEST_KYLIN_FACT1\""
                     + " join (select * from \"TEST_ORDER\") TEST_ORDER "
                     + "on TEST_KYLIN_FACT1.ORDER_ID = TEST_ORDER.ORDER_ID limit 1)" //
                     + " -(select sum(PRICE) from" //
-                    + " ( select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + " ( select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\")" //
                     + ") as a1, sum(ORDER_ID) as a2";
             Assertions.assertEquals(expected, converted);
@@ -369,15 +369,15 @@ class HackSelectStarWithColumnACLTest {
             String expected = "select -((" //
                     + "select sum(t1.ORDER_ID) from (" //
                     + "select * from ( " //
-                    + "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + "select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\""
-                    + ") t1 join ( select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" from \"DEFAULT\".\"TEST_ORDER\""
+                    + ") t1 join ( select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" from \"DEFAULT\".\"TEST_ORDER\""
                     + ") as \"T2\" on t1.ORDER_ID = t2.ORDER_ID)"//
                     + " -(select sum(PRICE) from" //
-                    + " ( select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + " ( select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\")" //
                     + ") as a1, sum(ORDER_ID) as a2";
             Assertions.assertEquals(expected, converted);
@@ -388,12 +388,12 @@ class HackSelectStarWithColumnACLTest {
                     + ",(select sum(ORDER_ID) from test_kylin_fact) as a1";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             String expected = "select (select sum(ORDER_ID), null from" //
-                    + " ( select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + " ( select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\")" //
                     + ",(select sum(ORDER_ID) from" //
-                    + " ( select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + " ( select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\") as a1";
             Assertions.assertEquals(expected, converted);
         }
@@ -406,11 +406,11 @@ class HackSelectStarWithColumnACLTest {
             String sql = "select * from test_order union select * from test_order";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             String expected = "select * from ( " //
-                    + "select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\" "
+                    + "select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\" "
                     + "union select * from ( " //
-                    + "select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\"";
+                    + "select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\"";
             Assertions.assertEquals(expected, converted);
         }
         // with outer select
@@ -418,11 +418,11 @@ class HackSelectStarWithColumnACLTest {
             String sql = "select * from (select * from test_order union select * from test_order)";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             String expected = "select * from (select * from ( " //
-                    + "select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\" "
+                    + "select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\" "
                     + "union select * from ( " //
-                    + "select \"TEST_ORDER\".\"ORDER_ID\", \"TEST_ORDER\".\"BUYER_ID\", "
-                    + "\"TEST_ORDER\".\"TEST_DATE_ENC\" from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\")";
+                    + "select \"TEST_ORDER\".\"order_id\", \"TEST_ORDER\".\"buyer_id\", "
+                    + "\"TEST_ORDER\".\"test_date_enc\" from \"DEFAULT\".\"TEST_ORDER\") as \"TEST_ORDER\")";
             Assertions.assertEquals(expected, converted);
         }
     }
@@ -432,8 +432,8 @@ class HackSelectStarWithColumnACLTest {
         String sql = "select * from TEST_KYLIN_FACT "
                 + "where ITEM_COUNT in (select ITEM_COUNT from (select * from TEST_KYLIN_FACT) )";
         String expected = "select * from ( "
-                + "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                + "select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                + "\"TEST_KYLIN_FACT\".\"item_count\" "
                 + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\" "
                 + "where ITEM_COUNT in (select ITEM_COUNT from (select * from TEST_KYLIN_FACT) )";
         String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
@@ -450,8 +450,8 @@ class HackSelectStarWithColumnACLTest {
             String expected = "select (case when ITEM_COUNT > 0 " //
                     + "then (case when order_id > 0 then order_id else 1 end)  " //
                     + "else null end)\n" //
-                    + "from ( select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", " //
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" " //
+                    + "from ( select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", " //
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" " //
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\"";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             Assertions.assertEquals(expected, converted);
@@ -461,8 +461,8 @@ class HackSelectStarWithColumnACLTest {
             String sql = "select * from test_kylin_fact " //
                     + "where case when ITEM_COUNT > 10 then item_count else 0 end";
             String expected = "select * from ( " //
-                    + "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", " //
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" " //
+                    + "select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", " //
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" " //
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\" "
                     + "where case when ITEM_COUNT > 10 then item_count else 0 end";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
@@ -476,8 +476,8 @@ class HackSelectStarWithColumnACLTest {
         {
             String sql = "select * from \"DEFAULT\".\"TEST_KYLIN_FACT\"";
             String expected = "select * from ( "
-                    + "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + "select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\"";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             Assertions.assertEquals(expected, converted);
@@ -486,8 +486,8 @@ class HackSelectStarWithColumnACLTest {
         {
             String sql = "select * from test_kylin_fact as test_kylin_fact";
             String expected = "select * from ( "
-                    + "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + "select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\"";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             Assertions.assertEquals(expected, converted);
@@ -496,8 +496,8 @@ class HackSelectStarWithColumnACLTest {
         {
             String sql = "select * from test_kylin_fact as test_kylin_fact limit 10 offset 2";
             String expected = "select * from ( "
-                    + "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + "select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\" limit 10 offset 2";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             Assertions.assertEquals(expected, converted);
@@ -506,8 +506,8 @@ class HackSelectStarWithColumnACLTest {
         {
             String sql = "select count(*) from \"DEFAULT\".\"TEST_KYLIN_FACT\"";
             String expected = "select count(*) from ( "
-                    + "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                    + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\" "
+                    + "select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                    + "\"TEST_KYLIN_FACT\".\"item_count\" "
                     + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\"";
             String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
             Assertions.assertEquals(expected, converted);
@@ -524,7 +524,7 @@ class HackSelectStarWithColumnACLTest {
         ColumnDesc colStartsWithNumber = new ColumnDesc(columns[0]);
         colStartsWithNumber.setId("13");
         colStartsWithNumber.setDatatype("date");
-        colStartsWithNumber.setName("2D");
+        colStartsWithNumber.setName("2d");
         ColumnDesc colWithKeyword = new ColumnDesc(columns[0]);
         colWithKeyword.setId("14");
         colWithKeyword.setDatatype("date");
@@ -540,8 +540,8 @@ class HackSelectStarWithColumnACLTest {
         String sql = "select * from TEST_KYLIN_FACT";
         String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
         String expected = "select * from ( " //
-                + "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", \"TEST_KYLIN_FACT\".\"PRICE\", "
-                + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\", \"TEST_KYLIN_FACT\".\"2D\", \"TEST_KYLIN_FACT\".\"YEAR\" "
+                + "select \"TEST_KYLIN_FACT\".\"order_id\", \"TEST_KYLIN_FACT\".\"price\", "
+                + "\"TEST_KYLIN_FACT\".\"item_count\", \"TEST_KYLIN_FACT\".\"2d\", \"TEST_KYLIN_FACT\".\"year\" "
                 + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\"";
         Assertions.assertEquals(expected, converted);
     }
@@ -556,7 +556,7 @@ class HackSelectStarWithColumnACLTest {
         ColumnDesc colStartsWithNumber = new ColumnDesc(columns[0]);
         colStartsWithNumber.setId("13");
         colStartsWithNumber.setDatatype("date");
-        colStartsWithNumber.setName("2D");
+        colStartsWithNumber.setName("2d");
         ColumnDesc colWithKeyword = new ColumnDesc(columns[0]);
         colWithKeyword.setId("14");
         colWithKeyword.setDatatype("date");
@@ -572,11 +572,11 @@ class HackSelectStarWithColumnACLTest {
         String sql = "select * from TEST_KYLIN_FACT";
         String converted = TRANSFORMER.convert(sql, PROJECT, SCHEMA);
         String expected = "select * from ( " //
-                + "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", " //
-                + "\"TEST_KYLIN_FACT\".\"PRICE\", " //
-                + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\", " //
-                + "\"TEST_KYLIN_FACT\".\"2D\", " //
-                + "\"TEST_KYLIN_FACT\".\"YEAR\" " //
+                + "select \"TEST_KYLIN_FACT\".\"order_id\", " //
+                + "\"TEST_KYLIN_FACT\".\"price\", " //
+                + "\"TEST_KYLIN_FACT\".\"item_count\", " //
+                + "\"TEST_KYLIN_FACT\".\"2d\", " //
+                + "\"TEST_KYLIN_FACT\".\"year\" " //
                 + "from \"DEFAULT\".\"TEST_KYLIN_FACT\") as \"TEST_KYLIN_FACT\"";
         Assertions.assertEquals(expected, converted);
     }
@@ -593,7 +593,7 @@ class HackSelectStarWithColumnACLTest {
         AclTCR.Table g1t1 = new AclTCR.Table();
         AclTCR.ColumnRow g1cr1 = new AclTCR.ColumnRow();
         AclTCR.Column g1c1 = new AclTCR.Column();
-        g1c1.addAll(Arrays.asList("ORDER_ID", "2D", "YEAR"));
+        g1c1.addAll(Arrays.asList("ORDER_ID", "2d", "YEAR"));
         g1cr1.setColumn(g1c1);
         g1t1.put("DEFAULT.TEST_KYLIN_FACT", g1cr1);
         g1a1.setTable(g1t1);

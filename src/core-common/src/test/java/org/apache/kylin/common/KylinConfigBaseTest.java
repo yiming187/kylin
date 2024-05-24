@@ -885,6 +885,10 @@ class KylinConfigBaseTest {
                 new PropertiesEntity("kylin.build.resource.check-retry-limit-minutes", "10", 10L));
         map.put("getSourceNameCaseSensitiveEnabled",
                 new PropertiesEntity("kylin.source.name-case-sensitive-enabled", "", false));
+        map.put("getPushdownSelectStarCaseSensitiveEnable",
+                new PropertiesEntity("kylin.pushdown.select-star-case-sensitive-enabled", "true", true));
+        map.put("getPushdownSelectStarLowercaseEnable",
+                new PropertiesEntity("kylin.pushdown.select-star-lowercase-enabled", "", false));
         map.put("asyncProfilingEnabled", new PropertiesEntity("kylin.query.async-profiler-enabled", "true", true));
         map.put("asyncProfilingResultTimeout",
                 new PropertiesEntity("kylin.query.async-profiler-result-timeout", "60s", 60000L));
