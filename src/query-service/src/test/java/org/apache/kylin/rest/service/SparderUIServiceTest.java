@@ -33,6 +33,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.response.RestResponse;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.streaming.ReflectionUtils;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.SparderUIUtil;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -74,6 +75,8 @@ public class SparderUIServiceTest {
     @Mock
     private RestTemplate restTemplate = Mockito.mock(RestTemplate.class);
     @Mock
+    private AclEvaluate aclEvaluate = Mockito.mock(AclEvaluate.class);
+    @Mock
     private KylinConfig kylinConfig = Mockito.mock(KylinConfig.class);
     private SparderUIUtil sparderUIUtil;
 
@@ -83,11 +86,13 @@ public class SparderUIServiceTest {
         PowerMockito.when(HttpMethod.valueOf(ArgumentMatchers.anyString())).thenAnswer(invocation -> HttpMethod.GET);
         PowerMockito.when(KylinConfig.getInstanceFromEnv()).thenAnswer(invocation -> kylinConfig);
         Mockito.when(kylinConfig.getUIProxyLocation()).thenReturn("/kylin");
+        Mockito.when(kylinConfig.isSparkUIAclEnabled()).thenReturn(false);
 
         sparderUIUtil = Mockito.mock(SparderUIUtil.class);
         ReflectionUtils.setField(sparderUIService, "routeService", routeService);
         ReflectionUtils.setField(sparderUIService, "restTemplate", restTemplate);
         ReflectionUtils.setField(sparderUIService, "sparderUIUtil", sparderUIUtil);
+        ReflectionUtils.setField(sparderUIService, "aclEvaluate", aclEvaluate);
 
         val restResult = JsonUtil.writeValueAsBytes(RestResponse.ok(true));
         val resp = new ResponseEntity<>(restResult, HttpStatus.OK);
@@ -98,6 +103,12 @@ public class SparderUIServiceTest {
 
     @Test
     public void proxy() throws Exception {
+        proxyInner();
+        Mockito.when(kylinConfig.isSparkUIAclEnabled()).thenReturn(true);
+        proxyInner();
+    }
+
+    private void proxyInner() throws Exception {
         proxy(false, false, false);
         proxy(true, false, false);
         proxy(true, true, false);

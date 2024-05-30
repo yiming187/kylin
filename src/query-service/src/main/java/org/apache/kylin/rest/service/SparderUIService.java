@@ -34,8 +34,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exception.ErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.SparderUIUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -66,7 +68,18 @@ public class SparderUIService extends BasicService {
     @Qualifier("normalRestTemplate")
     private RestTemplate restTemplate;
 
+    @Autowired
+    private AclEvaluate aclEvaluate;
+
+    private void checkAcl() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        if (config.isSparkUIAclEnabled()) {
+            aclEvaluate.checkIsGlobalAdmin();
+        }
+    }
+
     public void proxy(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws Exception {
+        checkAcl();
         val server = getServer(servletRequest);
         if (StringUtils.isNotBlank(server) && !TRUE.equalsIgnoreCase(servletRequest.getHeader(ROUTED))
                 && routeService.needRoute()) {
@@ -91,6 +104,7 @@ public class SparderUIService extends BasicService {
 
     public void proxy(String id, String queryId, String server, HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) throws Exception {
+        checkAcl();
         var realServer = server;
         if (StringUtils.isBlank(server)) {
             realServer = getServer(servletRequest);
