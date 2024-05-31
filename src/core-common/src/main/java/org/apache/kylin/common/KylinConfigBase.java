@@ -4454,4 +4454,8 @@ public abstract class KylinConfigBase implements Serializable {
     public int getLoadTableBatchSize() {
         return Integer.parseInt(getOptional("kylin.table.load-batch-size", "200"));
     }
+
+    public int getMaxRetryTimesOfContextCut() {
+        return Integer.parseInt(getOptional("kylin.query.context-cutting-max-times", "10"));
+    }
 }
