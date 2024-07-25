@@ -726,7 +726,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "optimizeLayoutData")
+    @ApiOperation(value = "optimizeLayoutData", tags = { "DW" }, notes = "Add URL: {model}")
     @PostMapping(value = "{model:.+}/optimize_layout_data")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> optimizeModelIndexData(@PathVariable("model") String modelId,
@@ -749,7 +749,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, "", "");
     }
 
-    @ApiOperation(value = "setModelStorageType")
+    @ApiOperation(value = "setModelStorageType", tags = { "DW" }, notes = "Add URL: {model}")
     @PutMapping(value = "{model:.+}/storage_type")
     @ResponseBody
     public EnvelopeResponse<String> setModelStorageType(@PathVariable("model") String modelId,
@@ -823,6 +823,13 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/feign/merge_metadata_for_sampling_or_snapshot")
     @ResponseBody
     public void mergeMetadataForSamplingOrSnapshot(@RequestParam("project") String project,
+            @RequestBody MergerInfo mergerInfo) {
+        modelService.mergeMetadataForSamplingOrSnapshot(project, mergerInfo);
+    }
+
+    @PostMapping(value = "/feign/merge_metadata_for_loading_internal_table")
+    @ResponseBody
+    public void mergeMetadataForLoadingInternalTable(@RequestParam("project") String project,
             @RequestBody MergerInfo mergerInfo) {
         modelService.mergeMetadataForSamplingOrSnapshot(project, mergerInfo);
     }

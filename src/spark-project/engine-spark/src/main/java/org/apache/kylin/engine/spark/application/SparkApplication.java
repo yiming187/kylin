@@ -63,6 +63,7 @@ import org.apache.kylin.common.util.Unsafe;
 import org.apache.kylin.engine.spark.job.BuildJobInfos;
 import org.apache.kylin.engine.spark.job.EnviromentAdaptor;
 import org.apache.kylin.engine.spark.job.IJobProgressReport;
+import org.apache.kylin.engine.spark.job.InternalTableLoadJob;
 import org.apache.kylin.engine.spark.job.KylinBuildEnv;
 import org.apache.kylin.engine.spark.job.LogJobInfoUtils;
 import org.apache.kylin.engine.spark.job.NSparkCubingUtil;
@@ -338,8 +339,10 @@ public abstract class SparkApplication implements Application {
                 Unsafe.setProperty("kylin.env", config.getDeployEnv());
             }
 
-            // disable gluten in build job
-            ss.sparkContext().setLocalProperty("gluten.enabledForCurrentThread", "false");
+            if (!getParam(NBatchConstants.P_CLASS_NAME).equals(InternalTableLoadJob.class.getName())) {
+                ss.sparkContext().setLocalProperty("gluten.enabledForCurrentThread", "false");
+                logger.info("Disable gluten for normal build");
+            }
 
             logger.info("Start job");
             infos.startJob();

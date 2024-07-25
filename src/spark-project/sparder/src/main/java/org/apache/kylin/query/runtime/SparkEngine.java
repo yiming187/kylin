@@ -27,6 +27,7 @@ import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.QueryTrace;
 import org.apache.kylin.common.exception.DryRunSucceedException;
 import org.apache.kylin.guava30.shaded.common.collect.ImmutableList;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.query.engine.exec.ExecuteResult;
 import org.apache.kylin.query.engine.exec.sparder.QueryEngine;
 import org.apache.kylin.query.mask.QueryResultMasks;
@@ -72,8 +73,12 @@ public class SparkEngine implements QueryEngine {
             throw new DryRunSucceedException("DryRun succeed. Query is stopped due to DryRun enabled.",
                     sparkPlan.queryExecution().executedPlan().toString());
         }
-        log.info("SPARK LOGICAL PLAN {}", sparkPlan.queryExecution().logical());
-        if (KapConfig.getInstanceFromEnv().isOnlyPlanInSparkEngine()) {
+        LogicalPlan logicalPlan = sparkPlan.queryExecution().logical();
+        QueryContext.current().getQueryPlan().setSparkPlan(logicalPlan.toString());
+        log.info("SPARK LOGICAL PLAN {}", logicalPlan);
+        if (QueryContext.current().isExplainSql()) {
+            return new ExecuteResult(Lists.newArrayList(), 0);
+        } else if (KapConfig.getInstanceFromEnv().isOnlyPlanInSparkEngine()) {
             return ResultPlan.completeResultForMdx(sparkPlan, relNode.getRowType());
         } else {
             return ResultPlan.getResult(sparkPlan, relNode.getRowType());

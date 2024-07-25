@@ -512,6 +512,10 @@ public abstract class KylinConfigBase implements Serializable {
     // METADATA
     // ============================================================================
 
+    public boolean isInternalTableEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.internal-table-enabled", FALSE));
+    }
+
     public int getQueryConcurrentRunningThresholdForProject() {
         // by default there's no limitation
         return Integer.parseInt(getOptional("kylin.query.project-concurrent-running-threshold", "0"));
@@ -1423,11 +1427,6 @@ public abstract class KylinConfigBase implements Serializable {
     // SOURCE.KAFKA
     // ============================================================================
 
-    public String[] getRealizationProviders() {
-        return getOptionalStringArray("kylin.metadata.realization-providers", //
-                new String[] { "org.apache.kylin.metadata.cube.model.NDataflowManager" });
-    }
-
     public String getKafkaMaxOffsetsPerTrigger() {
         return getOptional("kylin.streaming.kafka-conf.maxOffsetsPerTrigger", "0");
     }
@@ -1583,6 +1582,11 @@ public abstract class KylinConfigBase implements Serializable {
                 "org.apache.kylin.engine.spark.job.SnapshotBuildJob");
     }
 
+    public String getInternalTableBuildClassName() {
+        return getOptional("kylin.engine.spark.internal-table-build-class-name",
+                "org.apache.kylin.engine.spark.job.InternalTableLoadJob");
+    }
+
     public String getSparkMaster() {
         return getOptional("kylin.engine.spark-conf.spark.master", "yarn").toLowerCase(Locale.ROOT);
     }
@@ -1667,6 +1671,17 @@ public abstract class KylinConfigBase implements Serializable {
         return getPropertiesByPrefix("kylin.engine.spark-conf.");
     }
 
+    public String getGlutenStoragePolicy() {
+        String prefix = "kylin.engine.spark-conf.spark.gluten.sql.columnar.backend.ch.runtime_config.storage_configuration.policies.";
+        Map<String, String> policies = getPropertiesByPrefix(prefix);
+        if (policies.isEmpty()) {
+            return "default";
+        } else {
+            String propKey = policies.keySet().iterator().next();
+            return propKey.split("\\.")[0];
+        }
+    }
+
     public boolean isSnapshotSpecifiedSparkConf() {
         return Boolean.parseBoolean(getOptional("kylin.engine.snapshot.specified-spark-conf-enabled", FALSE));
     }
@@ -1718,6 +1733,11 @@ public abstract class KylinConfigBase implements Serializable {
     public int getSparkEngineDriverMemorySnapshotBuilding() {
         return (int) SizeConvertUtil
                 .byteStringAsMb(getOptional("kylin.engine.snapshot.spark-conf.spark.driver.memory", "1024"));
+    }
+
+    public int getSparkEngineDriverMemoryInternalTableLoading() {
+        return (int) SizeConvertUtil
+                .byteStringAsMb(getOptional("kylin.engine.internal.spark-conf.spark.driver.memory", "1024"));
     }
 
     public int getSparkEngineDriverMemoryBase() {
@@ -1776,14 +1796,12 @@ public abstract class KylinConfigBase implements Serializable {
         return Double.parseDouble(getOptional("kylin.engine.resource-request-over-limit-proportion", "1.0"));
     }
 
-    public boolean getStreamingEnabledConfig() {
+    public boolean isStreamingConfigEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.streaming.enabled", FALSE));
     }
 
-    public boolean streamingEnabled() {
-        boolean checkKylinInfo = KylinInfoExtension.getFactory().checkKylinInfo();
-        boolean enable = getStreamingEnabledConfig();
-        return enable && checkKylinInfo;
+    public boolean isStreamingEnabled() {
+        return isStreamingConfigEnabled() && KylinInfoExtension.getFactory().checkKylinInfo();
     }
 
     public Map<String, String> getStreamingSparkConfigOverride() {
@@ -2337,6 +2355,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(this.getOptional("kylin.query.realization.chooser.thread-core-num", "5"));
     }
 
+    public boolean isRealizationChooserUsingMultiThread() {
+        return Boolean.parseBoolean(this.getOptional("kylin.query.realization-chooser-using-multi-threads", TRUE));
+    }
+
     /**
      * Extras calcite properties to config Calcite connection
      */
@@ -2506,6 +2528,7 @@ public abstract class KylinConfigBase implements Serializable {
                         "org.apache.kylin.query.util.RestoreFromComputedColumn",
                         "org.apache.kylin.query.security.RowFilter",
                         "org.apache.kylin.query.security.HackSelectStarWithColumnACL",
+                        "org.apache.kylin.query.util.SchemaConverter",
                         "org.apache.kylin.query.util.SparkSQLFunctionConverter" });
     }
 
@@ -4354,6 +4377,10 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean queryIndexUseGluten() {
         return Boolean.parseBoolean(this.getOptional("kylin.query.index-use-gulten", TRUE));
+    }
+
+    public boolean queryUseGlutenEnabled() {
+        return Boolean.parseBoolean(this.getOptional("kylin.storage.columnar.spark-conf.spark.gluten.enabled", FALSE));
     }
 
     public String getFragmentType() {

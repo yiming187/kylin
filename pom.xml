@@ -14,7 +14,9 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <parent>
         <!-- https://infra.apache.org/publishing-maven-artifacts.html -->
@@ -133,7 +135,7 @@
         <delta-standalone.version>0.6.0</delta-standalone.version>
         <iceberg.version>1.4.1</iceberg.version>
 
-        <gluten.version>1.2.0-kylin-240701</gluten.version>
+        <gluten.version>1.2.0-kylin-240730</gluten.version>
         <gluten.deps.scope>compile</gluten.deps.scope>
         <substrait.version>0.5.0</substrait.version>
         <celeborn.version>0.3.0-incubating</celeborn.version>
@@ -434,6 +436,7 @@
         <module>src/core-metrics</module>
         <module>src/source-hive</module>
         <module>src/server</module>
+        <module>src/spark-project/kylin-internal-catalog</module>
         <module>src/spark-project/kylin-soft-affinity-cache</module>
         <module>src/spark-project/spark-common</module>
         <module>src/spark-project/sparder</module>
@@ -624,6 +627,11 @@
             <dependency>
                 <groupId>org.apache.kylin</groupId>
                 <artifactId>kylin-query-booter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-internal-catalog</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

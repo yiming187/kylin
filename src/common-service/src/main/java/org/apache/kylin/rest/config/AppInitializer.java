@@ -142,7 +142,7 @@ public class AppInitializer {
             if (isJob || isDataLoading) {
                 // register scheduler listener
                 EventBusFactory.getInstance().register(new JobSchedulerListener(), false);
-                if (kylinConfig.getStreamingEnabledConfig())
+                if (kylinConfig.isStreamingConfigEnabled())
                     streamingJobStatsStore = new JdbcStreamingJobStatsStore(kylinConfig);
                 // register scheduler listener
                 EventBusFactory.getInstance().register(new StreamingJobListener(), true);

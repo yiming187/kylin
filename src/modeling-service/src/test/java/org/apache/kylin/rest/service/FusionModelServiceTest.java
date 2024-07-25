@@ -67,7 +67,6 @@ import org.junit.rules.TemporaryFolder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -98,7 +97,7 @@ public class FusionModelServiceTest extends SourceTestCase {
     @InjectMocks
     private final ModelSemanticHelper semanticService = Mockito.spy(new ModelSemanticHelper());
 
-    @Autowired
+    @InjectMocks
     private final IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
 
     @Mock
@@ -274,8 +273,8 @@ public class FusionModelServiceTest extends SourceTestCase {
         fusionModelService.dropModel("e78a89dd-847f-4574-8afa-8768b4228b73", "streaming_test");
         models = modelService.getModels("stream_merge1", "streaming_test", true, "", null, "", false);
         Assert.assertEquals(0, models.size());
-        Set<IRealization> realizations = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .getRealizationsByTable("streaming_test", "DEFAULT.SSB_TOPIC");
+        Set<IRealization> realizations = NProjectManager.getRealizations(KylinConfig.getInstanceFromEnv(),
+                "streaming_test", "DEFAULT.SSB_TOPIC");
         Assert.assertEquals(0, realizations.size());
     }
 
@@ -292,8 +291,8 @@ public class FusionModelServiceTest extends SourceTestCase {
         fusionModelService.dropModel("b05034a8-c037-416b-aa26-9e6b4a41ee40", "streaming_test");
         models = modelService.getModels(" streaming_test", "streaming_test", true, "", null, "", false);
         Assert.assertEquals(0, models.size());
-        Set<IRealization> realizations = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .getRealizationsByTable("streaming_test", "SSB.P_LINEORDER_STREAMING");
+        Set<IRealization> realizations = NProjectManager.getRealizations(KylinConfig.getInstanceFromEnv(),
+                "streaming_test", "SSB.P_LINEORDER_STREAMING");
         Assert.assertEquals(0, realizations.size());
     }
 

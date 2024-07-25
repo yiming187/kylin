@@ -188,6 +188,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getIncorrectDateformat() {
+        return "时间分区格式 \"%s\" 不正确。";
+    }
+
+    @Override
     public String getCanNotOverwriteModel() {
         return "无法覆盖模型 “%s“，因为该模型不存在。请重新选择后重试。";
     }
@@ -916,6 +921,16 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getInternalTableNotFound() {
+        return "无法找到内表 \"%s\"。 请检查后重试。";
+    }
+
+    @Override
+    public String getNotInternalTable() {
+        return "表 \"%s\" 不是一个内表。 请检查后重试。";
+    }
+
+    @Override
     public String getTableParamEmpty() {
         return "无法找到该表，请检查后重试。";
     }
@@ -1268,6 +1283,7 @@ public class CnMessage extends Message {
     public String getQueryHistoryColumnMeta() {
         return "查询开始时间,查询耗时,查询 ID,SQL 语句,查询对象,查询状态,查询节点,查询用户,查询信息\n";
     }
+
     @Override
     public String getJobPauseFailed() {
         return "该类型任务不支持暂停操作";
@@ -1337,6 +1353,7 @@ public class CnMessage extends Message {
     public String getStreamingIndexesConvert() {
         return "流数据模型暂无法转换为优化建议。";
     }
+
     @Override
     public String getParameterEmpty() {
         return PARAMETER_EMPTY;

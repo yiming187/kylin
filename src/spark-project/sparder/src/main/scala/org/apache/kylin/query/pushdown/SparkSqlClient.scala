@@ -26,7 +26,6 @@ import java.util.concurrent.{Callable, Executors, TimeUnit, TimeoutException}
 import java.util.{UUID, List => JList}
 
 import org.apache.commons.lang3.StringUtils
-import org.apache.gluten.test.FallbackUtil
 import org.apache.kylin.cache.kylin.KylinCacheFileSystem
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil, Pair}
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
@@ -180,6 +179,10 @@ object SparkSqlClient {
         QueryContext.current().setColumnNames(columnNames)
         saveAsyncQueryResult(df, queryTagInfo.getFileFormat, queryTagInfo.getFileEncode, null)
         return (Lists.newArrayList(), 0, fieldList)
+      } else if (QueryContext.current().isExplainSql) {
+        val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
+        QueryContext.current().getQueryPlan.setSparkPlan(df.queryExecution.analyzed.toString())
+        return (Lists.newArrayList(), 0, fieldList)
       }
       QueryContext.currentTrace().endLastSpan()
       val jobTrace = new SparkJobTrace(jobGroup, QueryContext.currentTrace()
@@ -201,8 +204,6 @@ object SparkSqlClient {
       val (jobCount, stageCount, taskCount) = QueryMetricUtils.collectTaskRelatedMetrics(jobGroup, ss.sparkContext)
       QueryContext.current().getMetrics.setScanRows(scanRows)
       QueryContext.current().getMetrics.setScanBytes(scanBytes)
-      val glutenFallback = FallbackUtil.hasFallback(df.queryExecution.executedPlan)
-      QueryContext.current().getMetrics.setGlutenFallback(glutenFallback)
       QueryContext.current().getMetrics.setQueryJobCount(jobCount)
       QueryContext.current().getMetrics.setQueryStageCount(stageCount)
       QueryContext.current().getMetrics.setQueryTaskCount(taskCount)

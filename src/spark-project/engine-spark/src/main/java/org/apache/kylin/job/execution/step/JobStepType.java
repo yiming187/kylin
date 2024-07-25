@@ -24,6 +24,7 @@ import static org.apache.kylin.job.execution.stage.StageType.COST_BASED_PLANNER;
 import static org.apache.kylin.job.execution.stage.StageType.DELETE_USELESS_LAYOUT_DATA;
 import static org.apache.kylin.job.execution.stage.StageType.GATHER_FLAT_TABLE_STATS;
 import static org.apache.kylin.job.execution.stage.StageType.GENERATE_FLAT_TABLE;
+import static org.apache.kylin.job.execution.stage.StageType.INTERNAL_TABLE_LOAD;
 import static org.apache.kylin.job.execution.stage.StageType.MATERIALIZED_FACT_TABLE;
 import static org.apache.kylin.job.execution.stage.StageType.MERGE_COLUMN_BYTES;
 import static org.apache.kylin.job.execution.stage.StageType.MERGE_FLAT_TABLE;
@@ -39,6 +40,7 @@ import static org.apache.kylin.job.execution.stage.StageType.WAITE_FOR_RESOURCE;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.engine.spark.job.InternalTableLoadingStep;
 import org.apache.kylin.engine.spark.job.NResourceDetectStep;
 import org.apache.kylin.engine.spark.job.NSparkCleanupAfterMergeStep;
 import org.apache.kylin.engine.spark.job.NSparkCubingStep;
@@ -132,6 +134,19 @@ public enum JobStepType {
         protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
             WAITE_FOR_RESOURCE.createStage(parent, config);
             SNAPSHOT_BUILD.createStage(parent, config);
+        }
+    },
+
+    BUILD_INTERNAL {
+        @Override
+        public AbstractExecutable create(DefaultExecutable parent, KylinConfig config) {
+            return new InternalTableLoadingStep(config.getInternalTableBuildClassName());
+        }
+
+        @Override
+        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+            WAITE_FOR_RESOURCE.createStage(parent, config);
+            INTERNAL_TABLE_LOAD.createStage(parent, config);
         }
     },
 

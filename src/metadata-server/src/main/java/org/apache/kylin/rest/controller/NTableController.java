@@ -264,7 +264,8 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, loadTableResponse, "");
     }
 
-    @ApiOperation(value = "updateLoadedAWSTableExtProp", tags = { "N/A" }, notes = "Update Body: data_source_properties")
+    @ApiOperation(value = "updateLoadedAWSTableExtProp", tags = {
+            "N/A" }, notes = "Update Body: data_source_properties")
     @PutMapping(value = "/ext/prop/aws")
     @ResponseBody
     public EnvelopeResponse<UpdateAWSTableExtDescResponse> updateLoadedAWSTableExtProp(

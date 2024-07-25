@@ -103,7 +103,7 @@ class TestModelViewQuery
           (modelResult, _) => {
             val expectedModels = modelSql.split(';')(0).substring(21).split(",")
             expectedModels.zip(modelResult.getOlapContexts.asScala).foreach { case (modelAlias, idx) =>
-              assert(idx.getModelAlias == modelAlias, s"$modelSqlPath, view model fails to match")
+              assert(idx.getBoundedModelAlias == modelAlias, s"$modelSqlPath, view model fails to match")
             }
             true
           }

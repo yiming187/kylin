@@ -257,16 +257,16 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(2, tableDesc.size());
         val tableMetadataManager = getInstance(getTestConfig(), "streaming_test");
         var tableDesc1 = tableMetadataManager.getTableDesc("DEFAULT.SSB_TOPIC");
-        Assert.assertTrue(tableDesc1.isAccessible(getTestConfig().streamingEnabled()));
+        Assert.assertTrue(tableDesc1.isAccessible(getTestConfig().isStreamingEnabled()));
         getTestConfig().setProperty("kylin.streaming.enabled", "false");
         tableDesc = tableService.getTableDesc("streaming_test", true, "", "DEFAULT", true, sourceType, 10).getFirst();
         Assert.assertEquals(0, tableDesc.size());
         // check kafka table
-        Assert.assertFalse(tableDesc1.isAccessible(getTestConfig().streamingEnabled()));
+        Assert.assertFalse(tableDesc1.isAccessible(getTestConfig().isStreamingEnabled()));
 
         // check batch table
         tableDesc1 = tableMetadataManager.getTableDesc("SSB.CUSTOMER");
-        Assert.assertTrue(tableDesc1.isAccessible(getTestConfig().streamingEnabled()));
+        Assert.assertTrue(tableDesc1.isAccessible(getTestConfig().isStreamingEnabled()));
     }
 
     @Test
@@ -510,8 +510,8 @@ public class TableServiceTest extends CSVSourceTestCase {
         TableExtDesc tableExt = new TableExtDesc();
         tableExt.setIdentity("DEFAULT.TEST_COUNTRY");
         TableExtDesc tableExtDesc = new TableExtDesc(tableExt);
-        String[] result = tableService.loadTableToProject(nTableDesc, tableExtDesc, "default");
-        Assert.assertEquals(1, result.length);
+        String result = tableService.loadTableToProject(nTableDesc, tableExtDesc, "default");
+        Assert.assertEquals("DEFAULT.TEST_COUNTRY", result);
     }
 
     @Test
@@ -527,12 +527,12 @@ public class TableServiceTest extends CSVSourceTestCase {
         tableExtDesc.addDataSourceProp(TableExtDesc.S3_ROLE_PROPERTY_KEY, "testRole");
         tableExtDesc.addDataSourceProp(TableExtDesc.LOCATION_PROPERTY_KEY, "s3://testbucket/path");
         tableExtDesc.addDataSourceProp(TableExtDesc.S3_ENDPOINT_KEY, "us-west-2.amazonaws.com");
-        String[] result = tableService.loadTableToProject(nTableDesc, tableExtDesc, "default");
+        String result = tableService.loadTableToProject(nTableDesc, tableExtDesc, "default");
         assert SparderEnv.getSparkSession().conf().get(String.format(S3_ROLE_ARN_KEY_FORMAT, "testbucket"))
                 .equals("testRole");
         assert SparderEnv.getSparkSession().conf().get(String.format(S3_ENDPOINT_KEY_FORMAT, "testbucket"))
                 .equals("us-west-2.amazonaws.com");
-        Assert.assertEquals(1, result.length);
+        Assert.assertEquals(nTableDesc.getIdentity(), result);
     }
 
     @Test
@@ -610,8 +610,8 @@ public class TableServiceTest extends CSVSourceTestCase {
         TableExtDesc tableExt = new TableExtDesc();
         tableExt.setIdentity("CASE_SENSITIVE.TEST_KYLIN_FACT");
         TableExtDesc tableExtDesc = new TableExtDesc(tableExt);
-        String[] result = tableService.loadTableToProject(origin, tableExtDesc, "case_sensitive");
-        Assert.assertEquals(1, result.length);
+        String result = tableService.loadTableToProject(origin, tableExtDesc, "case_sensitive");
+        Assert.assertEquals("CASE_SENSITIVE.TEST_KYLIN_FACT", result);
         ObjectMapper mapper = new ObjectMapper();
         String jsonContent = mapper.writeValueAsString(origin);
         InputStream savedStream = IOUtils.toInputStream(jsonContent, Charset.defaultCharset());
@@ -644,10 +644,10 @@ public class TableServiceTest extends CSVSourceTestCase {
         TableExtDesc tableExt = new TableExtDesc();
         tableExt.setIdentity("DEFAULT.TEST_UNLOAD");
         TableExtDesc tableExtDesc = new TableExtDesc(tableExt);
-        String[] result = tableService.loadTableToProject(tableDesc, tableExtDesc, "default");
+        String result = tableService.loadTableToProject(tableDesc, tableExtDesc, "default");
         NTableMetadataManager nTableMetadataManager = NTableMetadataManager
                 .getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        Assert.assertEquals(1, result.length);
+        Assert.assertEquals("DEFAULT.TEST_UNLOAD", result);
         val size = nTableMetadataManager.listAllTables().size();
         String unloadedTable = tableService.unloadTable("default", "DEFAULT.TEST_UNLOAD", false);
         Assert.assertEquals(tableDesc.getIdentity(), unloadedTable);

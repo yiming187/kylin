@@ -20,6 +20,7 @@ package org.apache.kylin.job.execution.stage;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.spark.application.SparkApplication;
+import org.apache.kylin.engine.spark.job.InternalTableLoadJob;
 import org.apache.kylin.engine.spark.job.LayoutDataOptimizeJob;
 import org.apache.kylin.engine.spark.job.SegmentJob;
 import org.apache.kylin.engine.spark.job.SnapshotBuildJob;
@@ -42,6 +43,7 @@ import org.apache.kylin.engine.spark.job.stage.build.partition.PartitionGatherFl
 import org.apache.kylin.engine.spark.job.stage.build.partition.PartitionGenerateFlatTable;
 import org.apache.kylin.engine.spark.job.stage.build.partition.PartitionMaterializedFactTableView;
 import org.apache.kylin.engine.spark.job.stage.build.partition.PartitionRefreshColumnBytes;
+import org.apache.kylin.engine.spark.job.stage.internal.InternalTableLoad;
 import org.apache.kylin.engine.spark.job.stage.merge.MergeColumnBytes;
 import org.apache.kylin.engine.spark.job.stage.merge.MergeFlatTable;
 import org.apache.kylin.engine.spark.job.stage.merge.MergeIndices;
@@ -55,6 +57,7 @@ import org.apache.kylin.engine.spark.job.stage.optimize.LayoutDataZorderOptimize
 import org.apache.kylin.engine.spark.job.stage.snapshots.SnapshotsBuild;
 import org.apache.kylin.engine.spark.job.stage.tablesampling.AnalyzerTable;
 import org.apache.kylin.engine.spark.job.step.NStageForBuild;
+import org.apache.kylin.engine.spark.job.step.NStageForInternalTableLoad;
 import org.apache.kylin.engine.spark.job.step.NStageForMerge;
 import org.apache.kylin.engine.spark.job.step.NStageForSnapshot;
 import org.apache.kylin.engine.spark.job.step.NStageForTableSampling;
@@ -63,6 +66,7 @@ import org.apache.kylin.engine.spark.stats.analyzer.TableAnalyzerJob;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.NSparkExecutable;
 import org.apache.kylin.job.execution.StageBase;
+import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 
 public enum StageType {
@@ -293,6 +297,23 @@ public enum StageType {
         @Override
         protected StageBase create(NSparkExecutable parent, KylinConfig config) {
             return new StageBase(ExecutableConstants.STAGE_NAME_OPTIMIZE_LAYOUT_DATA_COMPACTION);
+        }
+    },
+
+    INTERNAL_TABLE_LOAD {
+        @Override
+        public StageExec create(SparkApplication jobContext, NDataSegment dataSegment, BuildParam buildParam) {
+            return new InternalTableLoad((InternalTableLoadJob) jobContext);
+        }
+
+        @Override
+        protected StageBase create(NSparkExecutable parent, KylinConfig config) {
+            Boolean dropPartition = Boolean.parseBoolean(parent.getParam(NBatchConstants.P_DELETE_PARTITION));
+            if (dropPartition) {
+                return new NStageForInternalTableLoad(ExecutableConstants.STAGE_NAME_INTERNAL_TABLE_DROP_PARTITION);
+            } else {
+                return new NStageForInternalTableLoad(ExecutableConstants.STAGE_NAME_INTERNAL_TABLE_LOAD);
+            }
         }
     };
 

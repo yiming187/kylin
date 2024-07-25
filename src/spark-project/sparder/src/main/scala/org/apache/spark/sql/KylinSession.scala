@@ -315,8 +315,11 @@ object KylinSession extends Logging {
           }
         }
 
-        val fileName = KylinConfig.getInstanceFromEnv.getKylinJobJarPath
-        sparkConf.set("spark.executor.extraClassPath", Paths.get(fileName).getFileName.toString)
+        var extraJars = Paths.get(KylinConfig.getInstanceFromEnv.getKylinJobJarPath).getFileName.toString
+        if (KylinConfig.getInstanceFromEnv.queryUseGlutenEnabled) {
+          extraJars = "gluten.jar:" + extraJars
+        }
+        sparkConf.set("spark.executor.extraClassPath", extraJars)
 
         val krb5conf = " -Djava.security.krb5.conf=./__spark_conf__/__hadoop_conf__/krb5.conf"
         val executorExtraJavaOptions =
