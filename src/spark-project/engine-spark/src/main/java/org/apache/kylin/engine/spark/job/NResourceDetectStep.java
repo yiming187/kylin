@@ -53,6 +53,8 @@ public class NResourceDetectStep extends NSparkExecutable {
             this.setSparkSubmitClassName(ResourceDetectBeforeMergingJob.class.getName());
         } else if (parent instanceof NTableSamplingJob) {
             this.setSparkSubmitClassName(ResourceDetectBeforeSampling.class.getName());
+        } else if (parent instanceof NSparkLayoutDataOptimizeJob) {
+            this.setSparkSubmitClassName(ResourceDetectBeforeOptimizeJob.class.getName());
         } else {
             throw new IllegalArgumentException("Unsupported resource detect for " + parent.getName() + " job");
         }
@@ -73,11 +75,11 @@ public class NResourceDetectStep extends NSparkExecutable {
     @Override
     protected Map<String, String> getSparkConfigOverride(KylinConfig config) {
         Map<String, String> sparkConfigOverride = super.getSparkConfigOverride(config);
-        log.info("spark.master override " + sparkConfigOverride.get(SPARK_MASTER));
+        log.info("spark.master override {}", sparkConfigOverride.get(SPARK_MASTER));
         if (!CLUSTER_MODE.equals(sparkConfigOverride.get(DEPLOY_MODE))) {
             sparkConfigOverride.put("spark.master", "local");
         }
-        log.info("spark.master already " + sparkConfigOverride.get(SPARK_MASTER));
+        log.info("spark.master already {}", sparkConfigOverride.get(SPARK_MASTER));
         sparkConfigOverride.put("spark.sql.autoBroadcastJoinThreshold", "-1");
         sparkConfigOverride.put("spark.sql.adaptive.enabled", "false");
         return sparkConfigOverride;

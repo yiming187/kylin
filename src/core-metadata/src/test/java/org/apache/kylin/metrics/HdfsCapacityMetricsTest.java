@@ -94,7 +94,7 @@ public class HdfsCapacityMetricsTest extends NLocalFileMetadataTestCase {
         }
         Assert.assertTrue(hdfsCapacityMetrics.getWorkingDirCapacity().isEmpty());
         hdfsCapacityMetrics.writeHdfsMetrics();
-        Assert.assertEquals(33, hdfsCapacityMetrics.getWorkingDirCapacity().size());
+        Assert.assertEquals(34, hdfsCapacityMetrics.getWorkingDirCapacity().size());
 
     }
 
@@ -128,7 +128,7 @@ public class HdfsCapacityMetricsTest extends NLocalFileMetadataTestCase {
         Thread t1 = new Thread(() -> {
             await().pollDelay(new Duration(1, TimeUnit.SECONDS)).until(() -> true);
             hdfsCapacityMetrics.readHdfsMetrics();
-            Assert.assertTrue(hdfsCapacityMetrics.getWorkingDirCapacity().size() > 0);
+            Assert.assertFalse(hdfsCapacityMetrics.getWorkingDirCapacity().isEmpty());
         });
         t1.start();
         fs.deleteOnExit(projectPath);

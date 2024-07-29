@@ -18,6 +18,12 @@
 
 package org.apache.spark.sql
 
+import java.lang.{Boolean => JBoolean, String => JString}
+import java.security.PrivilegedAction
+import java.util.Map
+import java.util.concurrent.locks.ReentrantLock
+import java.util.concurrent.{Callable, ExecutorService}
+
 import org.apache.commons.lang3.StringUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.security.UserGroupInformation
@@ -35,18 +41,12 @@ import org.apache.spark.sql.KylinSession._
 import org.apache.spark.sql.catalyst.optimizer.ConvertInnerJoinToSemiJoin
 import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
-import org.apache.spark.sql.execution.datasource.{KylinSourceStrategy, LayoutFileSourceStrategy, RewriteInferFiltersFromConstraints}
+import org.apache.spark.sql.execution.datasource.{KylinDeltaSourceStrategy, KylinSourceStrategy, LayoutFileSourceStrategy, RewriteInferFiltersFromConstraints}
 import org.apache.spark.sql.execution.ui.PostQueryExecutionForKylin
 import org.apache.spark.sql.hive.HiveStorageRule
 import org.apache.spark.sql.udf.UdfManager
 import org.apache.spark.util.{ThreadUtils, Utils}
 import org.apache.spark.{ExecutorAllocationClient, SparkConf, SparkContext, SparkEnv}
-
-import java.lang.{Boolean => JBoolean, String => JString}
-import java.security.PrivilegedAction
-import java.util.Map
-import java.util.concurrent.locks.ReentrantLock
-import java.util.concurrent.{Callable, ExecutorService}
 
 // scalastyle:off
 object SparderEnv extends Logging {
@@ -307,6 +307,7 @@ object SparderEnv extends Logging {
   def injectExtensions(sse: SparkSessionExtensions): Unit = {
     sse.injectPlannerStrategy(_ => KylinSourceStrategy)
     sse.injectPlannerStrategy(_ => LayoutFileSourceStrategy)
+    sse.injectPlannerStrategy(_ => KylinDeltaSourceStrategy)
     sse.injectPostHocResolutionRule(HiveStorageRule)
     sse.injectOptimizerRule(_ => new ConvertInnerJoinToSemiJoin())
     if (KapConfig.getInstanceFromEnv.isConstraintPropagationEnabled) {

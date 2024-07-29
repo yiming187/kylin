@@ -38,8 +38,10 @@ import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 import org.apache.kylin.guava30.shaded.common.collect.ImmutableMap;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.guava30.shaded.common.collect.Maps;
+import org.apache.kylin.guava30.shaded.common.collect.Range;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.NDataModel;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -52,8 +54,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 @SuppressWarnings({ "rawtypes", "FieldMayBeFinal" })
+@Slf4j
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NDataSegment extends RootPersistentEntity implements ISegment, Serializable {
 
@@ -263,6 +267,12 @@ public class NDataSegment extends RootPersistentEntity implements ISegment, Seri
                     tsr.getSourcePartitionOffsetEnd());
         }
         return null;
+    }
+
+    @Override
+    public Range<Long> getRange() {
+        TimeRange tsRange = getTSRange();
+        return Range.closedOpen(tsRange.getStart(), tsRange.getEnd());
     }
 
     public void setSegmentRange(SegmentRange segmentRange) {
@@ -753,6 +763,20 @@ public class NDataSegment extends RootPersistentEntity implements ISegment, Seri
     public NDataSegment copyForWrite() {
         initDataFlow();
         return dataflow.getConfig().getManager(project, NDataSegmentManager.class).copyForWrite(this);
+    }
+
+    public String getPartitionCondition() {
+        PartitionDesc descDRP = dataflow.getModel().getPartitionDesc();
+        if (Objects.isNull(descDRP) //
+                || Objects.isNull(descDRP.getPartitionDateColumn()) //
+                || Objects.isNull(segmentRange) //
+                || segmentRange.isInfinite()) {
+            log.info("No available PARTITION-CONDITION segment {}", modelUuid);
+            return null;
+        }
+
+        return descDRP.getPartitionConditionBuilder() //
+                .buildDateRangeCondition(descDRP, this, segmentRange);
     }
 
     @Override

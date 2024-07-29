@@ -18,19 +18,20 @@
 
 package org.apache.kylin.engine.spark.job
 
-import org.apache.kylin.guava30.shaded.common.collect.{Lists, Maps}
+import java.util
+import java.util.Objects
+import java.util.concurrent.TimeUnit
+
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.persistence.transaction.UnitOfWork
 import org.apache.kylin.engine.spark.job.PartitionExec.PartitionResult
 import org.apache.kylin.engine.spark.job.SegmentExec.ResultType
+import org.apache.kylin.guava30.shaded.common.collect.{Lists, Maps}
 import org.apache.kylin.metadata.cube.model._
 import org.apache.kylin.metadata.job.JobBucket
 import org.apache.spark.sql.datasource.storage.{StorageListener, WriteTaskStats}
 import org.apache.spark.sql.{Dataset, Row}
 
-import java.util
-import java.util.Objects
-import java.util.concurrent.TimeUnit
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
@@ -66,8 +67,7 @@ private[job] trait PartitionExec {
       .filter(_.getPartitionId == partitionId) //
       .head.getBucketId
     logInfo(s"Layout partition bucket: ${layout.getId} $partitionId $newBucketId.")
-    val storagePath = NSparkCubingUtil.getStoragePath(dataSegment, layout.getId, newBucketId)
-    val taskStats = saveWithStatistics(layout, layoutDS, storagePath, readableDesc, storageListener)
+    val taskStats = saveWithStatistics(layout, layoutDS, dataSegment, readableDesc, storageListener, newBucketId)
     pipe.offer(PartitionResult(layout.getId, partitionId, newBucketId, taskStats))
   }
 

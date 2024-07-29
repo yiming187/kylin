@@ -34,6 +34,7 @@ import org.apache.kylin.common.persistence.resources.IndexPlanRawResource;
 import org.apache.kylin.common.persistence.resources.JarInfoRawResource;
 import org.apache.kylin.common.persistence.resources.JobStatsRawResource;
 import org.apache.kylin.common.persistence.resources.KafkaConfigRawResource;
+import org.apache.kylin.common.persistence.resources.LayoutDetailsRawResource;
 import org.apache.kylin.common.persistence.resources.LayoutRawResource;
 import org.apache.kylin.common.persistence.resources.LogicalViewRawResource;
 import org.apache.kylin.common.persistence.resources.ModelRawResource;
@@ -60,6 +61,7 @@ import lombok.Getter;
 /**
  * The enum name should be same as the table name
  */
+@Getter
 public enum MetadataType {
     ALL(RawResource.class), //
     PROJECT(ProjectRawResource.class), //
@@ -70,6 +72,7 @@ public enum MetadataType {
     INDEX_PLAN(IndexPlanRawResource.class), //
     JOB_STATS(JobStatsRawResource.class), //
     LAYOUT(LayoutRawResource.class), //
+    LAYOUT_DETAILS(LayoutDetailsRawResource.class), //
     MODEL(ModelRawResource.class), //
     OBJECT_ACL(ObjectAclRawResource.class), //
     RESOURCE_GROUP(ResourceGroupRawResource.class), //
@@ -91,9 +94,9 @@ public enum MetadataType {
     CC_MODEL_RELATION(CcModelRelationRawResource.class), //
     TABLE_MODEL_RELATION(TableModelRelationRawResource.class), //
     TMP_REC(RecRawResource.class); //
-    
-    public static final Set<MetadataType> NON_GLOBAL_METADATA_TYPE = Collections
-            .unmodifiableSet(Sets.newHashSet(ACL, COMPUTE_COLUMN, DATAFLOW, INDEX_PLAN, JOB_STATS, LAYOUT, MODEL,
+
+    public static final Set<MetadataType> NON_GLOBAL_METADATA_TYPE = Collections.unmodifiableSet(
+            Sets.newHashSet(ACL, COMPUTE_COLUMN, DATAFLOW, INDEX_PLAN, JOB_STATS, LAYOUT, LAYOUT_DETAILS, MODEL,
                     SEGMENT, TABLE_EXD, TABLE_INFO, SQL_BLACKLIST, JAR_INFO, DATA_PARSER, FUSION_MODEL, KAFKA_CONFIG,
                     LOGICAL_VIEW, STREAMING_JOB, QUERY_RECORD, CC_MODEL_RELATION, TABLE_MODEL_RELATION));
 
@@ -119,13 +122,12 @@ public enum MetadataType {
         }
     }
 
-    @Getter
     private final Class<? extends RawResource> resourceClass;
 
     <T extends RawResource> MetadataType(Class<T> resourceClass) {
         this.resourceClass = resourceClass;
     }
-    
+
     /**
      * Split key with type enum
      * e.g. table/kylin_sales

@@ -35,6 +35,8 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.engine.spark.application.SparkApplication;
 import org.apache.kylin.engine.spark.builder.DFLayoutMergeAssist;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
 import org.apache.kylin.metadata.cube.model.IndexEntity;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
@@ -54,9 +56,6 @@ import org.apache.spark.sql.datasource.storage.StorageStoreFactory;
 import org.apache.spark.sql.datasource.storage.WriteTaskStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
-import org.apache.kylin.guava30.shaded.common.collect.Maps;
 
 import lombok.val;
 
@@ -211,11 +210,9 @@ public class DFMergeJob extends SparkApplication {
             sourceCount += cuboid.getSourceRows();
         }
         NDataLayout dataLayout = NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), layoutId);
-        val path = NSparkCubingUtil.getStoragePath(seg, layoutId);
-        int storageType = layout.getModel().getStorageType();
-        StorageStore storage = StorageStoreFactory.create(storageType);
+        StorageStore storage = StorageStoreFactory.create(layout.getModel().getStorageType());
         ss.sparkContext().setJobDescription("Merge layout " + layoutId);
-        WriteTaskStats taskStats = storage.save(layout, new Path(path), KapConfig.wrap(config), dataset);
+        WriteTaskStats taskStats = storage.saveSegmentLayout(layout, seg, KapConfig.wrap(config), dataset);
         ss.sparkContext().setJobDescription(null);
         dataLayout.setBuildJobId(jobId);
         long rowCount = taskStats.numRows();

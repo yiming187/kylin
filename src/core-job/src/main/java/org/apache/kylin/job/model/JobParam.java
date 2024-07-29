@@ -123,7 +123,7 @@ public class JobParam {
     }
 
     public JobParam(Set<String> targetSegments, Set<Long> targetLayouts, String model, String owner,
-                    Set<Long> targetPartitions, Set<JobBucket> targetBuckets) {
+            Set<Long> targetPartitions, Set<JobBucket> targetBuckets) {
         this(model, owner);
         this.withTargetSegments(targetSegments);
         this.setTargetLayouts(targetLayouts);
@@ -195,6 +195,11 @@ public class JobParam {
 
     public JobParam withTable(String table) {
         this.table = table;
+        return this;
+    }
+
+    public JobParam withTargetLayouts(Set<Long> targetLayouts) {
+        this.targetLayouts = targetLayouts;
         return this;
     }
 

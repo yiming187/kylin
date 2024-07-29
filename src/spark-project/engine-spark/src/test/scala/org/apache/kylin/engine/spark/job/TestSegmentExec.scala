@@ -18,16 +18,16 @@
 
 package org.apache.kylin.engine.spark.job
 
-import org.apache.kylin.engine.spark.scheduler.JobRuntime
-import org.apache.kylin.metadata.model.NDataModel
+import java.util.concurrent.TimeUnit
+
 import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.metadata.model.TblColRef
+import org.apache.kylin.engine.spark.scheduler.JobRuntime
+import org.apache.kylin.metadata.model.NDataModel.DataStorageType
+import org.apache.kylin.metadata.model.{NDataModel, TblColRef}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.tracker.BuildContext
 import org.scalatest.PrivateMethodTester
 import org.scalatest.funsuite.AnyFunSuite
-
-import java.util.concurrent.TimeUnit
 
 class TestSegmentExec extends AnyFunSuite with PrivateMethodTester {
 
@@ -39,7 +39,7 @@ class TestSegmentExec extends AnyFunSuite with PrivateMethodTester {
     override protected val config: KylinConfig = null
     override protected val sparkSession: SparkSession = null
     override protected val dataModel: NDataModel = null
-    override protected val storageType: Int = 0
+    override protected val storageType: DataStorageType = DataStorageType.V1
     override protected val resourceContext: BuildContext = null
     override protected val runtime: JobRuntime = null
 

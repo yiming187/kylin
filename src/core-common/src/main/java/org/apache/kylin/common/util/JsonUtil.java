@@ -23,11 +23,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,6 +41,7 @@ import javax.annotation.Nullable;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.guava30.shaded.common.base.Preconditions;
+import org.apache.kylin.shaded.jackson.datatype.guava.GuavaModule;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -72,10 +73,12 @@ public class JsonUtil {
                 .setConfig(mapper.getSerializationConfig().withView(PersistenceView.class));
         mapper.setFilterProvider(simpleFilterProvider);
         mapper.setTypeFactory(customTypeFactory);
+        mapper.registerModule(new GuavaModule());
         indentMapper.configure(SerializationFeature.INDENT_OUTPUT, true)
                 .setConfig(indentMapper.getSerializationConfig().withView(PersistenceView.class));
         indentMapper.setFilterProvider(simpleFilterProvider);
         indentMapper.setTypeFactory(customTypeFactory);
+        indentMapper.registerModule(new GuavaModule());
     }
 
     public static ArrayNode createArrayNode() {
@@ -165,7 +168,7 @@ public class JsonUtil {
     }
 
     public static void writeValue(File out, Object value) throws IOException {
-        writeValue(new FileOutputStream(out), value);
+        writeValue(Files.newOutputStream(out.toPath()), value);
     }
 
     public static <T> String writeValueAsStringForCollection(Object value, TypeReference<T> ref)
@@ -195,6 +198,10 @@ public class JsonUtil {
 
     public static String writeValueAsIndentString(Object value) throws JsonProcessingException {
         return indentMapper.writeValueAsString(value);
+    }
+
+    public static String writeValueAsStringWithPretty(Object value) throws JsonProcessingException {
+        return indentMapper.writerWithDefaultPrettyPrinter().writeValueAsString(value);
     }
 
     public static <T> T convert(Object obj, Class<T> valueType) {

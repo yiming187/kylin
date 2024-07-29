@@ -23,6 +23,7 @@ import java.sql.Timestamp
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager}
 import org.apache.kylin.metadata.model.FusionModelManager
+import org.apache.kylin.query.runtime.FilePruningMode.PruningMode
 import org.apache.spark.sql.catalyst.plans.logical.{Filter, LogicalPlan}
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.StructType
@@ -71,6 +72,10 @@ class KylinDataFrameManager(sparkSession: SparkSession) {
     option("bucketingEnabled", bucketingEnabled)
   }
 
+  def filePruningMode(mode: PruningMode): KylinDataFrameManager = {
+    option("filePruningMode", mode.toString)
+  }
+
   def cuboidTable(dataflow: NDataflow, layout: LayoutEntity, pruningInfo: String): LogicalPlan = {
     format("parquet")
     option("project", dataflow.getProject)
@@ -96,9 +101,9 @@ class KylinDataFrameManager(sparkSession: SparkSession) {
   }
 
   def read(dataflow: NDataflow, layout: LayoutEntity): LogicalPlan = {
-      import org.apache.spark.sql.datasource.storage.StorageStoreFactory
-      StorageStoreFactory.create(dataflow.getModel.getStorageType)
-        .read(dataflow, layout, sparkSession, extraOptions.toMap)
+    import org.apache.spark.sql.datasource.storage.StorageStoreFactory
+    StorageStoreFactory.create(dataflow.getModel.getStorageType)
+      .read(dataflow, layout, sparkSession, extraOptions.toMap)
   }
 
   /**

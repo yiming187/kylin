@@ -81,6 +81,8 @@ public class QueryRouter {
         private static final PruningRule REMOVE_INCAPABLE_REALIZATIONS = new RemoveIncapableRealizationsRule();
         private static final PruningRule VACANT_INDEX_PRUNING = new VacantIndexPruningRule();
 
+        private static final PruningRule KYLIN_TABLE_PRUNING = new KylinTableChooserRule();
+
         @Getter
         List<PruningRule> rules = Lists.newArrayList();
 
@@ -112,10 +114,16 @@ public class QueryRouter {
                             candidate.setCapability(capability);
                         }
                     }
+
+                    @Override
+                    public boolean isStorageMatch(Candidate candidate) {
+                        return false;
+                    }
                 });
             }
 
             // add all rules
+            rules.add(KYLIN_TABLE_PRUNING); // add V1 rules
             rules.add(SEGMENT_PRUNING);
             rules.add(PARTITION_PRUNING);
             rules.add(REMOVE_INCAPABLE_REALIZATIONS);

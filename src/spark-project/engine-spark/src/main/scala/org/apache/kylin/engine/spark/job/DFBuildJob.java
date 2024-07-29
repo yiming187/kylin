@@ -43,6 +43,10 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.engine.spark.application.SparkApplication;
 import org.apache.kylin.engine.spark.builder.NBuildSourceInfo;
 import org.apache.kylin.engine.spark.builder.SnapshotBuilder;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Maps;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.metadata.cube.cuboid.NSpanningTree;
 import org.apache.kylin.metadata.cube.cuboid.NSpanningTreeFactory;
 import org.apache.kylin.metadata.cube.model.IndexEntity;
@@ -65,11 +69,6 @@ import org.apache.spark.sql.datasource.storage.WriteTaskStats;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.kylin.guava30.shaded.common.base.Preconditions;
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
-import org.apache.kylin.guava30.shaded.common.collect.Maps;
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
 
 import lombok.val;
 import scala.collection.JavaConversions;
@@ -361,8 +360,7 @@ public class DFBuildJob extends SparkApplication {
 
     // decided and construct the next layer.
     protected List<NBuildSourceInfo> constructTheNextLayerBuildInfos(NSpanningTree st, NDataSegment seg,
-                                                                      Collection<IndexEntity> allIndexesInCurrentLayer
-    ) {
+            Collection<IndexEntity> allIndexesInCurrentLayer) {
 
         val childrenBuildSourceInfos = new ArrayList<NBuildSourceInfo>();
         for (IndexEntity index : allIndexesInCurrentLayer) {
@@ -427,11 +425,9 @@ public class DFBuildJob extends SparkApplication {
         ss.sparkContext().setLocalProperty("spark.scheduler.pool", "build");
         long layoutId = layout.getId();
         NDataLayout dataLayout = getDataLayout(seg, layoutId);
-        val path = NSparkCubingUtil.getStoragePath(seg, layoutId);
-        int storageType = layout.getModel().getStorageType();
-        StorageStore storage = StorageStoreFactory.create(storageType);
+        StorageStore storage = StorageStoreFactory.create(layout.getModel().getStorageType());
         storage.setStorageListener(new SanityChecker(seg2Count.getOrDefault(seg.getId(), SanityChecker.SKIP_FLAG())));
-        WriteTaskStats taskStats = storage.save(layout, new Path(path), KapConfig.wrap(config), dataset);
+        WriteTaskStats taskStats = storage.saveSegmentLayout(layout, seg, KapConfig.wrap(config), dataset);
         dataLayout.setBuildJobId(jobId);
         long rowCount = taskStats.numRows();
         if (rowCount == -1) {

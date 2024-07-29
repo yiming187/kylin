@@ -528,8 +528,10 @@ public class MetaStoreService extends BasicService {
         indexPlan = indexPlanManager.copy(indexPlan);
         indexPlan.setLastModified(System.currentTimeMillis());
         indexPlan.setMvcc(-1);
+
         indexPlanManager.createIndexPlan(indexPlan);
         dataflowManager.createDataflow(indexPlan, nDataModel.getOwner(), RealizationStatusEnum.OFFLINE);
+        indexPlanService.checkPartitionDimensionForV3Storage(project, nDataModel.getId(), getConfig());
     }
 
     private void updateModel(String project, NDataModel nDataModel, ModelImportRequest.ModelImport modelImport,
@@ -780,6 +782,8 @@ public class MetaStoreService extends BasicService {
                     val nDataModel = importDataModelManager.copyForWrite(importDataModel);
 
                     // delete index, then remove dimension or measure
+                    indexPlanService.checkPartitionDimensionForV3Storage(project, importDataModel.getId(),
+                            targetKylinConfig);
                     val targetIndexPlan = importIndexPlanManager.getIndexPlanByModelAlias(modelImport.getOriginalName())
                             .copy();
 

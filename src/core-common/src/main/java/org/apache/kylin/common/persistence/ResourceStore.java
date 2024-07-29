@@ -179,7 +179,7 @@ public abstract class ResourceStore implements AutoCloseable {
     public final NavigableSet<String> listResourcesRecursively(String type) {
         return listResourcesRecursively(type, new RawResourceFilter());
     }
-    
+
     public final NavigableSet<String> listResourcesRecursivelyByProject(String project) {
         NavigableSet<String> resources = new TreeSet<>();
         RawResourceFilter filter = RawResourceFilter.equalFilter("project", project);
@@ -496,8 +496,7 @@ public abstract class ResourceStore implements AutoCloseable {
         val resource = getResource(resPath);
         if (resource != null) {
             //res is a file
-            destRS.putResourceWithoutCheck(resPath, resource.getByteSource(), resource.getTs(),
-                    resource.getMvcc());
+            destRS.putResourceWithoutCheck(resPath, resource.getByteSource(), resource.getTs(), resource.getMvcc());
         } else {
             if (!ALL_TYPE_STR.contains(resPath)) {
                 return;

@@ -27,6 +27,7 @@ import static org.apache.kylin.common.persistence.MetadataType.INDEX_PLAN;
 import static org.apache.kylin.common.persistence.MetadataType.JAR_INFO;
 import static org.apache.kylin.common.persistence.MetadataType.KAFKA_CONFIG;
 import static org.apache.kylin.common.persistence.MetadataType.LAYOUT;
+import static org.apache.kylin.common.persistence.MetadataType.LAYOUT_DETAILS;
 import static org.apache.kylin.common.persistence.MetadataType.MODEL;
 import static org.apache.kylin.common.persistence.MetadataType.PROJECT;
 import static org.apache.kylin.common.persistence.MetadataType.RESOURCE_GROUP;
@@ -269,6 +270,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     }
 
     private boolean assertProjectMetadata(String project, File archiveFolder) {
+        System.out.println("---------" + project);
         val tableFolder = findFile(archiveFolder.listFiles(), f -> f.getName().equals(MetadataType.TABLE_INFO.name()));
         Assertions.assertThat(tableFolder.list()).anyMatch(resourceName -> resourceName.startsWith(project));
 
@@ -297,9 +299,9 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
 
         Assertions.assertThat(coreMetaFolder.list()).isNotEmpty().containsExactlyInAnyOrder(SYSTEM.name(),
                 PROJECT.name(), TABLE_INFO.name(), MODEL.name(), DATAFLOW.name(), INDEX_PLAN.name(), SEGMENT.name(),
-                LAYOUT.name(), COMPUTE_COLUMN.name(), CC_MODEL_RELATION.name(), TABLE_MODEL_RELATION.name(),
-                DATA_PARSER.name(), RESOURCE_GROUP.name(), STREAMING_JOB.name(), JAR_INFO.name(), KAFKA_CONFIG.name(),
-                FUSION_MODEL.name(), TABLE_EXD.name(), "kylin.properties");
+                LAYOUT.name(), LAYOUT_DETAILS.name(), COMPUTE_COLUMN.name(), CC_MODEL_RELATION.name(),
+                TABLE_MODEL_RELATION.name(), DATA_PARSER.name(), RESOURCE_GROUP.name(), STREAMING_JOB.name(),
+                JAR_INFO.name(), KAFKA_CONFIG.name(), FUSION_MODEL.name(), TABLE_EXD.name(), "kylin.properties");
 
         val projectDir = findFile(coreMetaFolder.listFiles(), f -> f.getName().startsWith(MetadataType.PROJECT.name()));
         Assertions.assertThat(projectDir.listFiles()).allMatch(

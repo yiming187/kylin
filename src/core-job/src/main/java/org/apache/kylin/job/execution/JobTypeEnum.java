@@ -24,11 +24,13 @@ import java.util.stream.Collectors;
 
 import lombok.Getter;
 
+@Getter
 public enum JobTypeEnum {
     INDEX_REFRESH(Category.BUILD), //
     INDEX_MERGE(Category.BUILD), //
     INDEX_BUILD(Category.BUILD), //
     INC_BUILD(Category.BUILD), //
+    LAYOUT_DATA_OPTIMIZE(Category.OTHER), //
     SUB_PARTITION_BUILD(Category.BUILD), // 
     SUB_PARTITION_REFRESH(Category.BUILD), //
 
@@ -40,14 +42,14 @@ public enum JobTypeEnum {
 
     ASYNC_QUERY(Category.ASYNC_QUERY), //
 
-    TABLE_SAMPLING(Category.OTHER), STAGE(Category.OTHER), //
+    TABLE_SAMPLING(Category.OTHER), //
+    STAGE(Category.OTHER), //
 
     ROUTINE(Category.CRON), //
     META(Category.CRON), //
     SOURCE_USAGE(Category.CRON), //
     AUTO_REFRESH(Category.CRON);
 
-    @Getter
     private final String category;
 
     public static final List<String> BUILD_JOB_TYPES = Arrays.stream(JobTypeEnum.values())

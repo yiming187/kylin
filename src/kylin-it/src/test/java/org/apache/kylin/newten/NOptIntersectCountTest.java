@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.spark.NLocalWithSparkSessionTest;
-import org.apache.kylin.engine.spark.job.NSparkCubingUtil;
 import org.apache.kylin.engine.spark.storage.ParquetStorage;
 import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.metadata.cube.model.NDataLayout;
@@ -34,6 +33,8 @@ import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.util.ExecAndComp;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.datasource.storage.StorageStore;
+import org.apache.spark.sql.datasource.storage.StorageStoreFactory;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -81,7 +82,8 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
                 .getLatestReadySegment();
         NDataLayout dataCuboid = NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), 100001);
         ParquetStorage storage = new ParquetStorage();
-        List<Row> rows = storage.getFrom(NSparkCubingUtil.getStoragePath(seg, dataCuboid.getLayoutId()), ss)
+        StorageStore storageStore = StorageStoreFactory.create(seg.getModel().getStorageType());
+        List<Row> rows = storage.getFrom(storageStore.getStoragePath(seg, dataCuboid.getLayoutId()), ss)
                 .collectAsList();
         Assert.assertEquals(9, rows.size());
 

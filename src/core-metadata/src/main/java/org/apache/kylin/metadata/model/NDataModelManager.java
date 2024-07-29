@@ -50,6 +50,7 @@ import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.exception.ModelBrokenException;
+import org.apache.kylin.metadata.project.NProjectManager;
 
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -196,7 +197,7 @@ public class NDataModelManager {
                 "alias", alias);
         return crud.listByFilter(filter).stream().findFirst().orElse(null);
     }
-    
+
     public List<String> getModelNamesByFuzzyName(String fuzzyName) {
         RawResourceFilter filter = RawResourceFilter.simpleFilter(RawResourceFilter.Operator.LIKE_CASE_INSENSITIVE,
                 "alias", fuzzyName);
@@ -258,7 +259,9 @@ public class NDataModelManager {
         NCircuitBreaker.verifyModelCreation(allModels.size());
 
         copy.setOwner(owner);
-        copy.setStorageType(getConfig().getDefaultStorageType());
+        if (model.getStorageTypeValue() == 0) {
+            copy.setStorageType(NProjectManager.getProjectConfig(project).getDefaultStorageType());
+        }
         model = saveModel(copy);
         return model;
     }
@@ -339,8 +342,8 @@ public class NDataModelManager {
         ComputedColumnManager ccManager = config.getManager(project, ComputedColumnManager.class);
         Manager<CcModelRelationDesc> relationManager = Manager.getInstance(config, project, CcModelRelationDesc.class);
 
-        List<ComputedColumnDesc> newCC = model.getComputedColumnDescs().stream()
-                .map(ccManager::saveCCWithCheck).collect(Collectors.toList());
+        List<ComputedColumnDesc> newCC = model.getComputedColumnDescs().stream().map(ccManager::saveCCWithCheck)
+                .collect(Collectors.toList());
         model.setComputedColumnUuids(newCC.stream().map(ComputedColumnDesc::getUuid).collect(Collectors.toList()));
         model.setComputedColumnDescs(newCC);
 
@@ -421,7 +424,7 @@ public class NDataModelManager {
                 .filter(df -> !df.checkBrokenWithRelatedInfo()) //
                 .map(NDataflow::getModel).collect(Collectors.toList());
     }
-    
+
     private void lockModelsUnderProject() {
         getStore().batchLock(MetadataType.MODEL,
                 RawResourceFilter.simpleFilter(RawResourceFilter.Operator.EQUAL_CASE_INSENSITIVE, "project", project));

@@ -239,14 +239,14 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     public void testGetReadableProjects() {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
-        Assert.assertEquals(33, projectInstances.size());
+        Assert.assertEquals(34, projectInstances.size());
     }
 
     @Test
     public void testGetAdminProjects() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getAdminProjects();
-        Assert.assertEquals(33, projectInstances.size());
+        Assert.assertEquals(34, projectInstances.size());
     }
 
     @Test
@@ -260,7 +260,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     public void testGetReadableProjectsHasNoPermissionProject() {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
-        Assert.assertEquals(33, projectInstances.size());
+        Assert.assertEquals(34, projectInstances.size());
 
     }
 
@@ -374,8 +374,8 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         val jobNotificationConfigRequest = new JobNotificationConfigRequest();
         jobNotificationConfigRequest.setDataLoadEmptyNotificationEnabled(false);
         jobNotificationConfigRequest.setJobStatesNotification(Lists.newArrayList("finished", "error", "discarded"));
-        jobNotificationConfigRequest.setJobNotificationEmails(
-                Lists.newArrayList("user1@Kylin.io", "user2@Kylin.io", "user2@Kylin.io"));
+        jobNotificationConfigRequest
+                .setJobNotificationEmails(Lists.newArrayList("user1@Kylin.io", "user2@Kylin.io", "user2@Kylin.io"));
         projectService.updateJobNotificationConfig(project, jobNotificationConfigRequest);
         response = projectService.getProjectConfig(project);
         Assert.assertEquals(2, response.getJobNotificationEmails().size());
@@ -565,7 +565,6 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains("must be a positive number"));
         }
-
 
     }
 
@@ -818,8 +817,8 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         val jobNotificationConfigRequest = new JobNotificationConfigRequest();
         jobNotificationConfigRequest.setDataLoadEmptyNotificationEnabled(true);
         jobNotificationConfigRequest.setJobStatesNotification(Lists.newArrayList("finished", "error", "discarded"));
-        jobNotificationConfigRequest.setJobNotificationEmails(
-                Lists.newArrayList("user1@Kylin.io", "user2@Kylin.io", "user2@Kylin.io"));
+        jobNotificationConfigRequest
+                .setJobNotificationEmails(Lists.newArrayList("user1@Kylin.io", "user2@Kylin.io", "user2@Kylin.io"));
         projectService.updateJobNotificationConfig(PROJECT, jobNotificationConfigRequest);
 
         projectService.updateQueryAccelerateThresholdConfig(PROJECT, 30, false);

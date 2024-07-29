@@ -33,6 +33,7 @@ import org.apache.kylin.metadata.cube.model.NBatchConstants;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
+import org.apache.spark.sql.datasource.storage.StorageStoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,11 +87,12 @@ public class NSparkMergingStep extends NSparkExecutable {
         Set<String> result = Sets.newHashSet();
 
         val allSegments = Lists.newArrayList(mergingSegments);
+        val storageStore = StorageStoreFactory.create(dataflow.getModel().getStorageType());
         allSegments.add(mergedSeg);
         for (NDataSegment seg : allSegments) {
             for (LayoutEntity layout : indexPlan.getAllLayouts()) {
-                String path = "/" + NSparkCubingUtil.getStoragePathWithoutPrefix(project, dataflowId, seg.getId(),
-                        layout.getId());
+                String path = "/"
+                        + storageStore.getStoragePathWithoutPrefix(project, dataflowId, seg.getId(), layout.getId());
                 result.add(new Path(path).getParent().toString());
             }
         }

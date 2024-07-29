@@ -36,6 +36,7 @@ import org.apache.kylin.job.execution.StageBase;
 import org.apache.kylin.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
+import org.apache.spark.sql.datasource.storage.StorageStoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,11 +87,12 @@ public class NSparkCubingStep extends NSparkExecutable {
         val indexPlan = dataflow.getIndexPlan();
 
         Set<String> result = Sets.newHashSet();
+        val storageStore = StorageStoreFactory.create(dataflow.getModel().getStorageType());
         for (String segId : segmentIds) {
             val seg = dfMgr.getDataflow(dataflowId).getSegment(segId);
             for (LayoutEntity layout : indexPlan.getAllLayouts()) {
                 String path = "/"
-                        + NSparkCubingUtil.getStoragePathWithoutPrefix(project, dataflowId, segId, layout.getId());
+                        + storageStore.getStoragePathWithoutPrefix(project, dataflowId, segId, layout.getId());
                 result.add(new Path(path).getParent().toString());
             }
         }

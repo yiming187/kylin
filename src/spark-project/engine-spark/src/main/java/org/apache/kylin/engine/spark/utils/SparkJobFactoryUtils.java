@@ -21,6 +21,7 @@ package org.apache.kylin.engine.spark.utils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.engine.spark.job.NSparkCubingJob;
 import org.apache.kylin.engine.spark.job.NSparkCubingStep;
+import org.apache.kylin.engine.spark.job.NSparkLayoutDataOptimizeJob;
 import org.apache.kylin.engine.spark.job.NSparkMergingJob;
 import org.apache.kylin.engine.spark.job.NSparkSnapshotJob;
 import org.apache.kylin.engine.spark.job.NTableSamplingJob;
@@ -38,6 +39,7 @@ public class SparkJobFactoryUtils {
         new NSparkMergingJob();
         new NSparkSnapshotJob();
         new NTableSamplingJob();
+        new NSparkLayoutDataOptimizeJob();
     }
 
     public static boolean needBuildSnapshots(AbstractExecutable buildTask) {

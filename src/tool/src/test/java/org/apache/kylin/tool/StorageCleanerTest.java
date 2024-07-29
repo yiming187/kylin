@@ -108,13 +108,22 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testDeltaStorageCleaner() throws Exception {
+        val cleaner = new StorageCleaner();
+        val config = getTestConfig();
+        FileUtils.copyDirectory(new File("src/test/resources/ut_storage/delta_storage_cleaner_test"),
+                new File(config.getHdfsWorkingDirectory().replace("file://", "")));
+        cleaner.execute();
+    }
+
+    @Test
     public void testEventLogClean() throws IOException {
         prepareForEventLogClean();
         String allSparderEventLogDir = (KapConfig.wrap(getTestConfig()).getSparkConf().get("spark.eventLog.dir"))
                 .replace("file:", "");
         String currentSparderEventLogDir = (KapConfig.wrap(getTestConfig()).getSparkConf().get("spark.eventLog.dir")
                 + "/" + AddressUtil.getLocalServerInfo() + "/eventlog_v2_application_1677899901295_4823#1690192675042")
-                        .replace("file:", "");
+                .replace("file:", "");
         String sparkEventLogDir = getTestConfig().getSparkConfigOverride().get("spark.eventLog.dir").replace("file:",
                 "");
 

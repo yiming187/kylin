@@ -18,7 +18,9 @@
 
 package org.apache.kylin.engine.spark.job.stage.build
 
-import org.apache.kylin.guava30.shaded.common.collect.Queues
+import java.util.Objects
+import java.util.concurrent.CountDownLatch
+
 import org.apache.commons.math3.ml.clustering.{Clusterable, KMeansPlusPlusClusterer}
 import org.apache.commons.math3.ml.distance.EarthMoversDistance
 import org.apache.kylin.common.persistence.transaction.UnitOfWork
@@ -28,6 +30,7 @@ import org.apache.kylin.engine.spark.builder.DictionaryBuilderHelper
 import org.apache.kylin.engine.spark.job._
 import org.apache.kylin.engine.spark.job.stage.build.FlatTableAndDictBase.Statistics
 import org.apache.kylin.engine.spark.job.stage.{BuildParam, InferiorGroup, StageExec}
+import org.apache.kylin.guava30.shaded.common.collect.Queues
 import org.apache.kylin.metadata.cube.cuboid.AdaptiveSpanningTree.TreeNode
 import org.apache.kylin.metadata.cube.model.NIndexPlanManager.NIndexPlanUpdater
 import org.apache.kylin.metadata.cube.model._
@@ -37,8 +40,6 @@ import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{Dataset, Row}
 import org.apache.spark.storage.StorageLevel
 
-import java.util.Objects
-import java.util.concurrent.CountDownLatch
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
@@ -64,7 +65,9 @@ abstract class BuildStage(private val jobContext: SegmentJob,
   // These parameters can be changed when running the cube planner, should use the
   // `def` to get the latest data
   protected def readOnlyLayouts = jobContext.getReadOnlyLayouts
+
   private def spanningTree = buildParam.getSpanningTree
+
   private def flatTableDesc = buildParam.getFlatTableDesc
 
   // Needed variables from data segment.
@@ -341,7 +344,7 @@ abstract class BuildStage(private val jobContext: SegmentJob,
         val dataflowUpdate = new NDataflowUpdate(dataflowId)
         copiedSegment.setSourceCount(stats.totalCount)
         // Cal segment dimension range
-        if (!jobContext.isPartialBuild) {
+        if (!jobContext.isPartialBuild && copiedSegment.getModel.getStorageType.isV1Storage) {
           copiedSegment.setDimensionRangeInfoMap(
             calDimRange(dataSegment, flatTable.getFlatTableDS)
           )
@@ -499,7 +502,7 @@ abstract class BuildStage(private val jobContext: SegmentJob,
 
       val kcluster = new KMeansPlusPlusClusterer[ClusterNode](k, -1, new EarthMoversDistance())
       kcluster.cluster( //
-        scala.collection.JavaConverters.seqAsJavaList(nodes.map(n => new ClusterNode(n)))).asScala //
+          scala.collection.JavaConverters.seqAsJavaList(nodes.map(n => new ClusterNode(n)))).asScala //
         .map { cluster =>
           val grouped = cluster.getPoints.asScala.map(_.getNode)
           val columns = grouped.map(_.getIndex).flatMap(columnsFromFlatTable).distinct.sorted
@@ -512,15 +515,15 @@ abstract class BuildStage(private val jobContext: SegmentJob,
     val nonSpanned = spanningTree.getFromFlatTableNodes.asScala.filter(_.nonSpanned())
     val clustered = nonSpanned.groupBy(node => node.getDimensionSize / dimensionFactor) //
       .values.filter { grouped =>
-      val groupDesc = grouped.map(_.getIndex.getId).sorted.mkString("[", ",", "]")
-      if (grouped.size > 1) {
-        logInfo(s"Segment $segmentId coarse index group $groupDesc")
-        true
-      } else {
-        logInfo(s"Segment $segmentId skip coarse index group $groupDesc")
-        false
-      }
-    }.flatMap(cluster)
+        val groupDesc = grouped.map(_.getIndex.getId).sorted.mkString("[", ",", "]")
+        if (grouped.size > 1) {
+          logInfo(s"Segment $segmentId coarse index group $groupDesc")
+          true
+        } else {
+          logInfo(s"Segment $segmentId skip coarse index group $groupDesc")
+          false
+        }
+      }.flatMap(cluster)
 
     val inferiors = clustered.zipWithIndex.map { case (grouped, i) =>
       logInfo(s"Segment $segmentId inferior indices columns " +

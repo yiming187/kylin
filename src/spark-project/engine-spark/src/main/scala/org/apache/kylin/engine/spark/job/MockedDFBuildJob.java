@@ -29,12 +29,12 @@ import java.util.stream.IntStream;
 
 import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.common.util.RandomUtil;
-import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.storage.StorageFactory;
 import org.apache.kylin.engine.spark.NSparkCubingEngine;
 import org.apache.kylin.engine.spark.application.SparkApplication;
 import org.apache.kylin.engine.spark.builder.DFBuilderHelper$;
 import org.apache.kylin.engine.spark.builder.DictionaryBuilderHelper;
+import org.apache.kylin.guava30.shaded.common.collect.Lists;
+import org.apache.kylin.guava30.shaded.common.collect.Sets;
 import org.apache.kylin.metadata.cube.cuboid.NSpanningTree;
 import org.apache.kylin.metadata.cube.cuboid.NSpanningTreeFactory;
 import org.apache.kylin.metadata.cube.model.IndexPlan;
@@ -46,8 +46,11 @@ import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.datasource.storage.StorageStoreFactory;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
@@ -55,9 +58,6 @@ import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.SparderTypeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.kylin.guava30.shaded.common.collect.Lists;
-import org.apache.kylin.guava30.shaded.common.collect.Sets;
 
 import lombok.val;
 import lombok.var;
@@ -86,6 +86,7 @@ public class MockedDFBuildJob extends SparkApplication {
             Set<LayoutEntity> cuboids = NSparkCubingUtil.toLayouts(indexPlan, layoutIds).stream()
                     .filter(Objects::nonNull).collect(Collectors.toSet());
             nSpanningTree = NSpanningTreeFactory.fromLayouts(cuboids, dfName);
+            val storageStore = StorageStoreFactory.create(indexPlan.getModel().getStorageType());
 
             for (String segId : segmentIds) {
                 NDataSegment seg = dfMgr.getDataflow(dfName).getSegment(segId);
@@ -123,7 +124,7 @@ public class MockedDFBuildJob extends SparkApplication {
                     dataCuboid.setFileCount(123);
                     dataCuboid.setByteSize(123);
                     StorageFactory.createEngineAdapter(layout, NSparkCubingEngine.NSparkCubingStorage.class)
-                            .saveTo(NSparkCubingUtil.getStoragePath(seg, layout.getId()), ds, ss);
+                            .saveTo(storageStore.getStoragePath(seg, layout.getId()), ds, ss);
 
                     NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getUuid());
                     update.setToAddOrUpdateLayouts(dataCuboid);

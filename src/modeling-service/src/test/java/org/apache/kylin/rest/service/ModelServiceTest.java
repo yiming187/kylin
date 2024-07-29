@@ -5257,6 +5257,18 @@ public class ModelServiceTest extends SourceTestCase {
 
         model = modelService.getCubes0(modelName, project).get(0);
         Assert.assertSame(NDataModel.BrokenReason.SEGMENT_OVERLAP, model.getBrokenReason());
+    }
 
+    @Test
+    public void testSetModelStorageType() {
+        val project = "default";
+        val modelId = "82fa7671-a935-45f5-8779-85703601f49a";
+        NDataflowManager dfMng = NDataflowManager.getInstance(getTestConfig(), project);
+        NDataflow df = dfMng.getDataflow(modelId);
+        Assert.assertEquals(0, df.getModel().getStorageTypeValue());
+        Assert.assertEquals(20, df.getIndexPlan().getAllLayouts().get(0).getStorageType());
+        modelService.setStorageType(project, modelId, 3);
+        Assert.assertEquals(3, df.getModel().getStorageTypeValue());
+        Assert.assertEquals(3, df.getIndexPlan().getAllLayouts().get(0).getStorageType());
     }
 }
