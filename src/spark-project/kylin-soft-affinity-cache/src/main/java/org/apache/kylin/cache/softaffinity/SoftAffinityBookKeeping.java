@@ -70,7 +70,7 @@ public class SoftAffinityBookKeeping {
     public static void logAudits() {
         List<String> lines = audit().entrySet().stream().map(e -> e.getKey() + " -> " + e.getValue())
                 .collect(Collectors.toList());
-        log.debug("Past few mappings of location -> executors: \n" + String.join("\n", lines));
+        log.debug("Past few mappings of location -> executors: \n{}", String.join("\n", lines));
     }
 
     public static int size() {

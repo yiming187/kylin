@@ -106,7 +106,7 @@ public class MemoryAuditLogStore implements AuditLogStore {
 
     @Override
     public void restore(long currentId) {
-        throw new UnsupportedOperationException("MemoryAuditLog no need to restore.");
+        // Do nothing
     }
 
     @Override
