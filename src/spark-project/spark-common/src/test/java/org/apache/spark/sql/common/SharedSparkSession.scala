@@ -63,7 +63,20 @@ trait SharedSparkSession
       FileUtils.deleteDirectory(scratchDir)
     }
     conf.set(ConfVars.SCRATCHDIR.varname, scratchDir.toString)
+    cleanupAnyExistingSession()
     initSpark()
+  }
+
+  private[spark] def cleanupAnyExistingSession(): Unit = {
+    var session = SparkSession.getActiveSession
+    if (session.isEmpty) {
+      session = SparkSession.getDefaultSession
+    }
+    if (session.isDefined) {
+      session.get.stop()
+      SparkSession.clearActiveSession()
+      SparkSession.clearDefaultSession()
+    }
   }
 
   def initSpark(): Unit = {

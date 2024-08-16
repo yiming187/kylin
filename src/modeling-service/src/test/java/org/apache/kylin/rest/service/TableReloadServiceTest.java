@@ -815,10 +815,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val brokenModel = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
         val copyModel = JsonUtil.deepCopy(brokenModel, NDataModel.class);
         copyModel.getJoinTables().get(2).getJoin().setForeignKey(new String[] { "TEST_KYLIN_FACT.LSTG_SITE_ID" });
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            modelService.repairBrokenModel(PROJECT, createModelRequest(copyModel));
-            return null;
-        }, PROJECT);
+        modelService.repairBrokenModel(PROJECT, createModelRequest(copyModel));
 
         indexPlan = NIndexPlanManager.getInstance(getTestConfig(), PROJECT).getIndexPlan(originModel.getUuid());
         Assert.assertEquals(1, indexPlan.getRuleBasedIndex().getAggregationGroups().size());

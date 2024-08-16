@@ -17,10 +17,11 @@
 
 package org.apache.kylin.it
 
-import io.netty.util.internal.ThrowableUtil
-import org.apache.kylin.common._
+import java.io.File
+
 import org.apache.kylin.common.persistence.transaction.UnitOfWork
 import org.apache.kylin.common.util.{TestUtils, TimeZoneUtils}
+import org.apache.kylin.common.{JobSupport, KylinConfig, QuerySupport, SSSource}
 import org.apache.kylin.engine.spark.IndexDataWarehouse
 import org.apache.kylin.metadata.cube.model.NDataflowManager.NDataflowUpdater
 import org.apache.kylin.metadata.cube.model.{NDataflow, NDataflowManager}
@@ -33,14 +34,13 @@ import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.execution.{KylinFileSourceScanExec, LayoutFileSourceScanExec}
 import org.apache.spark.sql.{DataFrame, SparderEnv}
 
-import java.io.File
+import io.netty.util.internal.ThrowableUtil
 
 class TestQueryAndBuildFunSuite
   extends SparderBaseFunSuite
     with LocalMetadata
     with JobSupport
     with QuerySupport
-    with CompareSupport
     with SSSource
     with AdaptiveSparkPlanHelper
     with Logging {
@@ -146,7 +146,6 @@ class TestQueryAndBuildFunSuite
   override def afterAll(): Unit = {
     NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, DEFAULT_PROJECT)
       .updateDataflow(DF_NAME, Updater(RealizationStatusEnum.ONLINE))
-    super.afterAll()
     SparderEnv.cleanCompute()
   }
 

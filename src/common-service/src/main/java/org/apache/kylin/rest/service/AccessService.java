@@ -947,9 +947,8 @@ public class AccessService extends BasicService {
     }
 
     @Transaction
-    public void updateAccess(AccessGrantEventNotifier grantNotifier,
-                             AccessBatchGrantEventNotifier batchGrantNotifier, AccessRevokeEventNotifier revokeNotifier)
-            throws IOException {
+    public void updateAccess(AccessGrantEventNotifier grantNotifier, AccessBatchGrantEventNotifier batchGrantNotifier,
+            AccessRevokeEventNotifier revokeNotifier) throws IOException {
         if (grantNotifier != null) {
             AclEntity ae = getAclEntity(AclEntityType.PROJECT_INSTANCE, grantNotifier.getEntityId());
             grant(ae, grantNotifier.getIdentifier(), grantNotifier.getIsPrincipal(), grantNotifier.getPermission());

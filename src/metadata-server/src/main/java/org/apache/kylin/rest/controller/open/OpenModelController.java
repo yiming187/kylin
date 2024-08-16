@@ -536,7 +536,7 @@ public class OpenModelController extends NBasicController {
 
         checkConfigWhetherExist(modelConfig.getOverrideProps(), request.getCustomSettings().keySet(), true);
         modelConfig.getOverrideProps().putAll(request.getCustomSettings());
-        
+
         ModelConfigRequest modelConfigRequest = newModelConfigRequestByConfig(modelConfig, projectName);
         modelService.updateModelConfig(projectName, modelConfig.getModel(), modelConfigRequest);
         return new EnvelopeResponse<>(KylinException.CODE_SUCCESS, modelConfig, "");

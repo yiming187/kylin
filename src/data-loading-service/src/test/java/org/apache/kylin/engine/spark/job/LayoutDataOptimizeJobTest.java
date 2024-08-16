@@ -67,7 +67,6 @@ public class LayoutDataOptimizeJobTest extends NLocalWithSparkSessionTest {
     @Override
     @Before
     public void setUp() throws Exception {
-        JobContextUtil.cleanUp();
         super.setUp();
         ss.sparkContext().setLogLevel("ERROR");
         overwriteSystemProp("kylin.engine.persist-flattable-threshold", "0");

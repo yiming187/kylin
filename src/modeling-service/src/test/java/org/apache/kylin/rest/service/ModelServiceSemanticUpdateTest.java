@@ -1076,12 +1076,12 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         selectRule.hierarchyDims = new Integer[0][0];
         selectRule.jointDims = new Integer[0][0];
         newAggregationGroup.setSelectRule(selectRule);
-        UnitOfWork.doInTransactionWithRetry(
-                () -> indexPlanService
-                        .updateRuleBasedCuboid(getProject(),
+        UnitOfWork
+                .doInTransactionWithRetry(
+                        () -> indexPlanService.updateRuleBasedCuboid(getProject(),
                                 UpdateRuleBasedCuboidRequest.builder().project(getProject()).modelId(BASIC_MODEL)
                                         .aggregationGroups(Lists.newArrayList(newAggregationGroup)).build()),
-                getProject());
+                        getProject());
         // old indexes
         val indexCol = Arrays.asList(transId, nest5SumId);
         val oldLayoutId = indexPlanManager.getIndexPlan(BASIC_MODEL).getAllLayouts().stream()
@@ -1515,7 +1515,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             semanticService.handleSemanticUpdate(getProject(), originModel.getUuid(), originModel, null, null);
             return true;
         }, getProject());
-        
+
         val executables = getRunningExecutables(getProject(), null);
         Assert.assertEquals(1, executables.size());
         Assert.assertTrue(((NSparkCubingJob) executables.get(0)).getHandler() instanceof ExecutableAddCuboidHandler);

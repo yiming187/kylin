@@ -33,6 +33,7 @@ import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.guava30.shaded.common.collect.ImmutableMap;
 import org.apache.kylin.guava30.shaded.common.collect.Lists;
 import org.apache.kylin.guava30.shaded.common.collect.Maps;
+import org.apache.kylin.job.util.JobContextUtil;
 import org.apache.kylin.junit.TimeZoneTestRunner;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
@@ -98,6 +99,7 @@ public class QueryHistoryMetaUpdateSchedulerTest extends NLocalFileMetadataTestC
         PowerMockito.mockStatic(UserGroupInformation.class);
         UserGroupInformation userGroupInformation = Mockito.mock(UserGroupInformation.class);
         PowerMockito.when(UserGroupInformation.getCurrentUser()).thenReturn(userGroupInformation);
+        JobContextUtil.cleanUp();
         createTestMetadata();
         ApplicationContext applicationContext = PowerMockito.mock(ApplicationContext.class);
         PowerMockito.when(SpringContext.getApplicationContext()).thenReturn(applicationContext);
@@ -286,7 +288,7 @@ public class QueryHistoryMetaUpdateSchedulerTest extends NLocalFileMetadataTestC
         {
             var streamingDataflow = manager.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40");
             Assert.assertEquals(1, countDateFrequency(streamingDataflow, LAYOUT3));
-            
+
             ReflectionTestUtils.invokeMethod(metaUpdateRunner, "updateStatMeta", streamingModelQueryHistory());
             streamingDataflow = manager.getDataflow("b05034a8-c037-416b-aa26-9e6b4a41ee40");
             Assert.assertEquals(2, countDateFrequency(streamingDataflow, LAYOUT3));

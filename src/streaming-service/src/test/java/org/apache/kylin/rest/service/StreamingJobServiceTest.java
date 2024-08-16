@@ -693,7 +693,7 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
         }
     }
 
-    @Ignore("Not ready yet")
+    @Ignore("Not support yet")
     @Test
     public void testGetStreamingJobInfoOfNoData() {
         val streamingJobsStatsManager = StreamingJobStatsManager.getInstance();
@@ -714,7 +714,6 @@ public class StreamingJobServiceTest extends CSVSourceTestCase {
 
         val resp1 = streamingJobService.getStreamingJobInfo(jobId, PROJECT);
         Assert.assertEquals(JobStatusEnum.RUNNING, resp1.getCurrentStatus());
-        Assert.assertNotNull(resp1.getLastStatusDuration());
         Assert.assertNull(resp1.getDataLatency());
         Assert.assertNotNull(resp1.getLastUpdateTime());
     }

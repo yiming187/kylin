@@ -54,10 +54,6 @@ public class NLocalFileMetadataTestCase extends AbstractTestCase {
         overwriteSystemProp("needCheckCC", "true");
     }
 
-    public static File getTempMetadataDirectory() {
-        return tempMetadataDirectory;
-    }
-
     protected String[] getOverlay() {
         return new String[] {};
     }
@@ -263,7 +259,7 @@ public class NLocalFileMetadataTestCase extends AbstractTestCase {
         }
     }
 
-    public void assertRuntimeExeption(UserFunction f, String msg) {
+    public void assertRuntimeException(UserFunction f, String msg) {
         try {
             f.process();
             Assert.fail();

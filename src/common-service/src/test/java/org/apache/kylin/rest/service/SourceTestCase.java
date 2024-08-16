@@ -53,6 +53,7 @@ public class SourceTestCase extends NLocalFileMetadataTestCase {
 
     @Before
     public void setUp() {
+        JobContextUtil.cleanUp();
         SparkJobFactoryUtils.initJobFactory();
         JobContextUtil.cleanUp();
         createTestMetadata();

@@ -336,8 +336,8 @@ public class QueryHistoryService extends BasicService implements AsyncTaskQueryH
     public long getQueryCountToAccelerate(String project) {
         Preconditions.checkArgument(StringUtils.isNotEmpty(project));
         aclEvaluate.checkProjectReadPermission(project);
-        QueryHistoryIdOffset queryHistoryIdOffset = QueryHistoryIdOffsetManager
-                .getInstance(project).get(QueryHistoryIdOffset.OffsetType.ACCELERATE);
+        QueryHistoryIdOffset queryHistoryIdOffset = QueryHistoryIdOffsetManager.getInstance(project)
+                .get(QueryHistoryIdOffset.OffsetType.ACCELERATE);
         long idOffset = queryHistoryIdOffset.getOffset();
         QueryHistoryDAO queryHistoryDao = getQueryHistoryDao();
         return queryHistoryDao.getQueryHistoryCountBeyondOffset(idOffset, project);

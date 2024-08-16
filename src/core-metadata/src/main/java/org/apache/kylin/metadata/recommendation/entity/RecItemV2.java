@@ -18,11 +18,12 @@
 
 package org.apache.kylin.metadata.recommendation.entity;
 
+import org.apache.kylin.common.annotation.Clarification;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.kylin.common.annotation.Clarification;
 
 @Getter
 @Setter

@@ -35,7 +35,6 @@ class TestCubePlanner extends SparderBaseFunSuite
   with LocalMetadata
   with JobSupport
   with QuerySupport
-  with CompareSupport
   with SSSource
   with AdaptiveSparkPlanHelper
   with Logging {

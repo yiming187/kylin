@@ -22,18 +22,15 @@ import org.apache.curator.test.TestingServer;
 import org.apache.kylin.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.metadata.recommendation.candidate.JdbcRawRecStore;
+import org.apache.kylin.rest.service.ServiceTestBase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.Spy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
@@ -44,8 +41,8 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 @RunWith(SpringRunner.class)
-@ContextConfiguration(classes = IntegrationConfig.class)
-@WebAppConfiguration
+@ContextConfiguration(classes = ServiceTestBase.SpringConfig.class)
+@WebAppConfiguration(value = "../common-service/src/test/resources")
 @EnableWebMvc
 @WithMockUser(username = "ADMIN", roles = "ADMIN")
 @AutoConfigureMockMvc
@@ -55,12 +52,6 @@ public abstract class AbstractMVCIntegrationTestCase extends NLocalFileMetadataT
 
     @Autowired
     private WebApplicationContext wac;
-
-    @Mock
-    private SessionRegistry sessionRegistry;
-
-    @Spy
-    private FindByIndexNameSessionRepository sessionRepository;
 
     @Autowired
     protected MockMvc mockMvc;

@@ -672,14 +672,14 @@ public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
         String modelName = "model1";
         NDataModel model = Mockito.mock(NDataModel.class);
 
-
         Mockito.when(nModelController.deleteModel(Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(new EnvelopeResponse<String>(KylinException.CODE_SUCCESS, "", ""));
         Mockito.when(modelService.getModelWithoutBrokenCheck(Mockito.anyString(), Mockito.anyString()))
-                        .thenReturn(model);
+                .thenReturn(model);
         Mockito.when(model.getId()).thenReturn("123");
-        mockMvc.perform(MockMvcRequestBuilders.delete(String.format("/api/models/%s?project=%s", modelName, project)).contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders.delete(String.format("/api/models/%s?project=%s", modelName, project))
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openModelController).deleteModel(modelName, project);
     }

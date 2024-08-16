@@ -458,7 +458,8 @@ public class JdbcRawRecStore {
                     rawRecItem.setModelID(modelId);
                     String content = RawRecUtil.getContent(rawRecItem);
                     String md5 = RawRecUtil.computeMD5(content);
-                    Pair<String, RawRecItem> recItemPair = RawRecUtil.getRawRecItemFromMap(md5, content, md5ToUuid, layoutRecommendations);
+                    Pair<String, RawRecItem> recItemPair = RawRecUtil.getRawRecItemFromMap(md5, content, md5ToUuid,
+                            layoutRecommendations);
                     rawRecItem.setUniqueFlag(recItemPair.getFirst());
                 }
 
@@ -583,7 +584,7 @@ public class JdbcRawRecStore {
         long currentTime = System.currentTimeMillis();
         int effectiveDays = Integer
                 .parseInt(FavoriteRuleManager.getInstance(project).getValue(FavoriteRule.EFFECTIVE_DAYS));
-        RawRecItem.CostMethod costMethod = getCostMethod(project);
+        RawRecItem.CostMethod costMethod = RawRecItem.CostMethod.getCostMethod(project);
         Set<String> updateModels = Sets.newHashSet();
         return JdbcUtil.withTransaction(transactionManager, () -> {
             RawRecItemMapper mapper = sqlSessionTemplate.getMapper(RawRecItemMapper.class);

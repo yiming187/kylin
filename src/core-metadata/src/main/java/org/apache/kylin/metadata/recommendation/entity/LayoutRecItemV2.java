@@ -79,8 +79,7 @@ public class LayoutRecItemV2 extends RecItemV2 implements Serializable {
         List<Integer> originSortCols = layout.getSortByColumns();
         List<Integer> originPartitionCols = layout.getPartitionByColumns();
         List<Integer> colOrderInDB = getColIDInDB(ccMap, newCcUuids, dataModel, originColOrder, uniqueContentRecMap);
-        List<Integer> shardColsInDB = getColIDInDB(ccMap, newCcUuids, dataModel, originShardCols,
-                uniqueContentRecMap);
+        List<Integer> shardColsInDB = getColIDInDB(ccMap, newCcUuids, dataModel, originShardCols, uniqueContentRecMap);
         List<Integer> sortColsInDB = getColIDInDB(ccMap, newCcUuids, dataModel, originSortCols, uniqueContentRecMap);
         List<Integer> partitionColsInDB = getColIDInDB(ccMap, newCcUuids, dataModel, originPartitionCols,
                 uniqueContentRecMap);
@@ -93,9 +92,8 @@ public class LayoutRecItemV2 extends RecItemV2 implements Serializable {
         log.debug("Origin partition columns is {}, converted to {}", originPartitionCols, partitionColsInDB);
     }
 
-    private List<Integer> getColIDInDB(Map<String, ComputedColumnDesc> ccNameMap,
-                                       Set<String> newCcUuids, NDataModel model, List<Integer> columnIDs,
-            Map<String, RawRecItem> uniqueContentToRecItemMap) {
+    private List<Integer> getColIDInDB(Map<String, ComputedColumnDesc> ccNameMap, Set<String> newCcUuids,
+            NDataModel model, List<Integer> columnIDs, Map<String, RawRecItem> uniqueContentToRecItemMap) {
         List<Integer> colOrderInDB = Lists.newArrayListWithCapacity(columnIDs.size());
         columnIDs.forEach(colId -> {
             String uniqueContent;

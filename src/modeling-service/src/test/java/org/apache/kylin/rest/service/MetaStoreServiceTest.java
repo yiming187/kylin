@@ -26,7 +26,6 @@ import static org.apache.kylin.metadata.model.schema.ImportModelContext.MODEL_RE
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -643,7 +642,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testCheckModelMetadataModelMultiplePartitionColumnsChanged() throws IOException {
         val file = new File(
                 "src/test/resources/ut_meta/schema_utils/conflict_multiple_partition_project/target_project_model_metadata_2020_12_02_17_27_25_DF9679B582150A5597CB7D4683FE0A0B.zip");
-        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null,
+                Files.newInputStream(file.toPath()));
         val metadataCheckResponse = metaStoreService.checkModelMetadata("original_project", multipartFile, null);
 
         SchemaChangeCheckResult.ModelSchemaChange modelSchemaChange = metadataCheckResponse.getModels()
@@ -660,7 +660,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testCheckModelMetadataModelMultiplePartition() throws IOException {
         val file = new File(
                 "src/test/resources/ut_meta/schema_utils/model_different_multiple_partition_project/target_project_model_metadata_2020_12_02_20_50_10_5F5B27368F5F4EA718B4297DE5F261E9.zip");
-        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null,
+                Files.newInputStream(file.toPath()));
         val metadataCheckResponse = metaStoreService.checkModelMetadata("original_project", multipartFile, null);
 
         SchemaChangeCheckResult.ModelSchemaChange modelSchemaChange = metadataCheckResponse.getModels()
@@ -683,7 +684,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testCheckModelMetadataModelEmptyMultiplePartitionValues() throws IOException {
         val file = new File(
                 "src/test/resources/ut_meta/schema_utils/model_empty_multiple_partition_value/model_empty_multiple_partition_value_2021_01_18_11_10_11_91E72B2EF5A6D8F818FA5F55009A9E16.zip");
-        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null,
+                Files.newInputStream(file.toPath()));
         val metadataCheckResponse = metaStoreService.checkModelMetadata("original_project", multipartFile, null);
 
         SchemaChangeCheckResult.ModelSchemaChange modelSchemaChange = metadataCheckResponse.getModels()
@@ -719,7 +721,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testCheckModelMetadataModelMultiplePartitionWithDifferentPartitionValueOrder() throws IOException {
         val file = new File(
                 "src/test/resources/ut_meta/schema_utils/model_different_multiple_partition_with_different_partition_value_order_project/target_project_model_metadata_2020_12_02_20_50_10_04A9FB74DE74189500A908F56DBCF933.zip");
-        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null,
+                Files.newInputStream(file.toPath()));
         val metadataCheckResponse = metaStoreService.checkModelMetadata("original_project", multipartFile, null);
 
         SchemaChangeCheckResult.ModelSchemaChange modelSchemaChange = metadataCheckResponse.getModels()
@@ -733,7 +736,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testCheckModelMetadataModelMultiplePartitionWithPartitionValueReduce() throws IOException {
         val file = new File(
                 "src/test/resources/ut_meta/schema_utils/model_different_multiple_partition_with_partition_value_reduce_project/target_project_model_metadata_2020_12_02_20_50_10_3A88090D810EFB0FDAC1FFAEB80D9933.zip");
-        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null,
+                Files.newInputStream(file.toPath()));
         val metadataCheckResponse = metaStoreService.checkModelMetadata("original_project", multipartFile, null);
 
         SchemaChangeCheckResult.ModelSchemaChange modelSchemaChange = metadataCheckResponse.getModels()
@@ -936,7 +940,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testImportModelMetadataWithMeasureDependsOnCCRec() throws Exception {
         File file = new File(
                 "src/test/resources/ut_model_metadata/project_1_model_metadata_2021_01_20_14_56_44_4D0A8DAFD6BDDB01FE2F7C8D55B075AF.zip");
-        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null,
+                Files.newInputStream(file.toPath()));
         ModelImportRequest request = new ModelImportRequest();
         List<ModelImportRequest.ModelImport> models = new ArrayList<>();
         models.add(new ModelImportRequest.ModelImport("ssb_model_with_rec", "ssb_model_with_rec",
@@ -967,7 +972,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testImportModelMetadataWithMixInIndexWithRec() throws Exception {
         File file = new File(
                 "src/test/resources/ut_model_metadata/project_2_model_metadata_2021_01_21_15_45_16_F3B35485BC888981895C00635A8DDAF3.zip");
-        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null,
+                Files.newInputStream(file.toPath()));
         ModelImportRequest request = new ModelImportRequest();
         List<ModelImportRequest.ModelImport> models = new ArrayList<>();
         models.add(new ModelImportRequest.ModelImport("ssb_model_index_mixin", "ssb_model_index_mixin",
@@ -1049,7 +1055,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         KylinConfig testConfig = getTestConfig();
         File file = new File(
                 "src/test/resources/ut_model_metadata/override_props_project_model_metadata_2020_11_23_17_48_49_98C8C10F8495CB5CB3CE2CFF2E732EF4.zip");
-        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null,
+                Files.newInputStream(file.toPath()));
         NDataModelManager dataModelManager = NDataModelManager.getInstance(testConfig, "original_project");
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(testConfig, "original_project");
         NDataModel dataModel = dataModelManager.getDataModelDescByAlias("ssb_model");
@@ -1082,7 +1089,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         KylinConfig testConfig = getTestConfig();
         File file = new File(
                 "src/test/resources/ut_model_metadata/override_props_project_model_metadata_2020_11_23_18_43_01_EEF33ABA4B86F7C0A829856BC76E94A4.zip");
-        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null,
+                Files.newInputStream(file.toPath()));
         NDataModelManager dataModelManager = NDataModelManager.getInstance(testConfig, "original_project");
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(testConfig, "original_project");
         NDataModel dataModel = dataModelManager.getDataModelDescByAlias("ssb_model");
@@ -1115,7 +1123,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         KylinConfig testConfig = getTestConfig();
         File file = new File(
                 "src/test/resources/ut_meta/schema_utils/model_different_multiple_partition_with_partition_value_reduce_project/target_project_model_metadata_2020_12_02_20_50_10_3A88090D810EFB0FDAC1FFAEB80D9933.zip");
-        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null,
+                Files.newInputStream(file.toPath()));
         NDataModelManager dataModelManager = NDataModelManager.getInstance(testConfig, "original_project");
         NDataModel dataModel = dataModelManager.getDataModelDescByAlias("conflict_multiple_partition_col_model");
 
@@ -1170,7 +1179,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
         KylinConfig testConfig = getTestConfig();
         File file = new File(
                 "src/test/resources/ut_meta/schema_utils/model_empty_multiple_partition_value/model_empty_multiple_partition_value_2021_01_18_11_10_11_91E72B2EF5A6D8F818FA5F55009A9E16.zip");
-        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null,
+                Files.newInputStream(file.toPath()));
         NDataModelManager dataModelManager = NDataModelManager.getInstance(testConfig, "original_project");
         NDataModel dataModel = dataModelManager.getDataModelDescByAlias("conflict_multiple_partition_col_model");
 
@@ -1208,7 +1218,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testImportModelMetadataWithUnOverWritable() throws Exception {
         File file = new File(
                 "src/test/resources/ut_model_metadata/metastore_model_metadata_1904B44DD1531491299AA9A2D8A00FBD.zip");
-        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null,
+                Files.newInputStream(file.toPath()));
         ModelImportRequest request = new ModelImportRequest();
         List<ModelImportRequest.ModelImport> models = new ArrayList<>();
         models.add(new ModelImportRequest.ModelImport("conflict_filter_condition_model", null,
@@ -1301,9 +1312,9 @@ public class MetaStoreServiceTest extends ServiceTestBase {
                 "missing_table_model_1", ModelImportRequest.ImportType.NEW)));
         val manager = NTableMetadataManager.getInstance(getTestConfig(), "original_project");
         Assert.assertNull(manager.getTableDesc("SSB.CUSTOMER_NEW"));
-        val spyService = Mockito.mock(MetaStoreService.class);
-        //        val tableExtService = (TableExtService) ReflectionTestUtils.getField(spyService, "tableExtService");
-        val spyTableService = Mockito.mock(TableExtService.class);
+        val spyService = Mockito.spy(metaStoreService);
+        val tableExtService = (TableExtService) ReflectionTestUtils.getField(spyService, "tableExtService");
+        val spyTableService = Mockito.spy(tableExtService);
         LoadTableResponse loadTableResponse = new LoadTableResponse();
         loadTableResponse.getFailed().add("SSB.CUSTOMER_NEW");
         Mockito.doReturn(loadTableResponse).when(spyTableService).loadDbTables(new String[] { "SSB.CUSTOMER_NEW" },
@@ -1318,7 +1329,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testImportModelMetadataOverwriteWithUnExistsOriginalModel() throws Exception {
         File file = new File(
                 "src/test/resources/ut_model_metadata/metastore_model_metadata_1904B44DD1531491299AA9A2D8A00FBD.zip");
-        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null,
+                Files.newInputStream(file.toPath()));
         ModelImportRequest request = new ModelImportRequest();
         List<ModelImportRequest.ModelImport> models = new ArrayList<>();
         models.add(new ModelImportRequest.ModelImport("ssb_model_1", null, ModelImportRequest.ImportType.OVERWRITE));
@@ -1347,7 +1359,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testImportModelMetadataWithCreateDuplicateNameModel() throws Exception {
         File file = new File(
                 "src/test/resources/ut_model_metadata/metastore_model_metadata_1904B44DD1531491299AA9A2D8A00FBD.zip");
-        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null,
+                Files.newInputStream(file.toPath()));
         ModelImportRequest request = new ModelImportRequest();
         List<ModelImportRequest.ModelImport> models = new ArrayList<>();
         models.add(new ModelImportRequest.ModelImport("ssb_model", "conflict_filter_condition_model",
@@ -1378,7 +1391,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testImportModelMetadataWithCreateIllegalNameModel() throws Exception {
         File file = new File(
                 "src/test/resources/ut_model_metadata/metastore_model_metadata_1904B44DD1531491299AA9A2D8A00FBD.zip");
-        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        var multipartFile = new MockMultipartFile(file.getName(), file.getName(), null,
+                Files.newInputStream(file.toPath()));
         ModelImportRequest request = new ModelImportRequest();
         List<ModelImportRequest.ModelImport> models = new ArrayList<>();
         models.add(
@@ -1414,7 +1428,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testReduceColumn() throws Exception {
         val file = new File(
                 "src/test/resources/ut_meta/schema_utils/model_reduce_column_table/model_reduce_column_model_metadata_2020_11_14_17_11_19_7E0BD7CB6DB0FF36846254464AA167C2.zip");
-        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null,
+                Files.newInputStream(file.toPath()));
         val metadataCheckResponse = metaStoreService.checkModelMetadata("original_project", multipartFile, null);
 
         SchemaChangeCheckResult.ModelSchemaChange modelSchemaChange = metadataCheckResponse.getModels()
@@ -1476,7 +1491,8 @@ public class MetaStoreServiceTest extends ServiceTestBase {
     public void testGetModelMetadataProjectName() throws IOException {
         File file = new File(
                 "src/test/resources/ut_meta/schema_utils/conflict_dim_table_project/conflict_dim_table_project_model_metadata_2020_11_14_16_20_06_2241FB33CC2A33D4033214E73BEFBCE6.zip");
-        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null, new FileInputStream(file));
+        val multipartFile = new MockMultipartFile(file.getName(), file.getName(), null,
+                Files.newInputStream(file.toPath()));
 
         Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(multipartFile);
         for (int i = 0; i < new Random().nextInt(10); i++) {

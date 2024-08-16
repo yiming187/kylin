@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.kylin.util;
 
 import java.io.File;
@@ -65,6 +66,7 @@ import org.apache.spark.sql.util.SparderTypeUtil;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -81,7 +83,7 @@ public class ExecAndComp {
             return sql;
 
         String specialStr = "changeJoinType_DELIMITERS";
-        sql = sql.replaceAll(System.getProperty("line.separator"), " " + specialStr + " ");
+        sql = sql.replaceAll(System.lineSeparator(), " " + specialStr + " ");
 
         String[] tokens = StringUtils.split(sql, null);// split white spaces
         for (int i = 0; i < tokens.length - 1; ++i) {
@@ -103,23 +105,6 @@ public class ExecAndComp {
         final String[] toDoList = new String[] {
                 // array
                 "query/sql_array/query00.sql", "query/sql_array/query01.sql",
-                // TODO ifnull()
-                "query/sql_function/sql_function_nullHandling/query00.sql",
-                "query/sql_function/sql_function_nullHandling/query01.sql",
-                "query/sql_function/sql_function_nullHandling/query02.sql",
-                "query/sql_function/sql_function_nullHandling/query03.sql",
-                "query/sql_function/sql_function_nullHandling/query04.sql",
-                "query/sql_computedcolumn/sql_computedcolumn_nullHandling/query00.sql",
-                "query/sql_computedcolumn/sql_computedcolumn_nullHandling/query01.sql",
-                "query/sql_computedcolumn/sql_computedcolumn_nullHandling/query02.sql",
-                "query/sql_computedcolumn/sql_computedcolumn_nullHandling/query03.sql",
-                // TODO date_part()
-                "query/sql_function/sql_function_DateUDF/query00.sql",
-                "query/sql_function/sql_function_DateUDF/query02.sql",
-                "query/sql_computedcolumn/sql_computedcolumn_DateUDF/query00.sql",
-                // TODO date_trunc()
-                "query/sql_computedcolumn/sql_computedcolumn_DateUDF/query04.sql",
-                "query/sql_function/sql_function_DateUDF/query06.sql",
                 // TODO divde: spark -> 3/2 = 1.5    calcite -> 3/2 = 1
                 "query/sql_timestamp/query27.sql",
                 // TODO percentile_approx()
@@ -479,7 +464,7 @@ public class ExecAndComp {
                     if (!QueryResultComparator.compareResults(sparkResult, modelResult.getQueryResult(),
                             compareLevel)) {
                         log.error("Failed on compare query ({}) :{}", joinType, query);
-                        throw new IllegalArgumentException("query (" + joinType + ") :" + query + " result not match");
+                        ExecAndComp.throwResultNotMatch(joinType, query);
                     }
                     log.info("Compare Duration(ms): {}", System.currentTimeMillis() - startTs);
                 } else {
@@ -489,6 +474,11 @@ public class ExecAndComp {
                         System.currentTimeMillis() - startTime);
             }
         })).get();
+    }
+
+    public static void throwResultNotMatch(String joinType, Pair<String, String> query) {
+        throw new IllegalStateException(
+                "run with join type(" + joinType + "): " + query.getFirst() + " result not match");
     }
 
     public enum CompareLevel {
@@ -504,15 +494,11 @@ public class ExecAndComp {
     @AllArgsConstructor
     public static class EnhancedQueryResult {
 
+        @Getter
         @Delegate
         QueryResult queryResult;
 
         public Collection<OlapContext> olapContexts;
-
-        public QueryResult getQueryResult() {
-            return queryResult;
-        }
-
     }
 
     @Data

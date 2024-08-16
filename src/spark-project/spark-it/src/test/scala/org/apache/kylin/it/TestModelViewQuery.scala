@@ -20,8 +20,8 @@ package org.apache.kylin.it
 import java.sql.SQLException
 import java.util.TimeZone
 
-import org.apache.kylin.common._
 import org.apache.kylin.common.util.TimeZoneUtils
+import org.apache.kylin.common.{JobSupport, KylinConfig, QuerySupport, SSSource}
 import org.apache.kylin.engine.spark.utils.LogEx
 import org.apache.kylin.metadata.realization.NoRealizationFoundException
 import org.apache.kylin.query.QueryFetcher
@@ -37,7 +37,6 @@ class TestModelViewQuery
     with LocalMetadata
     with JobSupport
     with QuerySupport
-    with CompareSupport
     with SSSource
     with AdaptiveSparkPlanHelper
     with LogEx {
@@ -61,15 +60,14 @@ class TestModelViewQuery
 
   override def beforeAll(): Unit = {
     appendMetadata("src/test/resources/ut_meta/modelViewQuery")
-    super.beforeAll()
+    super[SSSource].beforeAll()
     overwriteSystemProp("calcite.keep-in-clause", "true")
     overwriteSystemProp("kylin.dictionary.null-encoding-opt-threshold", "1")
     overwriteSystemProp("kylin.web.timezone", "GMT+8")
-    TimeZoneUtils.setDefaultTimeZone(KylinConfig.getInstanceFromEnv)
     overwriteSystemProp("kylin.query.pushdown.runner-class-name", "")
     overwriteSystemProp("kylin.query.pushdown-enabled", "false")
     overwriteSystemProp("kylin.snapshot.parallel-build-enabled", "true")
-
+    TimeZoneUtils.setDefaultTimeZone(KylinConfig.getInstanceFromEnv)
     build()
   }
 
