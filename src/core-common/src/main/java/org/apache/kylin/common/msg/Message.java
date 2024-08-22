@@ -437,6 +437,18 @@ public class Message {
         return "Can’t find internal table \"%s\". Please check and try again.";
     }
 
+    public String getTimeExceedPartitionRange() {
+        return "Refresh time exceed loaded range :\"%s\" ~ \"%s\", Please check and try again. ";
+    }
+
+    public String getInternalTablePartitionNotFound() {
+        return "Can't find internal table partitions: %s. Please check and try again.";
+    }
+
+    public String getFailedReloadNoneEmptyInternalTable() {
+        return "Can't reload none empty internal table \"%s\". Please truncate table first and try again.";
+    }
+
     public String getNotInternalTable() {
         return "Table \"%s\" is not an internal table. Please check and try again.";
     }
@@ -854,6 +866,10 @@ public class Message {
 
     public String getTableNameCannotEmpty() {
         return "Table name can’t be empty. Please check and try again.";
+    }
+
+    public String getTableOrDatabaseNameCannotEmpty() {
+        return "Table or database can not be null, please check again.";
     }
 
     public String getFileNotExist() {

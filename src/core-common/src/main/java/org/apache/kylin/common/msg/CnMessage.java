@@ -916,6 +916,11 @@ public class CnMessage extends Message {
     }
 
     @Override
+    public String getTableOrDatabaseNameCannotEmpty() {
+        return "数据库名与表名不能为空。请检查后重试。";
+    }
+
+    @Override
     public String getTableNotFound() {
         return "无法找到表 \"%s\" 。请检查后重试。";
     }
@@ -923,6 +928,21 @@ public class CnMessage extends Message {
     @Override
     public String getInternalTableNotFound() {
         return "无法找到内表 \"%s\"。 请检查后重试。";
+    }
+
+    @Override
+    public String getTimeExceedPartitionRange() {
+        return "刷新时间超出已加载范围 :\"%s\" ~ \"%s\"，请检查后重试。 ";
+    }
+
+    @Override
+    public String getInternalTablePartitionNotFound() {
+        return "无法找到内表分区：%s。 请检查后重试。";
+    }
+
+    @Override
+    public String getFailedReloadNoneEmptyInternalTable() {
+        return "无法重载非空内表 \"%s\". 请清理数据后重试.";
     }
 
     @Override

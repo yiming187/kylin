@@ -21,6 +21,7 @@ package org.apache.kylin.rest.service;
 import static org.apache.kylin.common.exception.ServerErrorCode.EMPTY_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.INTERNAL_TABLE_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.INTERNAL_TABLE_NOT_EXIST;
+import static org.apache.kylin.common.exception.ServerErrorCode.INTERNAL_TABLE_RELOAD_ERROR;
 import static org.apache.kylin.common.exception.ServerErrorCode.INVALID_INTERNAL_TABLE_PARAMETER;
 import static org.apache.kylin.common.exception.ServerErrorCode.TABLE_NOT_EXIST;
 
@@ -128,9 +129,9 @@ public class InternalTableService extends BasicService {
             internalTable.optimizeTblProperties();
             internalTable.setStorageType(storageType);
             internalTable.setLocation(internalTable.generateInternalTableLocation());
+            createDeltaSchema(internalTable);
             tableMetadataManager.updateTableDesc(originTable.getIdentity(),
                     copyForWrite -> copyForWrite.setHasInternal(true));
-            createDeltaSchema(internalTable);
             internalTableManager.saveOrUpdateInternalTable(internalTable);
             return true;
         }, projectName);
@@ -173,14 +174,20 @@ public class InternalTableService extends BasicService {
         }
     }
 
-    public void createDeltaSchema(InternalTableDesc internalTable) throws IOException {
-        if (internalTable.getStorageType() == InternalTableDesc.StorageType.GLUTEN
-                || internalTable.getStorageType() == InternalTableDesc.StorageType.DELTALAKE) {
-            Option<SparkSession> defaultSession = SparkSession.getDefaultSession();
-            InternalTableLoader internalTableLoader = new InternalTableLoader();
-            internalTableLoader.onlyLoadSchema(true);
-            internalTableLoader.loadInternalTable(defaultSession.get(), internalTable, "true", "", "",
-                    KylinConfig.getInstanceFromEnv().getGlutenStoragePolicy(), false);
+    public void createDeltaSchema(InternalTableDesc internalTable) throws Exception {
+        try {
+            if (internalTable.getStorageType() == InternalTableDesc.StorageType.GLUTEN
+                    || internalTable.getStorageType() == InternalTableDesc.StorageType.DELTALAKE) {
+                Option<SparkSession> defaultSession = SparkSession.getDefaultSession();
+                InternalTableLoader internalTableLoader = new InternalTableLoader();
+                internalTableLoader.onlyLoadSchema(true);
+                internalTableLoader.loadInternalTable(defaultSession.get(), internalTable, "true", "", "",
+                        KylinConfig.getInstanceFromEnv().getGlutenStoragePolicy(), false);
+            }
+        } catch (Exception e) {
+            // delete delta log on hdfs
+            HadoopUtil.deletePath(HadoopUtil.getCurrentConfiguration(), new Path(internalTable.getLocation()));
+            throw e;
         }
     }
 
@@ -223,7 +230,7 @@ public class InternalTableService extends BasicService {
             internalTable.setTblProperties(tblProperties);
             internalTable.optimizeTblProperties();
             internalTable.setStorageType(storageType);
-            suicideRunningInternalTableJob(project, table);
+            suicideRunningInternalTableJob(project, dbTblName);
             deleteMetaAndDataInFileSystem(internalTable);
             createDeltaSchema(internalTable);
             internalTableManager.saveOrUpdateInternalTable(internalTable);
@@ -339,18 +346,22 @@ public class InternalTableService extends BasicService {
     // 2. update partition values in internal table meta
     // we shall do this delete action by a spark job and call delta delete api
     // so that the delta meta could be updated!
-    public InternalTableLoadingJobResponse dropPartitionsOnDeltaTable(String project, String tableIdentity,
+    public void dropPartitionsOnDeltaTable(String project, String tableIdentity,
             String[] partitionValues, String yarnQueue) throws IOException {
         aclEvaluate.checkProjectWritePermission(project);
-        return internalTableLoadingService.dropPartitions(project, partitionValues, tableIdentity, yarnQueue);
+        internalTableLoadingService.dropPartitions(project, partitionValues, tableIdentity, yarnQueue);
     }
 
-    // TODO need fix
     public void reloadInternalTableSchema(String project, String tableIdentity) throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
         InternalTableManager internalTableManager = getManager(InternalTableManager.class, project);
         InternalTableDesc internalTable = internalTableManager.getInternalTableDesc(tableIdentity);
         if (internalTable != null) {
+            if (internalTable.getRowCount() != 0) {
+                throw new KylinException(INTERNAL_TABLE_RELOAD_ERROR,
+                        String.format(Locale.ROOT,
+                                MsgPicker.getMsg().getFailedReloadNoneEmptyInternalTable(), tableIdentity));
+            }
             dropInternalTable(project, tableIdentity);
             createInternalTable(project, tableIdentity, internalTable.getPartitionColumns(),
                     internalTable.getDatePartitionFormat(), internalTable.getTblProperties(),
@@ -406,7 +417,11 @@ public class InternalTableService extends BasicService {
         InternalTableManager internalTableManager = getManager(InternalTableManager.class, project);
         String tableIdentity = databaseName + "." + tableName;
         InternalTableDesc internalTableDesc = internalTableManager.getInternalTableDesc(tableIdentity);
-        if (internalTableDesc == null || internalTableDesc.getTablePartition() == null) {
+        if (internalTableDesc == null) {
+            throw new KylinException(INTERNAL_TABLE_NOT_EXIST,
+                    String.format(Locale.ROOT, MsgPicker.getMsg().getInternalTableNotFound(), tableIdentity));
+        }
+        if (internalTableDesc.getTablePartition() == null) {
             return null;
         }
         return internalTableDesc.getTablePartition().getPartitionDetails();
