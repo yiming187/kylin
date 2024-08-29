@@ -2231,11 +2231,6 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.iceberg</groupId>
-                <artifactId>iceberg-core</artifactId>
-                <version>${iceberg.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.iceberg</groupId>
                 <artifactId>iceberg-spark-runtime-3.3_2.12</artifactId>
                 <version>${iceberg.version}</version>
             </dependency>
