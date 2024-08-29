@@ -130,6 +130,7 @@ tmp_war
 #exclusion
 !pathfinder*.jar
 VERSION
+SPARK_VERSION
 
 #hadoop files
 *.crc

@@ -29,7 +29,7 @@ cd build/
 rm -rf ${package_name}
 mkdir ${package_name}
 
-cp -rf VERSION commit_SHA1 lib ${package_name}/
+cp -rf VERSION SPARK_VERSION commit_SHA1 lib ${package_name}/
 cp ../LICENSE ${package_name}/
 cp ../NOTICE ${package_name}/
 
