@@ -93,6 +93,27 @@ rm -rf ext lib commit_SHA1 VERSION # keep the spark folder on purpose
 cp -rf server/webapp/dist ${package_name}/server/public
 cp -rf server/newten.jar ${package_name}/server/
 cp -rf server/jars ${package_name}/server/
+echo $WITH_GLUTEN
+if [[ "${WITH_GLUTEN}" = "1" ]]; then
+    mkdir -p ${package_name}/lib/gluten/
+    cp -rf gluten/jars/spark33/* ${package_name}/lib/gluten/
+    mv spark/libch.so ${package_name}/server/
+    cp spark/jars/gluten.jar ${package_name}/lib/ext/
+    if [[ "$(uname)" == "Darwin" ]]; then
+            sed -i '' '27a\
+    export LD_PRELOAD=${KYLIN_HOME}/server/libch.so
+    ' ${package_name}/sbin/bootstrap.sh
+        else
+            sed -i '27aexport LD_PRELOAD=${KYLIN_HOME}/server/libch.so' ${package_name}/sbin/bootstrap.sh
+        fi
+    else
+        if [[ "$(uname)" == "Darwin" ]]; then
+            sed -i '' '/^export LD_PRELOAD=/d' ${package_name}/sbin/bootstrap.sh
+        else
+            sed -i '/^export LD_PRELOAD=/d' ${package_name}/sbin/bootstrap.sh
+        fi
+fi
+
 # cp -rf deploy/.keystore ${package_name}/server/
 # mv ${package_name}/server/jars/log4j* ${package_name}/spark/jars/
 rm -rf server/

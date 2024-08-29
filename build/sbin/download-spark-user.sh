@@ -41,8 +41,8 @@ echo "spark_pkg_file_name : "${spark_pkg_file_name}
 wget --directory-prefix=${KYLIN_HOME} https://s3.cn-north-1.amazonaws.com.cn/download-resource/kyspark/${spark_pkg_file_name} || echo "Download spark failed"
 
 mkdir -p ${KYLIN_HOME}/${spark_pkg_name}
-tar -zxf ${spark_pkg_file_name} -C ${spark_pkg_name} --strip-components 1 || { exit 1; }
-mv ${spark_pkg_name} spark
+tar -zxf ${KYLIN_HOME}/${spark_pkg_file_name} -C ${KYLIN_HOME}/${spark_pkg_name} --strip-components 1 || { exit 1; }
+mv ${KYLIN_HOME}/${spark_pkg_name} ${KYLIN_HOME}/spark
 
 # Remove unused components in Spark
 rm -rf ${KYLIN_HOME}/spark/lib/spark-examples-*
@@ -73,4 +73,12 @@ else
         wget --directory-prefix=${KYLIN_HOME} https://s3.cn-north-1.amazonaws.com.cn/download-resource/kyspark/hive_1_2_2.tar.gz  || echo "Download hive1 failed"
     fi
 fi
-tar -zxf hive_1_2_2.tar.gz -C ${KYLIN_HOME}/spark/ || { exit 1; }
+tar -zxf ${KYLIN_HOME}/hive_1_2_2.tar.gz -C ${KYLIN_HOME}/spark/ || { exit 1; }
+
+# add gluten relevant dependencies to spark
+if [ ! -f ${KYLIN_HOME}/lib/gluten ]
+then
+  find ${KYLIN_HOME}/spark/jars/ -name "protobuf-java*" -delete
+  cp -rf ${KYLIN_HOME}/server/jars/*.jar ${KYLIN_HOME}/spark/jars/
+  cp -rf ${KYLIN_HOME}/server/libch.so ${KYLIN_HOME}/spark/
+fi
