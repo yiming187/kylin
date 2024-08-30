@@ -236,6 +236,7 @@ exports.default = {
     formatTips: 'It is recommended to copying the SQL using the default format. The current format may cause query errors.'
   },
   model: {
+    generateModel: 'From SQL',
     draft: 'Draft',
     modelName: 'Model Name',
     computedColumn: 'Computed Column',

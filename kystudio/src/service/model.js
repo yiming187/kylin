@@ -211,11 +211,32 @@ export default {
   complementBatchIndex: (para) => {
     return Vue.resource(apiUrl + `models/${para.modelId}/model_segments/indexes`).save(para.data)
   },
+  getModelRecommendations: (para) => {
+    return Vue.resource(apiUrl + 'models/' + para.model + '/recommendations?project=' + para.project).get()
+  },
+  adoptModelRecommendations: (para) => {
+    return Vue.resource(apiUrl + 'models/' + para.model + '/recommendations').update(para)
+  },
+  clearModelRecommendations: (para) => {
+    return Vue.resource(apiUrl + 'models/' + para.model + '/recommendations').delete(para)
+  },
+  getAggIndexContentList: (para) => {
+    return Vue.resource(apiUrl + 'models/' + para.model + '/recommendations/agg_index').get(para)
+  },
+  getTableIndexContentList: (para) => {
+    return Vue.resource(apiUrl + 'models/' + para.model + '/recommendations/table_index').get(para)
+  },
+  getIndexContentList: (para) => {
+    return Vue.resource(apiUrl + 'models/' + para.model + '/recommendations/index').get(para)
+  },
   deleteBatchIndex: (para) => {
     return Vue.resource(apiUrl + `models/${para.modelId}/model_segments/indexes/deletion`).save(para.data)
   },
   suggestModel: (para) => {
     return Vue.resource(apiUrl + 'models/suggest_model').save(para)
+  },
+  saveSuggestModels: (para) => {
+    return Vue.resource(apiUrl + `models/model_recommendation?project=${para.project}`).save(para)
   },
   validateModelName: (para) => {
     return Vue.resource(apiUrl + 'models/validate_model').save(para)
@@ -291,6 +312,29 @@ export default {
     const headers = { 'Content-Type': 'application/x-www-form-urlencoded' }
     const responseType = 'blob' || 'arraybuffer'
     return window.kylinVm.$http.post(`/kylin/api/metastore/backup/models?project=${para.project}`, body, { emulateJSON: true }, { headers }, { responseType })
+  },
+  // 获取所有优化建议
+  getRecommendations (para) {
+    return Vue.resource(apiUrl + `recommendations/${para.modelId}`).get(para)
+  },
+  // 刷新优化建议
+  recommendationCountRefresh (para) {
+    return Vue.http.put(apiUrl + 'recommendations/count', para)
+  },
+  // 删除优化建议
+  deleteRecommendations (para) {
+    return Vue.resource(apiUrl + `recommendations/${para.modelId}`).delete(para)
+  },
+  // 通过优化建议
+  acceptRecommendations (para) {
+    return window.kapVm.$http.post(apiUrl + `recommendations/${para.modelId}`, para)
+  },
+  // 获取优化建议详情
+  getRecommendDetails (para) {
+    return Vue.resource(apiUrl + `recommendations/${para.modelId}/${para.id}`).get(para)
+  },
+  validateRecommend (para) {
+    return window.kapVm.$http.post(apiUrl + `recommendations/${para.modelId}/validation`, para)
   },
   fetchHitModelsList (para) {
     return Vue.resource(apiUrl + 'query/query_history_models').get(para)

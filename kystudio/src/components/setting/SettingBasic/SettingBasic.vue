@@ -15,6 +15,20 @@
         <div class="setting-label font-medium">Developer Info</div>
         <div class="setting-value fixed"> {{project.package_version}} [{{project.package_timestamp}}, {{project.git_commit}}]</div>
       </div>
+      <div class="setting-item">
+        <span class="setting-label font-medium">
+          {{$t('enableSemiAutomatic')}}
+          <!-- <span class="beta-label">BETA</span> -->
+        </span>
+        <span class="setting-value fixed">
+          <el-switch
+            v-model="form.semi_automatic_mode"
+            :active-text="$t('kylinLang.common.OFF')"
+            :inactive-text="$t('kylinLang.common.ON')">
+          </el-switch>
+        </span>
+        <div class="setting-desc">{{$t('enableSemiAutomaticDesc')}}</div>
+      </div>
       <div class="setting-item clearfix">
         <div class="setting-label font-medium">{{$t('description')}}</div>
         <div class="setting-value">{{project.description}}</div>
@@ -137,6 +151,111 @@
         </div>
       </el-form>
     </EditableBlock>
+    <EditableBlock
+      v-if="$store.state.project.isSemiAutomatic"
+      ref="accelerationRuleSettings"
+      :header-content="$t('accelerationRuleSettings')"
+      :is-keep-editing="true"
+      :is-edited="isFormEdited(form, 'acceleration-rule-settings')"
+      @submit="(scb, ecb) => handleSubmit('acceleration-rule-settings', scb, ecb)"
+      @cancel="(scb, ecb) => handleResetForm('acceleration-rule-settings', scb, ecb)">
+      <el-form ref="rulesForm" :rules="rulesSettingRules" :model="rulesObj" size="medium" class="ruleSetting">
+        <div class="conds">
+          <div class="conds-title">
+            <span class="setting-label font-medium">{{$t('querySubmitter')}}</span><span class="ksd-fs-12">
+            <el-switch v-model="rulesObj.submitter_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch></span>
+          </div>
+          <div class="conds-content">
+            <div class="ksd-fs-12 ksd-mt-5">{{$t('querySubmitterTips')}}</div>
+            <div class="vip-users-block">
+              <el-form-item prop="users">
+                <div class="ksd-mt-8 conds-title"><i class="el-icon-ksd-table_admin"></i> User</div>
+                <el-select v-model="rulesObj.users" v-event-stop :popper-append-to-body="false" filterable remote :remote-method="remoteMethod" :loading="loading" size="medium" :placeholder="rulesObj.users.length ? '' : $t('kylinLang.common.pleaseSelectOrSearch')" class="ksd-mt-5" multiple style="width:100%">
+                  <span slot="prefix" class="el-input__icon el-ksd-icon-search_22" v-if="!rulesObj.users.length"></span>
+                  <el-option v-for="item in filterSubmitterUserOptions" :key="item" :label="item" :value="item"></el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item prop="user_groups">
+                <div class="ksd-mt-8 conds-title"><i class="el-icon-ksd-table_group"></i> User Group</div>
+                <el-select v-model="rulesObj.user_groups" v-event-stop :popper-append-to-body="false" filterable size="medium" :placeholder="rulesObj.user_groups.length ? '' : $t('kylinLang.common.pleaseSelectOrSearch')" class="ksd-mt-5" multiple style="width:100%">
+                  <span slot="prefix" class="el-input__icon el-ksd-icon-search_22" v-if="!rulesObj.user_groups.length"></span>
+                  <el-option v-for="item in allSubmittersOptions.group" :key="item" :label="item" :value="item"></el-option>
+                </el-select>
+              </el-form-item>
+            </div>
+          </div>
+        </div>
+        <div class="conds">
+          <div class="conds-title">
+            <span class="setting-label font-medium">{{$t('queryDuration')}}</span>
+          </div>
+          <div class="conds-content clearfix">
+            <div class="duration-rule ksd-mt-8 ksd-fs-12">
+              {{$t('from')}}
+              <el-form-item prop="min_duration" style="display: inline-block;">
+                <el-input v-model.trim="rulesObj.min_duration" v-number="rulesObj.min_duration" size="small" :class="['rule-setting-input', durationError && 'is-error']" @blur="$refs.rulesForm.validateField('min_duration')"></el-input>
+              </el-form-item>
+              {{$t('to')}}
+              <el-form-item prop="max_duration" style="display: inline-block;">
+                <el-input v-model.trim="rulesObj.max_duration" v-number="rulesObj.max_duration" size="small" :class="['rule-setting-input', durationError && 'is-error']" @blur="$refs.rulesForm.validateField('max_duration')"></el-input>
+              </el-form-item>
+              {{$t('secondes')}}
+            </div>
+            <span class="error-msg" v-if="durationError && durationErrorMsg">{{durationErrorMsg}}</span>
+          </div>
+        </div>
+        <div class="conds">
+          <div class="conds-title">
+            <span class="setting-label font-medium">{{$t('hitRules')}}</span>
+          </div>
+          <div class="conds-content clearfix">
+            <div class="ksd-fs-12 ksd-mt-8">
+              {{$t('ruleTips')}}
+              <el-tooltip effect="dark" :content="$t('ruleTooltips')" placement="top"><i class="el-ksd-icon-more_info_16 icon ksd-fs-16"></i></el-tooltip>
+            </div>
+            <div class="ksd-fs-12 ksd-mt-8">
+              {{$t('timeFrame')}}
+              <el-form-item prop="effective_days" class="inline-form-item">
+                <el-input-number style="width:100px;" input-enabled v-model="rulesObj.effective_days" size="small" :min="1" :max="30" ></el-input-number>
+              </el-form-item>
+              {{$t('days')}}
+            </div>
+            <div class="ksd-fs-12 ksd-mt-8">
+              {{$t('hitNums')}}
+              <el-form-item prop="min_hit_count" class="inline-form-item">
+                <el-input style="width:100px;" v-model.trim="rulesObj.min_hit_count" v-number4="rulesObj.min_hit_count" size="small"></el-input>
+              </el-form-item>
+              {{$t('hitNumTips')}}
+            </div>
+          </div>
+        </div>
+        <div class="conds">
+          <div class="conds-title">
+            <span class="setting-label font-medium">{{$t('optimizationSuggestions')}}</span>
+          </div>
+          <div class="conds-content clearfix">
+            <div class="conds-content clearfix">
+              <div class="ksd-mt-8 ksd-fs-12">
+                {{$t('suggestionTip1')}}
+                <el-form-item prop="recommendations_value" style="display: inline-block;">
+                  <el-select v-model="rulesObj.recommendations_value" v-event-stop size="mini" :disabled="!rulesObj.recommendation_enable" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" class="ksd-mt-5" style="width:70px">
+                    <el-option v-for="item in [10, 20, 50, 100]" :key="item" :label="item" :value="item"></el-option>
+                  </el-select>
+                </el-form-item>
+                <span v-html="$t('suggestionTip2')"></span>
+              </div>
+            </div>
+            <div class="ksd-fs-12 ksd-mt-12">
+              {{$t('recommendationFrequency')}}
+              <el-form-item prop="update_frequency" class="inline-form-item">
+                <el-input-number style="width:100px;" input-enabled v-model="rulesObj.update_frequency" size="small" :min="1"></el-input-number>
+              </el-form-item>
+              <span v-html="$t('recommendationFrequencyTips')"></span>
+            </div>
+          </div>
+        </div>
+      </el-form>
+    </EditableBlock>
     <!-- 屏蔽列设置 -->
     <EditableBlock
       :header-content="$t('excludeRuleSettings')"
@@ -206,7 +325,7 @@ import { mapActions, mapGetters, mapMutations, mapState } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
-import { handleError, handleSuccessAsync, objectClone, ArrayFlat, kylinConfirm } from '../../../util'
+import { handleError, handleSuccess, handleSuccessAsync, objectClone, ArrayFlat, kylinConfirm } from '../../../util'
 import { lowUsageStorageTypes, autoMergeTypes, volatileTypes, validate, initialFormValue, _getProjectGeneralInfo, _getSegmentSettings, _getPushdownConfig, _getExcludeColumnConfig, _getStorageQuota, _getIndexOptimization, _getRetentionRangeScale } from './handler'
 import { retentionTypes } from '../handler'
 import { pageCount, pageRefTags } from '../../../config'
@@ -244,6 +363,7 @@ import SourceAuthorityForm from '../../common/DataSourceModal/SourceJDBC/SourceA
       updateStorageQuota: 'UPDATE_STORAGE_QUOTA',
       updateIndexOptimization: 'UPDATE_INDEX_OPTIMIZATION',
       resetConfig: 'RESET_PROJECT_CONFIG',
+      getFavoriteRules: 'GET_FAVORITE_RULES',
       getUserAndGroups: 'GET_USER_AND_GROUPS',
       updateFavoriteRules: 'UPDATE_FAVORITE_RULES',
       fetchDBandTables: 'FETCH_DB_AND_TABLES',
@@ -270,7 +390,40 @@ export default class SettingBasic extends Vue {
   retentionTypes = retentionTypes
   form = initialFormValue
   storageQuotaSize = 0
+  rulesSettingRules = {
+    count_value: [{ validator: this.validatePass, trigger: 'blur' }],
+    min_duration: [{ validator: this.validatePass, trigger: 'blur' }],
+    max_duration: [{ validator: this.validatePass, trigger: 'blur' }],
+    effective_days: [{ validator: this.validatePass, trigger: 'blur' }],
+    min_hit_count: [{ validator: this.validatePass, trigger: 'blur' }],
+    update_frequency: [{ validator: this.validatePass, trigger: 'blur' }]
+  }
+
+  allSubmittersOptions = {
+    user: [],
+    group: []
+  }
   loading = false
+  filterUsers = []
+  rulesObj = {
+    count_enable: true,
+    count_value: 0,
+    submitter_enable: true,
+    users: [],
+    user_groups: [],
+    duration_enable: false,
+    min_duration: 0,
+    max_duration: 0,
+    recommendation_enable: true,
+    recommendations_value: 20,
+    effective_days: 2,
+    min_hit_count: 30,
+    update_frequency: 2
+  }
+
+  rulesAccelerationDefault = {}
+  durationError = false
+  durationErrorMsg = ''
   dbInfoFilter = {
     project_name: '',
     source_type: 9,
@@ -289,6 +442,10 @@ export default class SettingBasic extends Vue {
     page_size: +localStorage.getItem(this.pageRefTags.excludeColumnsTablesPager) || pageCount
   }
   excludeColumnsTablesSize = 1
+
+  created () {
+    this.rulesAccelerationDefault = { ...this.rulesObj }
+  }
 
   get retentionRangeScale () {
     return _getRetentionRangeScale(this.form).toLowerCase()
@@ -375,6 +532,7 @@ export default class SettingBasic extends Vue {
   @Watch('form', { deep: true })
   @Watch('project', { deep: true })
   @Watch('rulesObj', { deep: true })
+  @Watch('rulesAccelerationDefault', { deep: true })
   onFormChange () {
     const basicSetting = this.isFormEdited(this.form, 'basic-info') || this.isFormEdited(this.form, 'datasource-info') || this.isFormEdited(this.form, 'segment-settings')
     this.$emit('form-changed', { basicSetting })
@@ -393,6 +551,13 @@ export default class SettingBasic extends Vue {
     this.getAllDatasourceTables()
     if (this.$store.state.project.projectExcludeTableConfig) {
       this.getExcludeColumns()
+    }
+    if (this.$store.state.project.isSemiAutomatic) {
+      this.getAccelerationRules()
+      // this.getDbAndTablesInfo()
+    }
+    if ('moveTo' in this.$route.query && this.$route.query.moveTo === 'index-suggest-setting') {
+      this.$refs.accelerationRuleSettings && this.$refs.accelerationRuleSettings.$el.scrollIntoView && this.$refs.accelerationRuleSettings.$el.scrollIntoView()
     }
   }
   handleCheckMergeRanges (value) {
@@ -452,8 +617,37 @@ export default class SettingBasic extends Vue {
       switch (type) {
         case 'basic-info': {
           const submitData = _getProjectGeneralInfo(this.form)
-          await this.updateProjectGeneralInfo(submitData)
-          break
+          if (!submitData.semi_automatic_mode) {
+            await this.callGlobalDetailDialog({
+              msg: this.$t('turnOffTips'),
+              title: this.$t('turnOff') + this.$t('enableSemiAutomatic'),
+              dialogType: 'warning',
+              isBeta: false,
+              wid: '600px',
+              showDetailBtn: false,
+              dangerouslyUseHTMLString: true,
+              needConcelReject: true,
+              submitText: this.$t('confirmClose')
+            })
+            await this.updateProjectGeneralInfo(submitData); break
+          } else {
+            await this.callGlobalDetailDialog({
+              msg: this.$t('turnOnTips'),
+              title: this.$t('turnOn') + this.$t('enableSemiAutomatic'),
+              dialogType: 'warning',
+              isBeta: false,
+              wid: '400px',
+              isCenterBtn: true,
+              showDetailBtn: false,
+              dangerouslyUseHTMLString: true,
+              needConcelReject: true,
+              submitText: this.$t('confirmOpen')
+            })
+            await this.updateProjectGeneralInfo(submitData)
+            this.getAccelerationRules()
+            // this.getDbAndTablesInfo() // 开启智能推荐模式，拉取数据源表
+            break
+          }
         }
         case 'datasource-info': {
           if (!this.form.JDBCConnectSetting.length) return errorCallback()
@@ -514,6 +708,13 @@ export default class SettingBasic extends Vue {
           if (await this.$refs['setting-index-optimization'].validate()) {
             const submitData = _getIndexOptimization(this.form, this.project)
             await this.updateIndexOptimization(submitData); break
+          } else {
+            return errorCallback()
+          }
+        }
+        case 'acceleration-rule-settings': {
+          if (await this.$refs.rulesForm.validate() && !this.durationError) {
+            await this.saveAccelerationRule()
           } else {
             return errorCallback()
           }
@@ -599,6 +800,14 @@ export default class SettingBasic extends Vue {
           this.$refs['setting-index-optimization'].clearValidate()
           break
         }
+        case 'acceleration-rule-settings': {
+          const res = await this.resetConfig({ project: this.currentSelectedProject, reset_item: 'favorite_rule_config' })
+          const data = await handleSuccessAsync(res)
+          const { favorite_rules } = data
+          this.rulesObj = { ...this.rulesObj, ...favorite_rules }
+          this.rulesAccelerationDefault = { ...this.rulesAccelerationDefault, ...favorite_rules }
+          this.$refs.rulesForm.resetFields()
+        }
       }
       successCallback()
       this.$emit('reload-setting')
@@ -626,7 +835,71 @@ export default class SettingBasic extends Vue {
         return JSON.stringify(_getStorageQuota(form)) !== JSON.stringify(_getStorageQuota(project))
       case 'index-optimization':
         return JSON.stringify(_getIndexOptimization(form)) !== JSON.stringify(_getIndexOptimization(project))
+      case 'acceleration-rule-settings':
+        return JSON.stringify(this.rulesAccelerationDefault) !== JSON.stringify(this.rulesObj)
     }
+  }
+
+  // 获取优化建议规则
+  getAccelerationRules () {
+    if (this.currentSelectedProject) {
+      this.getFavoriteRules({ project: this.currentSelectedProject }).then((res) => {
+        handleSuccess(res, (data) => {
+          this.rulesObj = { ...data }
+          this.rulesAccelerationDefault = { ...data }
+        })
+      }).catch((res) => {
+        handleError(res)
+      })
+      this.getUserAndGroups().then((res) => {
+        handleSuccess(res, (data) => {
+          this.allSubmittersOptions = data
+          this.filterUsers = this.allSubmittersOptions.user
+        }, (res) => {
+          handleError(res)
+        })
+      })
+    }
+  }
+
+  remoteMethod (query) {
+    if (query !== '') {
+      this.loading = true
+      setTimeout(() => {
+        this.loading = false
+        this.filterUsers = this.allSubmittersOptions.user.filter(item => {
+          return item.toLowerCase()
+            .indexOf(query.toLowerCase()) > -1
+        })
+      }, 0)
+    } else {
+      this.filterUsers = this.allSubmittersOptions.user
+    }
+  }
+
+  get filterSubmitterUserOptions () {
+    const filterUsers = objectClone(this.filterUsers)
+    return filterUsers.splice(0, 500)
+  }
+
+  // 保存优化建议规则
+  saveAccelerationRule () {
+    return new Promise((resolve, reject) => {
+      const submitData = objectClone(this.rulesObj)
+      submitData.min_duration = +submitData.min_duration
+      submitData.max_duration = +submitData.max_duration
+      // 换成次数字段了，不需要除于 100
+      // submitData.freqValue = submitData.freqValue / 100
+      this.updateFavoriteRules({ ...submitData, ...{ project: this.currentSelectedProject } }).then((res) => {
+        handleSuccess(res, (data) => {
+          this.rulesAccelerationDefault = { ...this.rulesAccelerationDefault, ...this.rulesObj }
+        })
+        resolve()
+      }, (res) => {
+        handleError(res)
+        reject(res)
+      })
+    })
   }
 
   changeDurationEnable (val) {

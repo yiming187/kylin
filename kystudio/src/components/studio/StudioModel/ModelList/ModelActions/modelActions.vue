@@ -262,6 +262,9 @@ import locales from './locales'
       'currentSelectedProject'
     ])
   },
+  inject: [
+    'isAdvancedOperatorUser'
+  ],
   methods: {
     ...mapActions({
       fetchSegments: 'FETCH_SEGMENTS',

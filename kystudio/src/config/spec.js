@@ -68,6 +68,7 @@ export default {
       { "id": "acceRuleSettingActions" },
       { "id": "acceDelSql" },
       { "id": "acceBlackList" },
+      { "id": "accelerationActions" },
       { "id": "modelActions" },
       { "id": "addSnapshot" },
       { "id": "snapshotAction" },
@@ -186,9 +187,9 @@ export default {
     "datasourceActions": {
       "keyPattern": "groupRole-projectRole",
       "entries": [
-        { "key": "systemAdmin-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,acceRuleSettingActions,acceBlackList,acceDelSql,modelActions,addSnapshot,snapshotAction,segmentActions,editAggGroup,delAggIdx,buildIndex,tableIndexActions,changePartition,changeBuildType" },
-        { "key": "systemUser-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,acceRuleSettingActions,acceBlackList,acceDelSql,modelActions,addSnapshot,snapshotAction,segmentActions,editAggGroup,delAggIdx,buildIndex,tableIndexActions,changePartition,changeBuildType" },
-        { "key": "systemUser-management", "value": "loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,modelActions,addSnapshot,snapshotAction,segmentActions,editAggGroup,delAggIdx,buildIndex,tableIndexActions,changePartition,changeBuildType" },
+        { "key": "systemAdmin-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,acceRuleSettingActions,acceBlackList,acceDelSql,accelerationActions,modelActions,addSnapshot,snapshotAction,segmentActions,editAggGroup,delAggIdx,buildIndex,tableIndexActions,changePartition,changeBuildType" },
+        { "key": "systemUser-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,acceRuleSettingActions,acceBlackList,acceDelSql,accelerationActions,modelActions,addSnapshot,snapshotAction,segmentActions,editAggGroup,delAggIdx,buildIndex,tableIndexActions,changePartition,changeBuildType" },
+        { "key": "systemUser-management", "value": "loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,modelActions,addSnapshot,snapshotAction,segmentActions,editAggGroup,delAggIdx,buildIndex,tableIndexActions,changePartition,changeBuildType" },
         { "key": "systemUser-operation", "value": "loadData,snapshotAction,segmentActions,buildIndex" },
         { "key": "systemUser-read", "value": "none" }
       ]

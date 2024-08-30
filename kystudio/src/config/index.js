@@ -159,6 +159,7 @@ export const pageRefTags = {
   tableIndexPager: 'tableIndexPager',
   tableColumnsPager: 'tableColumnsPager',
   statisticsPager: 'statisticsPager',
+  recommendationsPager: 'recommendationsPager',
   subPartitionValuesPager: 'subPartitionValuesPager',
   subPartitionSegmentPager: 'subPartitionSegmentPager',
   snapshotPager: 'snapshotPager',
