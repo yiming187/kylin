@@ -19,8 +19,6 @@
 package org.apache.kylin.common.asyncprofiler;
 
 import static org.apache.kylin.common.constant.AsyncProfilerConstants.ASYNC_PROFILER_LIB_LINUX_ARM64;
-import static org.apache.kylin.common.constant.AsyncProfilerConstants.ASYNC_PROFILER_LIB_LINUX_MUSL_ARM64;
-import static org.apache.kylin.common.constant.AsyncProfilerConstants.ASYNC_PROFILER_LIB_LINUX_MUSL_X64;
 import static org.apache.kylin.common.constant.AsyncProfilerConstants.ASYNC_PROFILER_LIB_LINUX_X64;
 import static org.apache.kylin.common.constant.AsyncProfilerConstants.ASYNC_PROFILER_LIB_MAC;
 
@@ -64,19 +62,11 @@ public class AsyncProfiler {
                 logger.info("Machine's archType: {}, isMuslLibc: {}", archType, isMuslLibc);
                 switch (archType) {
                 case LINUX_ARM64:
-                    if (isMuslLibc) {
-                        libName = ASYNC_PROFILER_LIB_LINUX_MUSL_ARM64;
-                    } else {
-                        libName = ASYNC_PROFILER_LIB_LINUX_ARM64;
-                    }
+                    libName = ASYNC_PROFILER_LIB_LINUX_ARM64;
                     break;
                 case LINUX_X64:
                 default:
-                    if (isMuslLibc) {
-                        libName = ASYNC_PROFILER_LIB_LINUX_MUSL_X64;
-                    } else {
-                        libName = ASYNC_PROFILER_LIB_LINUX_X64;
-                    }
+                    libName = ASYNC_PROFILER_LIB_LINUX_X64;
                     break;
                 }
 
