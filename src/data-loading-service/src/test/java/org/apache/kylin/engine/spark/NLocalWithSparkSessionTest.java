@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.util.RandomUtil;
 import org.apache.kylin.engine.spark.job.NSparkMergingJob;
@@ -33,8 +34,10 @@ import org.apache.kylin.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.metadata.cube.model.NDataSegment;
 import org.apache.kylin.metadata.cube.model.NDataflow;
 import org.apache.kylin.metadata.cube.model.NDataflowManager;
+import org.apache.kylin.metadata.cube.model.NDataflowUpdate;
 import org.apache.kylin.metadata.model.NDataModelManager;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.query.relnode.ContextUtil;
 import org.apache.kylin.query.util.SlowQueryDetector;
 import org.junit.After;
@@ -136,5 +139,15 @@ public class NLocalWithSparkSessionTest extends NLocalWithSparkSessionTestBase {
                 copyForWrite.setStorageType(storageType);
             });
         });
+    }
+
+    public void cleanupSegments(String dfName, String project) {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            NDataflowManager dsMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            NDataflow df = dsMgr.getDataflow(dfName);
+            NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+            update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+            return dsMgr.updateDataflow(update);
+        }, project);
     }
 }

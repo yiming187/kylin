@@ -40,7 +40,9 @@ import static org.apache.kylin.job.execution.stage.StageType.WAITE_FOR_RESOURCE;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.engine.spark.job.InternalTableLoadCacheStep;
 import org.apache.kylin.engine.spark.job.InternalTableLoadingStep;
+import org.apache.kylin.engine.spark.job.ModelIndexLoadCacheStep;
 import org.apache.kylin.engine.spark.job.NResourceDetectStep;
 import org.apache.kylin.engine.spark.job.NSparkCleanupAfterMergeStep;
 import org.apache.kylin.engine.spark.job.NSparkCubingStep;
@@ -53,6 +55,7 @@ import org.apache.kylin.engine.spark.job.SparkCleanupTransactionalTableStep;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultExecutable;
 import org.apache.kylin.job.execution.DefaultExecutableOnModel;
+import org.apache.kylin.job.execution.DefaultExecutableOnTable;
 import org.apache.kylin.job.execution.NSparkExecutable;
 import org.apache.kylin.job.execution.handler.ExecutableHandlerFactory;
 import org.apache.kylin.metadata.cube.model.NBatchConstants;
@@ -72,6 +75,7 @@ public enum JobStepType {
 
         @Override
         protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+            // just override
         }
     },
 
@@ -83,6 +87,7 @@ public enum JobStepType {
 
         @Override
         protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+            // just override
         }
     },
     CUBING {
@@ -176,6 +181,7 @@ public enum JobStepType {
 
         @Override
         protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+            // just override
         }
     },
 
@@ -187,6 +193,21 @@ public enum JobStepType {
 
         @Override
         protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+            // just override
+        }
+    },
+    LOAD_GLUTEN_CACHE {
+        @Override
+        protected AbstractExecutable create(DefaultExecutable parent, KylinConfig config) {
+            if (parent instanceof DefaultExecutableOnTable) {
+                return new InternalTableLoadCacheStep();
+            }
+            return new ModelIndexLoadCacheStep();
+        }
+
+        @Override
+        protected void addSubStage(NSparkExecutable parent, KylinConfig config) {
+            // just override
         }
     },
     LAYOUT_DATA_OPTIMIZE {

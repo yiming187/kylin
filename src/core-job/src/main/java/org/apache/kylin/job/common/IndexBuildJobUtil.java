@@ -77,6 +77,8 @@ public class IndexBuildJobUtil extends ExecutableUtil {
         val targetLayouts = jobParam.getTargetLayouts();
 
         if (targetLayouts.isEmpty()) {
+            // No specified layouts and may have layouts deletion after build
+            jobParam.setLayoutsDeletableAfterBuild(true);
             allLayouts.forEach(layout -> {
                 if (!layout.isToBeDeleted() && !mixLayouts.contains(layout.getId())) {
                     toBeProcessedLayouts.add(layout);
@@ -87,6 +89,8 @@ public class IndexBuildJobUtil extends ExecutableUtil {
                             .collect(Collectors.toCollection(LinkedHashSet::new)),
                     toBeProcessedLayouts, df, indexPlan, readySegs));
         } else {
+            // Has user specified layouts to build and should not delete layouts after build for forward compatibility
+            jobParam.setLayoutsDeletableAfterBuild(false);
             allLayouts.forEach(layout -> {
                 long layoutId = layout.getId();
                 if (targetLayouts.contains(layoutId) && !mixLayouts.contains(layoutId)) {

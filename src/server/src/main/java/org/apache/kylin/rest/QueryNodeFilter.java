@@ -156,6 +156,11 @@ public class QueryNodeFilter extends BaseFilter {
         notRoutePutApiSet.add("/kylin/api/jobs/stage/status");
         notRoutePutApiSet.add("/kylin/api/jobs/spark");
         notRoutePutApiSet.add("/kylin/api/jobs/wait_and_run_time");
+
+        // gluten cache
+        notRoutePostApiSet.add("/kylin/api/jobs/gluten_cache");
+        notRoutePostApiSet.add("/kylin/api/cache/gluten_cache");
+        notRoutePostApiSet.add("/kylin/api/cache/gluten_cache_async");
     }
 
     @Autowired
