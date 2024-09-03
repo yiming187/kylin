@@ -308,6 +308,10 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         return getStatus() == RealizationStatusEnum.ONLINE || config.isQueryDryRunEnabled();
     }
 
+    public boolean isOffline() {
+        return getStatus() == RealizationStatusEnum.OFFLINE;
+    }
+
     @Override
     public String getCanonicalName() {
         return getType() + "[name=" + getModel().getAlias() + "]";

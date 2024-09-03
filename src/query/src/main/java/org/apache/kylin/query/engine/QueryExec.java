@@ -585,8 +585,8 @@ public class QueryExec {
             diagnosticInfo.append(SEP).append("3. OLAPContext(s) and matched model(s) :");
             if (ContextUtil.getThreadLocalContexts() != null) {
                 String olapMatchInfo = ContextUtil.getNativeRealizations().stream()
-                        .map(r -> String.format(Locale.ROOT, " Ctx=%d, \tMatched=%s, \tIndexType=%s, \tLayoutId=%d",
-                                r.getCxtId(), r.getModelAlias(), r.getIndexType(), r.getLayoutId()))
+                        .map(r -> String.format(Locale.ROOT, " \tMatched=%s, \tIndexType=%s, \tLayoutId=%d",
+                                r.getModelAlias(), r.getType(), r.getLayoutId()))
                         .collect(Collectors.joining(SEP));
                 if (olapMatchInfo.length() >= 10) {
                     diagnosticInfo.append(SEP).append(olapMatchInfo).append(SEP);
