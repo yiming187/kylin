@@ -17,9 +17,6 @@
 
 package org.apache.kylin.it
 
-import java.sql.SQLException
-import java.util.TimeZone
-
 import org.apache.kylin.common.util.TimeZoneUtils
 import org.apache.kylin.common.{JobSupport, KylinConfig, QuerySupport, SSSource}
 import org.apache.kylin.engine.spark.utils.LogEx
@@ -29,6 +26,8 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
 import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper
 
+import java.sql.SQLException
+import java.util.TimeZone
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 // scalastyle:off
@@ -99,7 +98,7 @@ class TestModelViewQuery
         runAndCompare(modelSql, getProject, "DEFAULT", sparkSqlPath,
           checkOrder = false, Some(sparkSql),
           (modelResult, _) => {
-            val expectedModels = modelSql.split(';')(0).substring(21).split(",")
+            val expectedModels = modelSql.split(';')(1).substring(512).split(",")
             expectedModels.zip(modelResult.getOlapContexts.asScala).foreach { case (modelAlias, idx) =>
               assert(idx.getBoundedModelAlias == modelAlias, s"$modelSqlPath, view model fails to match")
             }

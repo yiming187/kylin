@@ -27,6 +27,7 @@ import java.util.LinkedHashMap;
 
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -45,6 +46,7 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.QueryExtension;
 import org.apache.kylin.query.engine.NDataModelWrapper;
 import org.apache.kylin.query.engine.QueryExec;
+import org.apache.kylin.query.util.QueryUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -125,10 +127,12 @@ public class ModelViewTest extends NLocalFileMetadataTestCase {
         val model = createModel(project, modelAlias);
 
         // assert generated sql
-        val expectedSQL = StringUtils
-                .join(Files.readAllLines(new File("src/test/resources/ut_meta/view/" + modelAlias + ".sql").toPath(),
-                        Charset.defaultCharset()), "")
-                .replace("  ", " "); // remove extra spaces
+        String sqlStatement = FileUtils.readFileToString(
+                new File("src/test/resources/ut_meta/view/" + modelAlias + ".sql"), Charset.defaultCharset()).trim();
+        int semicolonIndex = sqlStatement.lastIndexOf(";");
+        String sql = semicolonIndex == sqlStatement.length() - 1 ? sqlStatement.substring(0, semicolonIndex)
+                : sqlStatement;
+        val expectedSQL = QueryUtil.removeCommentInSql(sql);
         val generated = new ModelViewGenerator(model).generateViewSQL().replace("  ", " "); // remove extra spaces
         Assert.assertEquals(String.format("%s view sql generated unexpected sql", modelAlias), expectedSQL.trim(),
                 generated);
