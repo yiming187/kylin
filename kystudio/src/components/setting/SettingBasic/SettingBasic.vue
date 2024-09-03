@@ -35,6 +35,40 @@
         <el-input class="setting-input" :rows="3" type="textarea" size="small" v-model="form.description"></el-input>
       </div>
     </EditableBlock>
+    <!-- 低效存储设置 -->
+    <EditableBlock
+      :header-content="$t('indexOptimizationSettings')"
+      :is-keep-editing="true"
+      :is-edited="isFormEdited(form, 'index-optimization')"
+      @submit="(scb, ecb) => handleSubmit('index-optimization', scb, ecb)"
+      @cancel="(scb, ecb) => handleResetForm('index-optimization', scb, ecb)">
+      <el-form ref="setting-index-optimization" :model="form" :rules="indexOptimization">
+        <div class="setting-item">
+          <span class="setting-label font-medium">{{$t('storageGarbage')}}</span>
+          <div class="setting-desc large">
+            <span>{{$t('storageGarbageDesc1')}}</span>
+            <el-select
+              class="setting-input"
+              size="small"
+              style="width: 100px;"
+              v-model="form.frequency_time_window"
+              :placeholder="$t('kylinLang.common.pleaseChoose')">
+              <el-option
+                v-for="lowUsageStorageType in lowUsageStorageTypes"
+                :key="lowUsageStorageType"
+                :label="$t(lowUsageStorageType+'1')"
+                :value="lowUsageStorageType">
+              </el-option>
+            </el-select>
+            <span>{{$t('storageGarbageDesc2')}}</span>
+            <el-form-item class="setting-input" prop="low_frequency_threshold">
+              <el-input-number size="small" style="width: 100px;" :max="9999" input-enabled v-number="form.low_frequency_threshold" v-model="form.low_frequency_threshold" :controls="false"></el-input-number>
+            </el-form-item>
+            <span>{{$store.state.project.isSemiAutomatic ? $t('storageGarbageDesc3ForSemiAutomatic') : $t('storageGarbageDesc3')}}</span>
+          </div>
+        </div>
+      </el-form>
+    </EditableBlock>
     <!-- 下压查询设置 -->
     <EditableBlock
       :header-content="$t('pushdownSettings')"
