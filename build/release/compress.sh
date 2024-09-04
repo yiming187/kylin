@@ -93,7 +93,9 @@ rm -rf ext lib commit_SHA1 VERSION # keep the spark folder on purpose
 cp -rf server/webapp/dist ${package_name}/server/public
 cp -rf server/newten.jar ${package_name}/server/
 cp -rf server/jars ${package_name}/server/
-echo $WITH_GLUTEN
+
+gluten_version=$(sed -n 's:.*<gluten.version>\(.*\)</gluten.version>.*:\1:p'  ./../pom.xml)
+echo "$gluten_version" > ${package_name}/GLUTEN_VERSION
 if [[ "${WITH_GLUTEN}" = "1" ]]; then
     mkdir -p ${package_name}/lib/gluten/
     cp -rf gluten/jars/spark33/* ${package_name}/lib/gluten/

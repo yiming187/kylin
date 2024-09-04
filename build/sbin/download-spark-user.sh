@@ -76,9 +76,23 @@ fi
 tar -zxf ${KYLIN_HOME}/hive_1_2_2.tar.gz -C ${KYLIN_HOME}/spark/ || { exit 1; }
 
 # add gluten relevant dependencies to spark
-if [ ! -f ${KYLIN_HOME}/lib/gluten ]
+if [ -d ${KYLIN_HOME}/lib/gluten/ ]
 then
   find ${KYLIN_HOME}/spark/jars/ -name "protobuf-java*" -delete
   cp -rf ${KYLIN_HOME}/server/jars/*.jar ${KYLIN_HOME}/spark/jars/
   cp -rf ${KYLIN_HOME}/server/libch.so ${KYLIN_HOME}/spark/
+else
+  gluten_version=$(cat ${KYLIN_HOME}/GLUTEN_VERSION)
+  gluten_platform="ubuntu22.04-x86_64"
+  if [ ! -f ${KYLIN_HOME}/gluten-${gluten_version}-${gluten_platform}.tar.gz ]
+  then
+    wget --directory-prefix=${KYLIN_HOME} https://repository.kyligence.io/repository/open-raw/org/apache/gluten/${gluten_version}-${gluten_platform}/gluten-${gluten_version}-${gluten_platform}.tar.gz  || echo "Download gluten failed"
+  fi
+  tar -zxf ${KYLIN_HOME}/gluten-${gluten_version}-${gluten_platform}.tar.gz -C ${KYLIN_HOME}/ || { exit 1; }
+  cp -rf ${KYLIN_HOME}/gluten-${gluten_version}-${gluten_platform}/libs/libch.so ${KYLIN_HOME}/server/
+  cp -rf ${KYLIN_HOME}/gluten-${gluten_version}-${gluten_platform}/jars/spark33/gluten.jar ${KYLIN_HOME}/lib/ext/
+  find ${KYLIN_HOME}/spark/jars/ -name "protobuf-java*" -delete
+  cp -rf ${KYLIN_HOME}/gluten-${gluten_version}-${gluten_platform}/libs/libch.so ${KYLIN_HOME}/spark/
+  cp -rf ${KYLIN_HOME}/gluten-${gluten_version}-${gluten_platform}/jars/spark33/* ${KYLIN_HOME}/spark/jars/
+  rm -rf ${KYLIN_HOME}/gluten-${gluten_version}-${gluten_platform}/
 fi
