@@ -29,7 +29,7 @@ gluten_version=$(sed -n 's:.*<gluten.version>\(.*\)</gluten.version>.*:\1:p'  po
 gluten_platform='ubuntu22.04-x86_64'
 if [ ! -f "build/gluten-${gluten_version}-${gluten_platform}.tar.gz" ]; then
   echo "no binary file found"
-  wget --directory-prefix=build/ https://repo-ofs.kyligence.com/repository/raw-tars-hosted/org/apache/gluten/${gluten_version}-${gluten_platform}/gluten-${gluten_version}-${gluten_platform}.tar.gz
+  wget --directory-prefix=build/ https://repository.kyligence.io/repository/open-raw/org/apache/gluten/${gluten_version}-${gluten_platform}/gluten-${gluten_version}-${gluten_platform}.tar.gz
 fi
 
 tar -zxf build/gluten-${gluten_version}-${gluten_platform}.tar.gz -C build/

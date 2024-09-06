@@ -61,6 +61,13 @@ function prepareEnv() {
     source ${KYLIN_HOME}/sbin/init-kerberos.sh
     prepareKerberosOpts
     initKerberosIfNeeded
+
+    # init gluten libch.so
+    if [[ -f ${KYLIN_HOME}/server/libch.so ]]; then
+      export LD_PRELOAD=${KYLIN_HOME}/server/libch.so
+      verbose "LD_PRELOAD= is:${LD_PRELOAD}"
+    fi
+
 }
 
 function retrieveDependency() {
