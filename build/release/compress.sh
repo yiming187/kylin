@@ -81,6 +81,7 @@ for log_conf in `find conf -name "*-log4j.xml"`; do
 done
 cp -rf conf/kylin.properties ${package_name}/conf/kylin.properties
 cp -rf conf/setenv.sh ${package_name}/conf/setenv.sh.template
+cp -rf conf/kylin.properties.withoutGluten  ${package_name}/conf/
 cp -rf bin/ ${package_name}/bin/
 cp -rf sbin/ ${package_name}/sbin/
 

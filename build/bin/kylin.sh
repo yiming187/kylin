@@ -23,25 +23,29 @@ function help() {
   echo "Commands:"
   echo "  -D                    -D[ skipCheck ]"
   echo "                        skip some check when bootstrap, eg. bash kylin.sh -DskipCheck start"
+  echo "                        -D[ withoutGluten ]"
+  echo "                        skip skip load gluten dependencies, eg. bash kylin.sh -DwithoutGluten start"
   echo "  -C                    -C[ true | false ], default true, use the local properties or not"
   echo "  start                 start kylin"
   echo "  restart               restart kylin"
   echo "  stop                  stop kylin"
-  echo "  io.kyligence.*        run tool"
+  echo "  org.apache.kylin.*    run tool"
   echo "  interactive Enter for bootstrap"
 }
 
-function parseSkipCheckArgs() {
+function parseArgs() {
   case $1 in
   "skipCheck")
-    skipValue=1
+    export KYLIN_SKIP_CHECK=1
+    ;;
+  "withoutGluten")
+    export KYLIN_WITH_GLUTEN=0
     ;;
   *)
     echo "Invalid option -D: -$1" >&2
     exit 1
     ;;
   esac
-  echo ${skipValue}
 }
 
 function checkArguments() {
@@ -78,8 +82,7 @@ function main() {
       export verbose=true
       ;;
     D)
-      skipArgs=$(parseSkipCheckArgs "$OPTARG") || exit 1
-      export KYLIN_SKIP_CHECK=${skipArgs}
+      parseArgs "$OPTARG" || exit 1
       ;;
     C)
       export _KYLIN_GET_PROPERTIES_FROM_LOCAL_CACHE="$OPTARG"

@@ -24,6 +24,7 @@ version=$(cat "${KYLIN_HOME}"/VERSION | awk '{print $3}')
 
 export KYLIN_SKIP_CHECK=${KYLIN_SKIP_CHECK:-0}
 KYLIN_SKIP_CHECK_MODE=1
+export KYLIN_WITH_GLUTEN=${KYLIN_WITH_GLUTEN:-1}
 
 if [ "$1" == "-v" ]; then
     shift
@@ -66,6 +67,50 @@ function prepareEnv() {
     if [[ -f ${KYLIN_HOME}/server/libch.so ]]; then
       export LD_PRELOAD=${KYLIN_HOME}/server/libch.so
       verbose "LD_PRELOAD= is:${LD_PRELOAD}"
+    fi
+
+    # check if start with gluten
+    if [[ ${KYLIN_WITH_GLUTEN} -eq 0 ]]; then
+      verbose "start without gluten"
+      if [[ -f ${KYLIN_HOME}/lib/ext/gluten.jar ]]; then
+        mv "${KYLIN_HOME}"/lib/ext/gluten.jar "${KYLIN_HOME}"/lib/ext/gluten.jar.bak
+      fi
+
+      if [[ -f ${KYLIN_HOME}/spark/jars/gluten.jar ]]; then
+        mv "${KYLIN_HOME}"/spark/jars/gluten.jar "${KYLIN_HOME}"/spark/jars/gluten.jar.bak
+      fi
+
+      gluten_shims_jar=$(find "${KYLIN_HOME}"/server/jars -name "spark-sql-columnar-shims-kyspark-*.jar")
+      if [[  -f "$gluten_shims_jar" ]]; then
+        mv "$gluten_shims_jar" "$gluten_shims_jar".bak
+      fi
+
+      config_without_gluten=$(grep -vE "^#" "${KYLIN_HOME}/conf/kylin.properties.withoutGluten" | grep -E "^kylin.*")
+      while read -r line
+      do
+        sed -i "/${line}/d" "${KYLIN_CONFIG_FILE}"
+      done <<< "$config_without_gluten"
+      echo "$config_without_gluten" >> "${KYLIN_CONFIG_FILE}"
+    else
+      verbose "start with gluten"
+      if [[ -f ${KYLIN_HOME}/lib/ext/gluten.jar.bak ]]; then
+        mv "${KYLIN_HOME}"/lib/ext/gluten.jar.bak "${KYLIN_HOME}"/lib/ext/gluten.jar
+      fi
+
+      if [[ -f ${KYLIN_HOME}/spark/jars/gluten.jar.bak ]]; then
+        mv "${KYLIN_HOME}"/spark/jars/gluten.jar.bak "${KYLIN_HOME}"/spark/jars/gluten.jar
+      fi
+
+      gluten_shims_jar=$(find "${KYLIN_HOME}"/server/jars -name "spark-sql-columnar-shims-kyspark-*.jar.bak")
+      if [[  -f "$gluten_shims_jar" ]]; then
+        mv "$gluten_shims_jar" "${gluten_shims_jar%.bak}"
+      fi
+
+      config_without_gluten=$(grep -vE "^#" "${KYLIN_HOME}/conf/kylin.properties.withoutGluten" | grep -E "^kylin.*")
+      while read -r line
+      do
+        sed -i "/${line}/d" "${KYLIN_CONFIG_FILE}"
+      done <<< "$config_without_gluten"
     fi
 
 }
