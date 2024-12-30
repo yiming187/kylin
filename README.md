@@ -41,7 +41,7 @@ You can also create model by importing sql text.
 
 ### 👾 3. Native Compute Engine
 
-Start from version 5.0, Kylin has integrated Gluten-Clickhosue Backend(incubating in apache software foundation) as native compute engine. And use Gluten mergetree as the default storage format of internal table.
+Start from version 5.0, Kylin has integrated Gluten-ClickHouse Backend(incubating in apache software foundation) as native compute engine. And use Gluten mergetree as the default storage format of internal table.
 Which can bring 2~4x performance improvement compared with vanilla spark. Both model and internal table queries can get benefits from the Gluten integration.
 
 ### 🧜🏻‍♀️ 4. Streaming Data Source
