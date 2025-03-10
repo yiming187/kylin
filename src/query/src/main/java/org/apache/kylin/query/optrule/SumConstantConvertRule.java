@@ -81,6 +81,7 @@ public class SumConstantConvertRule extends RelOptRule {
             for (AggExpression sumExpr : AggExpressionUtil.collectSumExpressions(oldAgg, oldProject)) {
                 if (sumExpr.isSumConst()) {
                     matches = true;
+                    break;
                 }
             }
             return matches;

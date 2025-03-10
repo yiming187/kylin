@@ -54,11 +54,11 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @Conditional(JobModeCondition.class)
 public class JobMybatisConfig implements InitializingBean {
-    
+
     private static final String CREATE_JOB_INFO_TABLE = "create.job.info.table";
-    
+
     private static final String CREATE_JOB_LOCK_TABLE = "create.job.lock.table";
-    
+
     private static final String CREATE_JOB_INFO_INDEX_1 = "create.job.info.index1";
 
     private static final String CREATE_JOB_INFO_INDEX_2 = "create.job.info.index2";
