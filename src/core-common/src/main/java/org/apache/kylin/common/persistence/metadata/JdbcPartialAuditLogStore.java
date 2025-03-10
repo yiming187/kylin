@@ -17,8 +17,6 @@
  */
 package org.apache.kylin.common.persistence.metadata;
 
-import java.util.function.Predicate;
-
 import org.apache.kylin.common.KylinConfig;
 
 import lombok.extern.slf4j.Slf4j;

@@ -228,8 +228,8 @@ public class JdbcAuditLogStore implements AuditLogStore {
                     try {
                         val bs = Objects.isNull(x.getByteSource()) ? null : x.getByteSource().read();
                         return new Object[] { x.getResPath(), CompressionUtils.compress(bs), x.getTimestamp(),
-                                x.getMvcc(), x.getUnitId(), x.getModelUuid(), x.getOperator(), x.getInstance(), x.getProject(),
-                                x.isDiffFlag() };
+                                x.getMvcc(), x.getUnitId(), x.getModelUuid(), x.getOperator(), x.getInstance(),
+                                x.getProject(), x.isDiffFlag() };
                     } catch (IOException e) {
                         return null;
                     }

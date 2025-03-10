@@ -43,6 +43,7 @@ import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.RawResourceFilter;
 import org.apache.kylin.common.persistence.metadata.mapper.BasicMapper;
 import org.apache.kylin.common.persistence.metadata.mapper.BasicSqlTable;
+import org.apache.kylin.guava30.shaded.common.base.Preconditions;
 import org.mybatis.dynamic.sql.BasicColumn;
 import org.mybatis.dynamic.sql.BindableColumn;
 import org.mybatis.dynamic.sql.SqlBuilder;
@@ -50,15 +51,10 @@ import org.mybatis.dynamic.sql.VisitableCondition;
 import org.mybatis.dynamic.sql.select.SelectDSLCompleter;
 import org.mybatis.spring.transaction.SpringManagedTransactionFactory;
 
-import com.google.common.base.Preconditions;
-
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * 15/11/2023 hellozepp(lisheng.zhanglin@163.com)
- */
 @Slf4j
 public class MetadataMapperFactory {
 

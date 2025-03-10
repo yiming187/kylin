@@ -95,8 +95,10 @@ public abstract class MetadataStore implements ITransactionManager {
     }
 
     /**
-     * upload local files to snapshot, will not change resource store synchronized, perhaps should call ResourceStore.clearCache() manually
-     * @param folder local directory contains snapshot, ${folder}/events contains event store, ${folder}/kylin.properties etc.
+     * upload local files to snapshot, will not change resource store synchronized,
+     * perhaps should call ResourceStore.clearCache() manually
+     * @param folder local directory contains snapshot, ${folder}/events contains event store,
+     * ${folder}/kylin.properties etc.
      */
     public void uploadFromFile(File folder) {
         foreachFile(folder, res -> {

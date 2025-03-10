@@ -17,10 +17,6 @@
  */
 package org.apache.kylin.common.persistence.metadata.mapper;
 
-import java.sql.JDBCType;
-
-import org.mybatis.dynamic.sql.SqlColumn;
-
 public final class FusionModelDynamicSqlSupport {
 
     public static final FusionModel sqlTable = new FusionModel();

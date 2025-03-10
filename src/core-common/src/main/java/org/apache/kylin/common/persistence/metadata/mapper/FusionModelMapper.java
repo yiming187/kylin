@@ -30,11 +30,7 @@ import org.apache.ibatis.type.JdbcType;
 import org.apache.kylin.common.persistence.metadata.jdbc.ContentTypeHandler;
 import org.apache.kylin.common.persistence.metadata.jdbc.SqlWithRecordLockProviderAdapter;
 import org.apache.kylin.common.persistence.resources.FusionModelRawResource;
-import org.mybatis.dynamic.sql.BasicColumn;
-import org.mybatis.dynamic.sql.insert.render.InsertStatementProvider;
 import org.mybatis.dynamic.sql.select.render.SelectStatementProvider;
-import org.mybatis.dynamic.sql.update.UpdateDSL;
-import org.mybatis.dynamic.sql.update.UpdateModel;
 import org.mybatis.dynamic.sql.util.SqlProviderAdapter;
 
 public interface FusionModelMapper extends BasicMapper<FusionModelRawResource> {

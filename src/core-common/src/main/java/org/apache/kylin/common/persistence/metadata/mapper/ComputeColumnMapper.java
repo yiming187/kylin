@@ -24,11 +24,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-import org.apache.ibatis.annotations.InsertProvider;
 import org.apache.ibatis.annotations.Result;
 import org.apache.ibatis.annotations.ResultMap;
 import org.apache.ibatis.annotations.Results;
-import org.apache.ibatis.annotations.SelectKey;
 import org.apache.ibatis.annotations.SelectProvider;
 import org.apache.ibatis.type.JdbcType;
 import org.apache.kylin.common.persistence.metadata.jdbc.ContentTypeHandler;
@@ -36,7 +34,6 @@ import org.apache.kylin.common.persistence.metadata.jdbc.SqlWithRecordLockProvid
 import org.apache.kylin.common.persistence.resources.ComputeColumnRawResource;
 import org.mybatis.dynamic.sql.BasicColumn;
 import org.mybatis.dynamic.sql.SqlColumn;
-import org.mybatis.dynamic.sql.insert.render.InsertStatementProvider;
 import org.mybatis.dynamic.sql.select.render.SelectStatementProvider;
 import org.mybatis.dynamic.sql.update.UpdateDSL;
 import org.mybatis.dynamic.sql.update.UpdateModel;
